@@ -1,0 +1,15 @@
+loadc 19
+mkbasic
+pushloc 0
+getbasic
+pushloc 1
+getbasic
+mul
+mkbasic
+pushloc 1
+getbasic
+pushloc 1
+getbasic
+add
+mkbasic
+slide 2
