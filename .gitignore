@@ -5,5 +5,4 @@ cup_scala/dist
 cup_scala/build
 cup_scala/nbproject/private
 *.swp
-*.jar
 *.class
