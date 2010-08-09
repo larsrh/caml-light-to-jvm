@@ -11,7 +11,7 @@ package expressions {
 	final case class Integer(value: Int) extends Const
 	final case class Bool(value: Boolean) extends Const
 	final case class Character(value: Char) extends Const
-	final case class Seq(expr1: Expression, expr2: Expression) extends Expression
+	final case class Sequence(expr1: Expression, expr2: Expression) extends Expression
 	final case class IfThenElse(cond: Expression, ifTrue: Expression, ifFalse: Expression) extends Expression
 	final case class Let(pattern: Pattern, definition: Expression, body: Expression) extends Expression
 	final case class LetRec(pattern: Pattern, definition: Expression, body: Expression) extends Expression
@@ -35,14 +35,12 @@ package expressions {
 
 package types {
 
-	import scala.collection.immutable.List
-	
 	sealed trait TypeExpression
 	final case class TypeVariable(name: String) extends TypeExpression
 	final case class TypeConstructor(name: String, params: TypeExpression*) extends TypeExpression
 
 	sealed trait TypeDefinition { val name: String }
-	final case class Data(override val name: String, params: List[TypeVariable], declaration: (String, List[TypeExpression])*) extends TypeDefinition
+	final case class Data(override val name: String, params: Seq[TypeVariable], declaration: (String, Seq[TypeExpression])*) extends TypeDefinition
 	final case class Record(override val name: String, fields: (String, TypeExpression)*) extends TypeDefinition
 
 }
