@@ -6,12 +6,12 @@ import edu.tum.cup2.semantics.{SymbolValue}
 import edu.tum.cup2.spec.CUP2Specification
 import edu.tum.cup2.spec.scala.{ScalaCUPSpecification, SymbolEnum}
 
-class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
+object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object Terminals extends SymbolEnum {
 		val	IDENTIFIER,
 			INTCONST,
-			LCURLBRACE, RCURLBRACE, LSQBRACK, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
+			LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
 			MUL, PLUS, MINUS, DIV, CONS, SEMI, POINT, // * + - / :: ; .
 			LESS, LEQ, GREATER, GEQ, EQ, NEQ, // < <= > >= == <>
 			FUN, FUNCTION, MATCH, PIPE, // fun function match |
