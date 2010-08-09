@@ -1,12 +1,17 @@
 
 package parser.generator
 
-import edu.tum.cup2.grammar.{NonTerminal, Terminal, Symbol}
 import edu.tum.cup2.semantics.{SymbolValue}
 import edu.tum.cup2.spec.CUP2Specification
 import edu.tum.cup2.spec.scala.{ScalaCUPSpecification, SymbolEnum}
 
-object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
+object CamlLightSpec {
+
+	val instance = new CamlLightSpec()
+
+}
+
+class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object Terminals extends SymbolEnum {
 		val	IDENTIFIER,
@@ -27,7 +32,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	}
 
 	// make the enum-Values available
-	import NonTerminals._, Terminals._
+	import NonTerminals._
+	import Terminals._
 
 	// tell parent class what (non)terminals exist
 	val terminals = Terminals
@@ -43,23 +49,13 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	grammar(
 		expr -> (
 			IDENTIFIER ^^ { (str: String) => Id(str) } |
-			INTCONST ^^ { (n: Int) => Integer(n) } |
+			INTCONST ^^ { (n: Int) => Integer(n) } /*|
 			expr ~ SEMI ~ expr ^^ { (expr1: Expression, expr2: Expression) => Sequence(expr1, expr2) } |
-			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ { (cond: Expression, ifTrue: Expression, ifFalse: Expression) => IfThenElse(cond, ifTrue, ifFalse) }
+			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ { (cond: Expression, ifTrue: Expression, ifFalse: Expression) => IfThenElse(cond, ifTrue, ifFalse) }*/
 		)
 	)
 
-
 	//precedences
-	/*precedences(left(TIMES), left(PLUS))
+	//precedences(left(TIMES), left(PLUS))
 
-	// specify grammar
-	grammar(
-		res   ->  (  expr ~ SEMI ^^ { (x : Int) => x }   ),
-		expr  ->  (  NUMBER ^^ { (x : Int) => x } |
-				   expr ~ PLUS ~ expr ^^ { (x : Int, y : Int) => x + y} |
-				   expr ~ TIMES ~ expr ^^ { (x : Int, y : Int) => x * y} |
-				   LPAREN ~ expr ~ RPAREN ^^ { (x : Int) => x }
-		)
-	)*/
 }

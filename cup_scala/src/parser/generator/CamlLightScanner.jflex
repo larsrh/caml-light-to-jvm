@@ -9,7 +9,7 @@ package parser.generator;
 %column
 
 %{
-  private CamlLightSpec$Terminals$ terminals = CamlLightSpec.terminals();
+  private CamlLightSpec$Terminals$ terminals = CamlLightSpec.instance().terminals();
 
   private <T> ScannerToken<T> token(Object terminal, T value)
   {
