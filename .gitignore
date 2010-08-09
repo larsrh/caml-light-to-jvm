@@ -6,3 +6,5 @@ cup_scala/build
 cup_scala/nbproject/private
 *.swp
 *.class
+.ant-targets-build.xml
+nblibraries-private.properties
