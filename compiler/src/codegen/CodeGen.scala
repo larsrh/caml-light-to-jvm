@@ -2,6 +2,13 @@
 package codegen.mama
 
 package mamaInstructions {
+  import parser.ast.expressions._
+  import scala.collection.immutable.HashMap
+
+  sealed class VarVisibility
+  case object Global extends VarVisibility
+  case object Local extends VarVisibility
+  
   sealed class Instruction
   final case class LABEL(name:String) extends Instruction
   
@@ -62,5 +69,21 @@ package mamaInstructions {
   // final case class TARG(drop:Int) extends Instruction // TODO macro
   case object UPDATE extends Instruction
   case object WRAP extends Instruction 
+  
+  object Translator {
+    def codeb(expr:Expression, rho:HashMap[String,(VarVisibility,Int)],sd:Int)
+      :List[Instruction] = expr match {
+        case Integer(x) => List(LOADC(x))
+        case Bool(x) => List(LOADC(if(x) 1 else 0))
+        case Character(x) => List(LOADC(char2int(x)))
+        case Id(x) => getvar(x, rho, sd) ++ List(GETBASIC)
+      }
+    
+    def getvar(x:String, rho:HashMap[String,(VarVisibility,Int)],sd:Int)
+    :List[Instruction] = rho.get(x) match {
+        case Some((Global,i)) => List(PUSHGLOB(i))
+        case Some((Local,i)) => List(PUSHLOC(sd-i))
+        case None => throw new Exception("Undefined variable in codegen-phase")
+      }
+  }
 }
-
