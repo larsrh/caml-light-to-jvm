@@ -21,7 +21,7 @@ package expressions {
 	final case class Record(defs: (Id, Expression)*) extends Expression
 	final case class Field(record: Expression, name: Id) extends Expression
 	final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
-	final case class Lambda(body: Pattern, arguments: Pattern*) extends Expression
+	final case class Lambda(body: Expression, arguments: Pattern*) extends Expression
 
 	object BinaryOperator extends Enumeration {
 		type BinaryOperator = Value
@@ -47,9 +47,9 @@ package types {
 package patterns {
 
 	sealed trait Pattern
-	final case class Id(name: String) extends Pattern
+	final case class PatId(name: String) extends Pattern
 	case object Underscore extends Pattern
-	final case class Record(patterns: (Id, Pattern)*) extends Pattern
+	final case class Record(patterns: (PatId, Pattern)*) extends Pattern
 	sealed trait ListPattern extends Pattern
 	case object Nil extends ListPattern
 	final case class Cons(head: Pattern, tail: Pattern) extends ListPattern
