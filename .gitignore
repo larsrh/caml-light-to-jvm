@@ -7,4 +7,6 @@ cup_scala/nbproject/private
 *.swp
 *.class
 .ant-targets-build.xml
+.vam_prefs
+*~
 nblibraries-private.properties

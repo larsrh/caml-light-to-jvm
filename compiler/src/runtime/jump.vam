@@ -1,0 +1,16 @@
+loadc 19
+jump A
+mkbasic
+pushloc 0
+getbasic
+pushloc 1
+getbasic
+mul
+mkbasic
+pushloc 1
+getbasic
+A:pushloc 1
+getbasic
+add
+mkbasic
+slide 2
