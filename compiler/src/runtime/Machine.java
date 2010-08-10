@@ -47,8 +47,8 @@ public class Machine {
 		}
 	}
 
-	// TODO: determine what cp exactly is
 	private class Function extends MachineData {
+		// cp is the code pointer, that is, label
 		private int cp;
 		private Vector ap;
 		private Vector gp;
@@ -162,7 +162,7 @@ public class Machine {
 		return h.cp;
 	}
 
-	public void targ(int k) {
+	public void targ(int k, int label) {
 		if (sp - fp < k) {
 			mkvec0();
 			// TODO: implement sane wrap
