@@ -17,8 +17,8 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		val	IDENTIFIER,
 			INTCONST,
 			LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
-			MUL, PLUS, MINUS, DIV, CONS, SEMI, POINT, // * + - / :: ; .
-			LESS, LEQ, GREATER, GEQ, EQ, NEQ, // < <= > >= == <>
+			MUL, PLUS, MINUS, DIV, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
+			LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
 			FUN, FUNCTION, MATCH, PIPE, // fun function match |
 			AND, OR, NOT, // &, or, not
 			TYPE, // type
