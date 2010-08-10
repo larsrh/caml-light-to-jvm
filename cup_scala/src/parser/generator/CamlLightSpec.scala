@@ -4,6 +4,7 @@ package parser.generator
 import edu.tum.cup2.semantics.{SymbolValue}
 import edu.tum.cup2.spec.CUP2Specification
 import edu.tum.cup2.spec.scala.{ScalaCUPSpecification, SymbolEnum}
+import edu.tum.cup2.grammar.Symbol
 
 object CamlLightSpec {
 
@@ -28,34 +29,49 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	}
 
 	object NonTerminals extends SymbolEnum {
-		val expr, const, typeexpr, typedef, pattern = NonTerminalEnum
+		val expr, const, typeexpr, typedef, pattern, expr_seq = NonTerminalEnum
 	}
 
-	// make the enum-Values available
 	import NonTerminals._
 	import Terminals._
 
-	// tell parent class what (non)terminals exist
 	val terminals = Terminals
 	val nonTerminals = NonTerminals
 
 	import parser.ast.expressions._
+	import parser.ast.types._
+	import parser.ast.patterns.Pattern
 
-	//symbols with values
 	class INTCONST extends SymbolValue[Int]
 	class IDENTIFIER extends SymbolValue[String]
 	class expr extends SymbolValue[Expression]
+	class const extends SymbolValue[Const]
+	class typeexpr extends SymbolValue[TypeExpression]
+	class typedef extends SymbolValue[TypeDefinition]
+	class pattern extends SymbolValue[Pattern]
+	class expr_seq extends SymbolValue[List[Expression]]
+
+	precedences(left(MUL), left(SEMI))
 
 	grammar(
 		expr -> (
 			IDENTIFIER ^^ { (str: String) => Id(str) } |
-			INTCONST ^^ { (n: Int) => Integer(n) } /*|
-			expr ~ SEMI ~ expr ^^ { (expr1: Expression, expr2: Expression) => Sequence(expr1, expr2) } |
-			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ { (cond: Expression, ifTrue: Expression, ifFalse: Expression) => IfThenElse(cond, ifTrue, ifFalse) }*/
+			INTCONST ^^ { (n: Int) => Integer(n) } |
+			LBRACKET ~ expr ~ RBRACKET ^^ { (expr: Expression) => expr } |
+			LSQBRACKET ~ expr ~ RSQBRACKET ^^ { (seq: Expression) => ListExpression.fromExpression(seq) } |
+			chain(SEMI, Sequence(_, _)) |
+			binOp(MUL, BinaryOperator.mul) |
+			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ { (cond: Expression, ifTrue: Expression, ifFalse: Expression) => IfThenElse(cond, ifTrue, ifFalse) }
 		)
 	)
 
-	//precedences
-	//precedences(left(TIMES), left(PLUS))
+	def chain(terminal: Symbol, action: (Expression, Expression) => Expression) =
+		(expr ~ terminal ~ expr) ^^ { (expr1: Expression, expr2: Expression) => action(expr1, expr2) }
+
+	def binOp(terminal: Symbol, op: BinaryOperator.Value) =
+		chain(terminal, BinOp(op, _, _))
+
+	def unOp(terminal: Symbol, op: UnaryOperator.Value) =
+		(terminal ~ expr) ^^ { (expr: Expression) => UnOp(op, expr) }
 
 }

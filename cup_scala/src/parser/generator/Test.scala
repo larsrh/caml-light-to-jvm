@@ -12,7 +12,7 @@ object Test extends Application {
 	val table = generator.getParsingTable()
 	val parser = new LRParser(table)
 
-	val result = parser.parse(new CamlLightScanner(new StringReader("3")))
+	val result = parser.parse(new CamlLightScanner(new StringReader("[3*foo;4]")))
 
 	println(result)
 
