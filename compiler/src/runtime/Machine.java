@@ -15,11 +15,26 @@ package runtime;
 import java.util.Stack;
 
 public class Machine {
-	private final int fp;
-	private final int sp;
+	private int fp;
+	private int sp;
+	private Vector gp;
 	abstract class MachineData {};
 	private class Base extends MachineData {
 		private int v;
+
+		private Base(int constant) {
+			v = constant;
+		}
+	}
+
+	/* when stuff is not basic - we still need a wrapper type for that */
+	// future optimization: remove all raw types from the machine
+	private class Raw extends MachineData {
+		private int v;
+
+		private Raw(int constant) {
+			v = constant;
+		}
 	}
 
 	private class Vector extends MachineData {
@@ -43,8 +58,45 @@ public class Machine {
 
 	public Machine() {
 		this.stack = new Stack<MachineData>();
-		this.fp = 0;
-		this.sp = 0;
+		// yeah, this is ugly, admittedly
+		this.fp = -1;
+		this.sp = -1;
+	}
+
+	public void loadc(int constant) {
+		this.stack.push(new Raw(constant));
+		this.sp++;
+	}
+
+	// thows a ClassCastException when the code is wrong, which is more
+	// or less what we want. Me wants pattern match in this Java!
+	public void getbasic() {
+		Base b = (Base)this.stack.pop();
+		this.stack.push(new Raw(b.v));
+	}
+
+	public void pushloc(int depth) {
+		stack.push(stack.get(sp - depth));
+		sp++;
+	}
+
+	public void pushglob(int j) {
+		stack.push(new Base(gp.v[j]));
+		sp++;
+	}
+
+	public void add() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		stack.push(new Raw(r1.v + r2.v));
+		sp--;
+	}
+
+	public void mul() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		stack.push(new Raw(r1.v * r2.v));
+		sp--;
 	}
 }
 
