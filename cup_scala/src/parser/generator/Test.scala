@@ -4,6 +4,8 @@ package parser.generator
 import edu.tum.cup2.generator.LALR1Generator
 import edu.tum.cup2.parser.LRParser
 import java.io.StringReader
+import scala.io.Source
+import scala.collection.mutable.ListBuffer
 
 object Test extends Application {
 
@@ -12,8 +14,27 @@ object Test extends Application {
 	val table = generator.getParsingTable()
 	val parser = new LRParser(table)
 
-	val result = parser.parse(new CamlLightScanner(new StringReader("[3*foo;4;{bar = 5}.baz]")))
+	var i = 0
+	val failed = ListBuffer[Int]()
+	for (line <- Source.fromFile("test/testcases").getLines()) {
+		val Array(input, output) = line.split('#')
+		val result = parser.parse(new CamlLightScanner(new StringReader(input)));
 
-	println(result)
+		println("TEST "+i+":")
+		println("input = " + input)
+		println("expected = " + output)
+		if (result.toString != output) {
+			println("*** FAIL   " + result)
+			failed += i
+		}
+		else {
+			println("*** WIN")
+		}
 
+		i += 1
+	}
+
+	if (!failed.isEmpty)
+		println("FAILED TESTS: " + failed.mkString(", "))
+	
 }

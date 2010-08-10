@@ -1,0 +1,2 @@
+[3*foo+2*(1+4);4]#Cons(BinOp(add,BinOp(mul,Integer(3),Id(foo)),BinOp(mul,Integer(2),Sequence(BinOp(add,Integer(1),Integer(4)),Integer(4)))),Nil)
+[3*foo;4;{bar = 5}.baz]#Cons(BinOp(mul,Integer(3),Sequence(Id(foo),Sequence(Integer(4),Field(Record(List((Id(bar),Integer(5)))),Id(baz))))),Nil)
