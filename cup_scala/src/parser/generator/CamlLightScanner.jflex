@@ -31,34 +31,32 @@ import java.util.regex.Pattern;
 
   private int parseHexInt(String str)
   {
-    Pattern p = Pattern.compile("(-?)0[xX]([0-9a-fA-F]+)");
+    Pattern p = Pattern.compile("0[xX]([0-9a-fA-F]+)");
     Matcher m = p.matcher(str);
     m.matches();
-    return Integer.parseInt(m.group(1) + m.group(2), 16);
+    return Integer.parseInt(m.group(1), 16);
   }
 
   private int parseOctInt(String str)
   {
-    Pattern p = Pattern.compile("(-?)0[oO]([0-7]+)");
+    Pattern p = Pattern.compile("0[oO]([0-7]+)");
     Matcher m = p.matcher(str);
     m.matches();
-    return Integer.parseInt(m.group(1) + m.group(2), 8);
+    return Integer.parseInt(m.group(1), 8);
   }
 
   private int parseBinInt(String str)
   {
-    Pattern p = Pattern.compile("(-?)0[bB]([0-1]+)");
+    Pattern p = Pattern.compile("0[bB]([0-1]+)");
     Matcher m = p.matcher(str);
     m.matches();
-    return Integer.parseInt(m.group(1) + m.group(2), 2);
+    return Integer.parseInt(m.group(1), 2);
   }
 %}
 
 LineTerminator = \r | \n | \r\n
-//InputCharacter = [^\r\n]
-WhiteSpace     = {LineTerminator} | [ \t\f]
 
-//Comment = "(*" [^*\)]* "*)"
+WhiteSpace = {LineTerminator} | [ \t\f]
 
 Identifier = [:jletter:] [:jletterdigit:]*
 
@@ -73,8 +71,6 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 %%
 
 <YYINITIAL> {
-//  {Comment}	{ /* ignore */ }
-
   "(*"		{ ++nested_comment_counter; yybegin(COMMENT); }
   "*)"		{ throw new IllegalArgumentException("Error: Wrong count of closing comments."); }
 
