@@ -27,7 +27,7 @@ package expressions {
 	final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
 	final case class Lambda(body: Expression, arguments: Pattern*) extends Expression
 
-	trait Operator extends Enumeration
+	sealed trait Operator extends Enumeration
 	
 	object UnaryOperator extends Operator {
 		type UnaryOperator = Value
