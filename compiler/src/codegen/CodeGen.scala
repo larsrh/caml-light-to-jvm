@@ -1,5 +1,5 @@
 
-package codegen
+package codegen.mama
 
 package mamaInstructions {
   import parser.ast._
