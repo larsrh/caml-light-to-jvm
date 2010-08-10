@@ -44,8 +44,12 @@ object Test extends Application {
 			println("expected = " + output)
 			result match {
 				case Left(`output`) => println("*** WIN")
-				case Left(res) => println("*** FAIL   " + res)
-				case Right(ex) => println("*** FAIL   " + ex)
+				case Left(res) =>
+					println("*** FAIL   " + res)
+					failed += i
+				case Right(ex) =>
+					println("*** FAIL   " + ex)
+					failed += i
 			}
 		}
 
