@@ -1,6 +1,7 @@
 loadc 19
 mkbasic
 pushloc 0
+targ 5
 getbasic
 pushloc 1
 getbasic
