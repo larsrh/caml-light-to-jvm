@@ -14,9 +14,10 @@ package expressions {
 	final case class Sequence(expr1: Expression, expr2: Expression) extends Expression
 	final case class IfThenElse(cond: Expression, ifTrue: Expression, ifFalse: Expression) extends Expression
 	final case class Let(pattern: Pattern, definition: Expression, body: Expression) extends Expression
-	final case class LetRec(pattern: Pattern, definition: Expression, body: Expression) extends Expression
+	final case class LetRec(body: Expression, patDef: (Pattern, Expression)*) extends Expression
 	final case class BinOp(op: BinaryOperator.Value, expr1: Expression, expr2: Expression) extends Expression
-	final case class App(func: Expression, param: Expression) extends Expression
+	final case class UnOp(op: UnaryOperator.Value, expr: Expression) extends Expression
+	final case class App(func: Expression, param: Expression*) extends Expression
 	sealed trait ListExpression extends Expression
 	final case class Cons(head: Expression, tail: Expression) extends ListExpression
 	case object Nil extends ListExpression
@@ -26,11 +27,19 @@ package expressions {
 	final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
 	final case class Lambda(body: Pattern, arguments: Pattern*) extends Expression
 
-	object BinaryOperator extends Enumeration {
-		type BinaryOperator = Value
-		// TODO fill in operators
+	trait Operator extends Enumeration
+	
+	object UnaryOperator extends Operator {
+		type UnaryOperator = Value
+		val neg = Value
 	}
-
+  
+	object BinaryOperator extends Operator {
+		type BinaryOperator = Value
+		val add, sub, mul, div, 
+                  eq, neq, geq, leq, gr, le,
+                  and, or = Value
+	}
 }
 
 package types {
