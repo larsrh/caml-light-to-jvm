@@ -47,11 +47,17 @@ public class Machine {
 		}
 	}
 
-	// TODO: determine what cp exactly is
 	private class Function extends MachineData {
+		// cp is the code pointer, that is, label
 		private int cp;
 		private Vector ap;
 		private Vector gp;
+
+		private Function(int label, Vector ap, Vector gp) {
+			this.cp = label;
+			this.ap = ap;
+			this.gp = gp;
+		}
 	}
 
 	private class Closure extends MachineData {
@@ -123,6 +129,58 @@ public class Machine {
 		Vector V = new Vector(v);
 		stack.push(V);
 		sp++;
+	}
+
+	public void mkfunval(int label) {
+		MachineData[] av = new MachineData[0];
+		Vector ap = new Vector(av);
+		Vector gp = (Vector)stack.pop();
+
+		Function fun = new Function(label, ap, gp);
+		stack.push(fun);
+	}
+
+	public void mark(int label) {
+		stack.push(gp);
+		stack.push(new Raw(fp));
+		stack.push(new Raw(label));
+		sp += 3;
+		fp = sp;
+	}
+
+	/* apply returns the label to which to jump */
+	public int apply() {
+		Function h = (Function)stack.pop();
+		Vector a = h.ap;
+		int n = a.n;
+		for (int i = 0; i < n; i++) {
+			stack.push(a.v[i]);
+		}
+		// args pushed, function popped
+		sp = sp + n - 1;
+		gp = h.gp;
+		return h.cp;
+	}
+
+	public void targ(int k, int label) {
+		if (sp - fp < k) {
+			mkvec0();
+			// TODO: implement sane wrap
+			//wrap();
+			//popenv();
+		}
+	}
+
+	/* pops elements until FP and creates a Vector */
+	public void mkvec0() {
+		int n = sp - fp;
+		MachineData[] a = new MachineData[n];
+		sp = fp + 1;
+		// put them into the array in *reverse* order
+		for (int i = n - 1; i >= 0; i--) {
+			a[i] = stack.pop();
+		}
+		stack.push(new Vector(a));
 	}
 }
 
