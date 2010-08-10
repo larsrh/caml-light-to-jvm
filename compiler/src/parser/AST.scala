@@ -27,7 +27,7 @@ package expressions {
 	final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
 	final case class Lambda(body: Pattern, arguments: Pattern*) extends Expression
 
-	trait Operator extends Enumeration
+	sealed trait Operator extends Enumeration
 	
 	object UnaryOperator extends Operator {
 		type UnaryOperator = Value
@@ -37,8 +37,8 @@ package expressions {
 	object BinaryOperator extends Operator {
 		type BinaryOperator = Value
 		val add, sub, mul, div, 
-                  eq, neq, geq, leq, gr, le,
-                  and, or = Value
+		eq, neq, geq, leq, gr, le,
+		and, or = Value
 	}
 }
 
