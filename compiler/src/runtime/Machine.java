@@ -38,8 +38,13 @@ public class Machine {
 	}
 
 	private class Vector extends MachineData {
-		private int n;
-		private int[] v;
+		private final int n;
+		private final MachineData[] v;
+
+		private Vector(MachineData[] v) {
+			this.v = v;
+			this.n = v.length;
+		}
 	}
 
 	// TODO: determine what cp exactly is
@@ -81,7 +86,7 @@ public class Machine {
 	}
 
 	public void pushglob(int j) {
-		stack.push(new Base(gp.v[j]));
+		stack.push(gp.v[j]);
 		sp++;
 	}
 
@@ -97,6 +102,27 @@ public class Machine {
 		Raw r2 = (Raw)stack.pop();
 		stack.push(new Raw(r1.v * r2.v));
 		sp--;
+	}
+
+	/* delete k elements under the topmost element */
+	public void slide(int k) {
+		MachineData save = stack.pop();
+		for (int i = 0; i < k; i++) {
+			stack.pop();
+			sp--;
+		}
+		stack.push(save);
+	}
+
+	public void mkvec(int g) {
+		MachineData[] v = new MachineData[g];
+		for (int i = 0; i < g; i++) {
+			v[i] = stack.pop();
+			sp--;
+		}
+		Vector V = new Vector(v);
+		stack.push(V);
+		sp++;
 	}
 }
 
