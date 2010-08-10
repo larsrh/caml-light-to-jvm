@@ -27,7 +27,24 @@ package expressions {
 	final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
 	final case class Lambda(body: Pattern, arguments: Pattern*) extends Expression
 
-	trait Operator extends Enumeration
+	object ListExpression {
+
+		def fromSeq(list: List[Expression]): ListExpression = list match {
+			case List() => Nil
+			case head :: tail => Cons(head, fromSeq(tail))
+		}
+
+		def fromExpression(expr: Expression) = {
+			def toSeq(e: Expression): List[Expression] = e match {
+				case Sequence(expr1, expr2) => toSeq(expr1) ::: toSeq(expr2)
+				case _ => List(e)
+			}
+			fromSeq(toSeq(expr))
+		}
+
+	}
+
+	sealed trait Operator extends Enumeration
 	
 	object UnaryOperator extends Operator {
 		type UnaryOperator = Value
@@ -37,8 +54,8 @@ package expressions {
 	object BinaryOperator extends Operator {
 		type BinaryOperator = Value
 		val add, sub, mul, div, 
-                  eq, neq, geq, leq, gr, le,
-                  and, or = Value
+		eq, neq, geq, leq, gr, le,
+		and, or = Value
 	}
 }
 
