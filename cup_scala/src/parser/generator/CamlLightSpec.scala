@@ -33,7 +33,7 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	}
 
 	object NonTerminals extends SymbolEnum {
-		val expr, const, typeexpr, typedef, pattern, binding, andbindings = NonTerminalEnum
+		val expr, const, typeexpr, typedef, pattern, binding, andbindings, commaseq, entry, record = NonTerminalEnum
 	}
 
 	import NonTerminals._
@@ -42,11 +42,13 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	val terminals = Terminals
 	val nonTerminals = NonTerminals
 
-	import parser.ast.expressions._
-	import parser.ast.types._
-	import parser.ast.patterns.Pattern
+	import parser.ast._
+	import expressions._
+	import types._
+	import patterns.Pattern
 
 	type Definition = (Pattern, Expression)
+	type Entry = (Id, Expression)
 
 	class INTCONST extends SymbolValue[Int]
 	class IDENTIFIER extends SymbolValue[String]
@@ -57,20 +59,13 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class pattern extends SymbolValue[Pattern]
 	class binding extends SymbolValue[Definition]
 	class andbindings extends SymbolValue[List[Definition]]
+	class commaseq extends SymbolValue[List[Expression]]
+	class entry extends SymbolValue[Entry]
+	class record extends SymbolValue[List[Entry]]
 
-	precedences(left(MUL), left(DIV), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(COMMA), left(SEMI))
+	precedences(left(POINT), left(MUL), left(DIV), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(COMMA), left(SEMI))
 
-	/*ealed trait Expression
-	final case class Bool(value: Boolean) extends Const
-	final case class Character(value: Char) extends Const
-	final case class BinOp(op: BinaryOperator.Value, expr1: Expression, expr2: Expression) extends Expression
-	final case class UnOp(op: UnaryOperator.Value, expr: Expression) extends Expression
-	final case class App(func: Expression, param: Expression*) extends Expression
-	final case class Tuple(exprs: Expression*) extends Expression
-	final case class Record(defs: (Id, Expression)*) extends Expression
-	final case class Field(record: Expression, name: Id) extends Expression
-	final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
-	final case class Lambda(body: Pattern, arguments: Pattern*) extends Expression*/
+	// TODO bool, character, app, tuple, string, match, lambda
 
 	val opMapping = Map[Operator#Value, Symbol](
 		BinaryOperator.add -> PLUS,
@@ -101,11 +96,13 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 				BinaryOperator.values.foreach { op => buf.append(binOp(op) : _*) }
 				UnaryOperator.values.foreach  { op => buf.append(unOp(op) : _*) }
 				buf.toSeq
-			}
-			|
+			} |
+			expr ~ POINT ~ IDENTIFIER ^^ { (expr: Expression, id: String) => Field(expr, Id(id)) } |
 			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ (IfThenElse.apply _) |
 			LET ~ pattern ~ BIND ~ expr ~ IN ~ expr ^^ (Let.apply _) |
-			LET ~ REC ~ andbindings ~ IN ~ expr ^^ { (bindings: List[Definition], body: Expression) => LetRec(body, bindings: _*) }
+			LET ~ REC ~ andbindings ~ IN ~ expr ^^ { (bindings: List[Definition], body: Expression) => LetRec(body, bindings: _*) } |
+			//commaseq ^^ { (seq: List[Expression]) => Tuple(seq: _*) }
+			LBRACE ~ record ~ RBRACE ^^ { (entries: List[Entry]) => expressions.Record(entries: _*) }
 		),
 		binding -> (
 			pattern ~ BIND ~ expr ^^ { (pattern: Pattern, expr: Expression) => (pattern, expr) }
@@ -113,6 +110,17 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		andbindings -> (
 			binding ^^ { (d: Definition) => List(d) } |
 			binding ~ AND ~ andbindings ^^ { (head: Definition, tail: List[Definition]) => head :: tail }
+		),
+		/*commaseq -> (
+			expr ^^ { (expr: Expression) => List(expr) } |
+			expr ~ COMMA ~ commaseq ^^ { (head: Expression, tail: List[Expression]) => head :: tail }
+		),*/
+		entry -> (
+			IDENTIFIER ~ BIND ~ expr ^^ { (id: String, expr: Expression) => (Id(id), expr) }
+		),
+		record -> (
+			entry ^^ { (e: Entry) => List(e) } |
+			entry ~ SEMI ~ record ^^ { (head: Entry, tail: List[Entry]) => head :: tail }
 		)
 	)
 
