@@ -27,7 +27,8 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			TYPE, // type
 			IF, THEN, ELSE, // if then else
 			IN, OF, LET, REC, // in of let rec
-                        TRUE, FALSE
+                        TRUE, FALSE,
+                        STRING
 			= TerminalEnum
 	}
 
