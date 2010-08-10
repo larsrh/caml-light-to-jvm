@@ -52,6 +52,12 @@ public class Machine {
 		private int cp;
 		private Vector ap;
 		private Vector gp;
+
+		private Function(int label, Vector ap, Vector gp) {
+			this.cp = label;
+			this.ap = ap;
+			this.gp = gp;
+		}
 	}
 
 	private class Closure extends MachineData {
@@ -123,6 +129,23 @@ public class Machine {
 		Vector V = new Vector(v);
 		stack.push(V);
 		sp++;
+	}
+
+	public void mkfunval(int label) {
+		MachineData[] av = new MachineData[0];
+		Vector ap = new Vector(av);
+		Vector gp = (Vector)stack.pop();
+
+		Function fun = new Function(label, ap, gp);
+		stack.push(fun);
+	}
+
+	public void mark(int label) {
+		stack.push(gp);
+		stack.push(new Raw(fp));
+		stack.push(new Raw(label));
+		sp += 3;
+		fp = sp;
 	}
 }
 
