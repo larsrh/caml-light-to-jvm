@@ -10,10 +10,12 @@ import java.util.regex.Pattern;
 %cup2
 %line
 %column
-%state STRING
+%state STRING COMMENT
 
 %{
-  StringBuffer string = new StringBuffer();
+  private StringBuffer string = new StringBuffer();
+
+  private int nested_comment_counter = 0;
 
   private CamlLightSpec$Terminals$ terminals = CamlLightSpec.instance().terminals();
 
@@ -56,7 +58,7 @@ LineTerminator = \r | \n | \r\n
 //InputCharacter = [^\r\n]
 WhiteSpace     = {LineTerminator} | [ \t\f]
 
-Comment = "(*" [^*\)]* "*)"
+//Comment = "(*" [^*\)]* "*)"
 
 Identifier = [:jletter:] [:jletterdigit:]*
 
@@ -71,7 +73,10 @@ BinIntegerLiteral = "-"? 0 [bB] [0-1]+
 %%
 
 <YYINITIAL> {
-  {Comment}	{ /* ignore */ }
+//  {Comment}	{ /* ignore */ }
+
+  "(*"		{ ++nested_comment_counter; yybegin(COMMENT); }
+  "*)"		{ throw new IllegalArgumentException("Error: Wrong count of closing comments."); }
 
   {WhiteSpace}	{ /* ignore */ }
 
@@ -129,7 +134,7 @@ BinIntegerLiteral = "-"? 0 [bB] [0-1]+
 
   \"		{ string.setLength(0); yybegin(STRING); }
 
-  .		{ System.err.println("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn); }
+  .		{ throw new IllegalArgumentException("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn); }
 }
 
 <STRING> {
@@ -140,4 +145,14 @@ BinIntegerLiteral = "-"? 0 [bB] [0-1]+
   \\r		{ string.append('\r'); }
   \\\"		{ string.append('\"'); }
   \\		{ string.append('\\'); }
+}
+
+<COMMENT> {
+  "(*"		{ ++nested_comment_counter; }
+  "*)"		{ if (nested_comment_counter == 1)
+			yybegin(YYINITIAL);
+		  --nested_comment_counter;
+		}
+  <<EOF>>	{ throw new IllegalArgumentException("Error: Wrong count of opening comments."); }
+  .		{ /* ignore */ }
 }
