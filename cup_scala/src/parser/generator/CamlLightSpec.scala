@@ -27,8 +27,8 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			TYPE, // type
 			IF, THEN, ELSE, // if then else
 			IN, OF, LET, REC, // in of let rec
-                        TRUE, FALSE,
-                        STRING
+			TRUE, FALSE,
+			STRING
 			= TerminalEnum
 	}
 
@@ -80,13 +80,15 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		BinaryOperator.le -> LESS,
 		BinaryOperator.and -> AND,
 		BinaryOperator.or -> OR,
-		UnaryOperator.neg -> NOT
+		UnaryOperator.not -> NOT
 	)
 
 	grammar(
 		expr -> (
 			IDENTIFIER ^^ (Id.apply _) |
+			MINUS ~ IDENTIFIER ^^ { (id: String) => UnOp(UnaryOperator.neg, Id(id)) } |
 			INTCONST ^^ (Integer.apply _) |
+			MINUS ~ INTCONST ^^ { (n: Int) => Integer(-n) } |
 			LBRACKET ~ expr ~ RBRACKET ^^ { (expr: Expression) => expr } |
 			LSQBRACKET ~ expr ~ RSQBRACKET ^^ (ListExpression.fromExpression(_: Expression)) |
 			chain(SEMI, Sequence(_, _)) |
@@ -94,7 +96,7 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			{
 				val buf = ListBuffer[RHSItem]()
 				BinaryOperator.values.foreach { op => buf.append(binOp(op) : _*) }
-				UnaryOperator.values.foreach  { op => buf.append(unOp(op) : _*) }
+				UnaryOperator.values.foreach  { op => if (opMapping.contains(op)) buf.append(unOp(op) : _*) } // TODO
 				buf.toSeq
 			} |
 			expr ~ POINT ~ IDENTIFIER ^^ { (expr: Expression, id: String) => Field(expr, Id(id)) } |
