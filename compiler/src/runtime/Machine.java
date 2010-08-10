@@ -147,6 +147,41 @@ public class Machine {
 		sp += 3;
 		fp = sp;
 	}
+
+	/* apply returns the label to which to jump */
+	public int apply() {
+		Function h = (Function)stack.pop();
+		Vector a = h.ap;
+		int n = a.n;
+		for (int i = 0; i < n; i++) {
+			stack.push(a.v[i]);
+		}
+		// args pushed, function popped
+		sp = sp + n - 1;
+		gp = h.gp;
+		return h.cp;
+	}
+
+	public void targ(int k) {
+		if (sp - fp < k) {
+			mkvec0();
+			// TODO: implement sane wrap
+			//wrap();
+			//popenv();
+		}
+	}
+
+	/* pops elements until FP and creates a Vector */
+	public void mkvec0() {
+		int n = sp - fp;
+		MachineData[] a = new MachineData[n];
+		sp = fp + 1;
+		// put them into the array in *reverse* order
+		for (int i = n - 1; i >= 0; i--) {
+			a[i] = stack.pop();
+		}
+		stack.push(new Vector(a));
+	}
 }
 
 /*
