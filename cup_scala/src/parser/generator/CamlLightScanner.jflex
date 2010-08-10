@@ -46,86 +46,43 @@ BinIntegerLiteral = "-"? 0 [bB] [0-1]+
 {WhiteSpace}	{ /* ignore */ }
 
 /* keywords */
-//"and"		{ return token(); }
-//"as"		{ return token(); }
-//"begin"	{ return token(); }
-//"do"		{ return token(); }
-//"done"	{ return token(); }
-//"downto"	{ return token(); }
 "else"		{ return token(terminals.ELSE()); }
-//"end"		{ return token(); }
-//"exception"	{ return token(); }
-//"for"		{ return token(); }
 "fun"		{ return token(terminals.FUN()); }
 "function"	{ return token(terminals.FUNCTION()); }
 "if"		{ return token(terminals.IF()); }
 "in"		{ return token(terminals.IN()); }
 "let"		{ return token(terminals.LET()); }
 "match"		{ return token(terminals.MATCH()); }
-//"mutable"	{ return token(); }
 "not"		{ return token(terminals.NOT()); }
 "of"		{ return token(terminals.OF()); }
 "or"		{ return token(terminals.OR()); }
-//"prefix"	{ return token(); }
 "rec"		{ return token(terminals.REC()); }
 "then"		{ return token(terminals.THEN()); }
-//"to"		{ return token(); }
-//"try"		{ return token(); }
 "type"		{ return token(terminals.TYPE()); }
-//"value"	{ return token(); }
-//"where"	{ return token(); }
-//"while"	{ return token(); }
-//"with"	{ return token(); }
 
-//"#"		{ return token(); }
-//"!"		{ return token(); }
-//"!="		{ return token(); }
 "&"		{ return token(terminals.AND()); }
 "("		{ return token(terminals.LBRACKET()); }
 ")"		{ return token(terminals.RBRACKET()); }
-//"*."		{ return token(); }
 "*"		{ return token(terminals.MUL()); }
 "+"		{ return token(terminals.PLUS()); }
-//"+."		{ return token(); }
 ","		{ return token(terminals.COMMA()); }
 "-"		{ return token(terminals.MINUS()); }
-//"-."		{ return token(); }
-//"->"		{ return token(); }
 "."		{ return token(terminals.POINT()); }
-//".("		{ return token(); }
 "/"		{ return token(terminals.DIV()); }
-//"/."		{ return token(); }
-//":"		{ return token(); }
 "::"		{ return token(terminals.CONS()); }
-//":="		{ return token(); }
 ";"		{ return token(terminals.SEMI()); }
-//";;"		{ return token(); }
 "<"		{ return token(terminals.LESS()); }
-//"<."		{ return token(); }
-//"<-"		{ return token(); }
 "<="		{ return token(terminals.LEQ()); }
-//"<=."		{ return token(); }
 "<>"		{ return token(terminals.NEQ()); }
-//"<>."		{ return token(); }
 "="		{ return token(terminals.BIND()); }
-//"=."		{ return token(); }
 "=="		{ return token(terminals.EQ()); }
 ">"		{ return token(terminals.GREATER()); }
-//">."		{ return token(); }
 ">="		{ return token(terminals.GEQ()); }
-//">=."		{ return token(); }
-//"@"		{ return token(); }
 "["		{ return token(terminals.LSQBRACKET()); }
-//"[|"		{ return token(); }
 "]"		{ return token(terminals.RSQBRACKET()); }
-//"^"		{ return token(); }
-//"_"		{ return token(); }
-//"__"		{ return token(); }
 "{"		{ return token(terminals.LBRACE()); }
 "|"		{ return token(terminals.PIPE()); }
-//"|]"		{ return token(); }
 "}"		{ return token(terminals.RBRACE()); }
-//"'"		{ return token(); }
 
 {DecIntegerLiteral}	{ return token(terminals.INTCONST(), Integer.parseInt(yytext())); }
 
