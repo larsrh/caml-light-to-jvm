@@ -8,13 +8,7 @@ import edu.tum.cup2.grammar.Symbol
 import edu.tum.cup2.spec.util.RHSItem
 import scala.collection.mutable.ListBuffer
 
-object CamlLightSpec {
-
-	val instance = new CamlLightSpec()
-
-}
-
-class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
+object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object Terminals extends SymbolEnum {
 		val	IDENTIFIER,

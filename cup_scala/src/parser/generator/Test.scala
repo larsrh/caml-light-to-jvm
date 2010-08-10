@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
 object Test extends Application {
 
 	// example code from <http://www2.in.tum.de/~petter/cup2/#3.3.1.>
-	val generator = new LALR1Generator(CamlLightSpec.instance)
+	val generator = new LALR1Generator(CamlLightSpec)
 	val table = generator.getParsingTable()
 	val parser = new LRParser(table)
 

@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 
   private int nested_comment_counter = 0;
 
-  private CamlLightSpec$Terminals$ terminals = CamlLightSpec.instance().terminals();
+  private CamlLightSpec$Terminals$ terminals = CamlLightSpec.terminals();
 
   private <T> ScannerToken<T> token(Object terminal, T value)
   {
