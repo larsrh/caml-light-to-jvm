@@ -44,7 +44,7 @@ package expressions {
 
 	}
 
-	trait Operator extends Enumeration
+	sealed trait Operator extends Enumeration
 	
 	object UnaryOperator extends Operator {
 		type UnaryOperator = Value
@@ -54,8 +54,8 @@ package expressions {
 	object BinaryOperator extends Operator {
 		type BinaryOperator = Value
 		val add, sub, mul, div, 
-                  eq, neq, geq, leq, gr, le,
-                  and, or = Value
+		eq, neq, geq, leq, gr, le,
+		and, or = Value
 	}
 }
 
