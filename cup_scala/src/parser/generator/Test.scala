@@ -18,17 +18,35 @@ object Test extends Application {
 	val failed = ListBuffer[Int]()
 	for (line <- Source.fromFile("test/testcases").getLines()) {
 		val Array(input, output) = line.split('#')
-		val result = parser.parse(new CamlLightScanner(new StringReader(input)));
 
 		println("TEST "+i+":")
 		println("input = " + input)
-		println("expected = " + output)
-		if (result.toString != output) {
-			println("*** FAIL   " + result)
-			failed += i
+
+		val result =
+			try {
+				Left(parser.parse(new CamlLightScanner(new StringReader(input))).toString);
+			}
+			catch {
+				case ex => Right(ex)
+			}
+
+		if (output == "!") {
+			println("expected exception")
+			if (result.isLeft) {
+				println("*** FAIL   " + result.left.get)
+				failed += i
+			}
+			else {
+				println("*** WIN")
+			}
 		}
 		else {
-			println("*** WIN")
+			println("expected = " + output)
+			result match {
+				case Left(`output`) => println("*** WIN")
+				case Left(res) => println("*** FAIL   " + res)
+				case Right(ex) => println("*** FAIL   " + ex)
+			}
 		}
 
 		i += 1
