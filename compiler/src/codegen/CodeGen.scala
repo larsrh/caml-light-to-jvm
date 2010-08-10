@@ -259,7 +259,7 @@ package mamaInstructions {
 object CodeGen {
 	import parser.ast._
 	import parser.ast.expressions._	
-	import codegen.mamaInstructions._	
+	import codegen.mama.mamaInstructions._	
 	import scala.collection.immutable.HashMap
 		
 	def main(args:Array[String]):Unit = {

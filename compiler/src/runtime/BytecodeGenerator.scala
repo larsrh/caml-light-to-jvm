@@ -37,7 +37,7 @@ object BytecodeGenerator {
 		main.visitLdcInsn("Hello World")
 		main.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println",
 												 "(Ljava/lang/String;)V")
-		main.visitInsn(RETURN)
+		main.visitInsn(Opcodes.RETURN)
 		main.visitMaxs(2, 1)
 		main.visitEnd()
 
