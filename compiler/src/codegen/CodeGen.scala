@@ -2,12 +2,14 @@
 package codegen.mama
 
 package mamaInstructions {
+  import parser.ast._
   import parser.ast.expressions._
   import scala.collection.immutable.HashMap
 
-  sealed class VarVisibility
-  case object Global extends VarVisibility
-  case object Local extends VarVisibility
+  object VarKind extends Enumeration {
+     type VarKind = Value
+     val Global, Local = Value
+  }
   
   sealed abstract class Instruction(str: String) {
     final override def toString() = str + "\n"
@@ -73,19 +75,112 @@ package mamaInstructions {
   case object WRAP extends Instruction("wrap")
   
   object Translator {
-    def codeb(expr:Expression, rho:HashMap[String,(VarVisibility,Int)],sd:Int)
+    var counter = 0 // kind of ugly, because not functional 
+    
+    // on-stack computations for mama
+    def codeb(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
       :List[Instruction] = expr match {
         case Integer(x) => List(LOADC(x))
         case Bool(x) => List(LOADC(if(x) 1 else 0))
         case Character(x) => List(LOADC(char2int(x)))
-        case Id(x) => getvar(x, rho, sd) ++ List(GETBASIC)
+        case Id(x) => getvar(x, rho, sd) :+ GETBASIC
+        // FIXME UnOp
+        // case UnOp(op,e) => 
+        //  codeb(e,rho,sd) :+ instrOfOp(op)
+        case BinOp(op,e1,e2) => 
+          codeb(e1,rho,sd) ++ codeb(e2,rho,sd+1) :+ instrOfOp(op)
+        case IfThenElse(c,e1,e2) => {
+          val A = newLabel()
+          val B = newLabel()
+          (codeb(c, rho, sd) ++ List(JUMPZ(A)) 
+            ++ codeb(e1, rho, sd) ++ List(JUMP(B),A)
+            ++ codeb(e2, rho, sd) :+ B)
+        }
+        case _ => codev(expr, rho, sd) :+ GETBASIC
+      }
+      
+    def codev(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
+      :List[Instruction] = expr match {
+        case Integer(x) => List(LOADC(x),MKBASIC)
+        case Bool(x) => List(LOADC(if(x) 1 else 0),MKBASIC)
+        case Character(x) => List(LOADC(char2int(x)),MKBASIC)
+        case Id(x) => getvar(x, rho, sd)
+        // FIXME UnOp
+        // case UnOp(op,e) => 
+        //  codeb(e,rho,sd) ++ List(instrOfOp(op),MKBASIC)
+        case BinOp(op,e1,e2) => 
+          codeb(e1,rho,sd) ++ codeb(e2,rho,sd+1) ++ List(instrOfOp(op),MKBASIC)
+        case IfThenElse(c,e1,e2) => {
+          val A = newLabel()
+          val B = newLabel()
+          codeb(c, rho, sd) ++ List(JUMPZ(A)) ++ 
+            codev(e1, rho, sd) ++ List(JUMP(B),A) ++ 
+            codev(e2, rho, sd) :+ B
+        }
+        case Let(x,definition,body) => x match {
+            // TODO first codev to be replaced by codec when CBN is used
+          case patterns.Id(x) => codev(definition, rho, sd) ++ 
+            codev(body, rho + (x -> (VarKind.Local,sd+1)), sd+1) :+ SLIDE(1)
+          case _ => throw new Exception("TODO")
+        }
+        case LetRec(body,patDef@_*) => {
+          val n = patDef.length
+          val list = (1 to n).toList
+          def varI(i:Int):String = patDef apply(i) _1 match { 
+            case patterns.Id(x) => x
+            case _ => throw new Exception("TODO")
+          }
+          def update(r:HashMap[String,(VarKind.Value,Int)],i:Int)
+            :HashMap[String,(VarKind.Value,Int)] = r + (varI(i) -> (VarKind.Local,sd+i))
+          val rhoNew = (list foldLeft rho)(update _)
+          
+          ALLOC(n) +:
+            // TODO codev inside of flatMap to be replaced by codec when CBN is used
+            (list.flatMap((i:Int)=>codev(patDef apply(i) _2, rhoNew, sd+n) :+ REWRITE(n-i+1)) ++
+            codev(body,rhoNew,sd+n) :+ SLIDE(n))
+        }
+        case Lambda(body,args) => {
+          List.empty  
+        }
+        case _ => throw new Exception("TODO")
       }
     
-    def getvar(x:String, rho:HashMap[String,(VarVisibility,Int)],sd:Int)
+    def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
     :List[Instruction] = rho.get(x) match {
-        case Some((Global,i)) => List(PUSHGLOB(i))
-        case Some((Local,i)) => List(PUSHLOC(sd-i))
-        case None => throw new Exception("Undefined variable in codegen-phase")
+      case Some((VarKind.Global,i)) => List(PUSHGLOB(i))
+        case Some((VarKind.Local,i)) => List(PUSHLOC(sd-i))
+        case _ => throw new Exception("Undefined variable in codegen-phase")
       }
+    
+    // Finds the instruction corresponding to the given operator
+    def instrOfOp(op:BinaryOperator.Value):Instruction = op match {
+      case BinaryOperator.add => ADD
+      case BinaryOperator.sub => SUB
+      case BinaryOperator.mul => MUL
+      case BinaryOperator.div => DIV
+      case BinaryOperator.eq => EQ
+      case BinaryOperator.neq => NEQ
+      case BinaryOperator.geq => GEQ
+      case BinaryOperator.leq => LEQ
+      case BinaryOperator.gr => GR
+      case BinaryOperator.le => LE
+    }
+    
+    def newLabel():LABEL = {
+      counter = counter + 1 
+      LABEL("A"+counter)
+    }
+    
+    def free(e:Expression,vs:Set[Id]):Set[Id] = e match {
+      case x:Const => Set.empty
+      case x@Id(_) => if (vs contains x) Set.empty else Set(x)
+      //FIXME UnOp
+      //case UnOp(_,e) => free(e,vs)
+      case BinOp(_,e1,e2) => free(e1,vs) ++ free(e2,vs)
+      case IfThenElse(c,e1,e2) => free(c,vs) ++ free(e1,vs) ++ free(e2,vs)
+      case App(f,args@_*) => 
+        args.toList.foldLeft(free(f,vs))((s:Set[Id],arg:Expression) => s ++ free(arg,vs))
+      //case Lambda(body,params@_*) => free(body, vs ++ params.toSet)
+    }
   }
 }
