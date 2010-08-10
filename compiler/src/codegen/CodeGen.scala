@@ -84,9 +84,8 @@ package mamaInstructions {
         case Bool(x) => List(LOADC(if(x) 1 else 0))
         case Character(x) => List(LOADC(char2int(x)))
         case Id(x) => getvar(x, rho, sd) :+ GETBASIC
-        // FIXME UnOp
-        // case UnOp(op,e) => 
-        //  codeb(e,rho,sd) :+ instrOfOp(op)
+				case UnOp(op,e) => 
+				codeb(e,rho,sd) :+ instrOfOp(op)
         case BinOp(op,e1,e2) => 
           codeb(e1,rho,sd) ++ codeb(e2,rho,sd+1) :+ instrOfOp(op)
         case IfThenElse(c,e1,e2) => {
@@ -105,9 +104,8 @@ package mamaInstructions {
         case Bool(x) => List(LOADC(if(x) 1 else 0),MKBASIC)
         case Character(x) => List(LOADC(char2int(x)),MKBASIC)
         case Id(x) => getvar(x, rho, sd)
-        // FIXME UnOp
-        // case UnOp(op,e) => 
-        //  codeb(e,rho,sd) ++ List(instrOfOp(op),MKBASIC)
+        case UnOp(op,e) => 
+          codeb(e,rho,sd) ++ List(instrOfOp(op),MKBASIC)
         case BinOp(op,e1,e2) => 
           codeb(e1,rho,sd) ++ codeb(e2,rho,sd+1) ++ List(instrOfOp(op),MKBASIC)
         case IfThenElse(c,e1,e2) => {
@@ -153,7 +151,7 @@ package mamaInstructions {
       }
     
     // Finds the instruction corresponding to the given operator
-    def instrOfOp(op:BinaryOperator.Value):Instruction = op match {
+    def instrOfOp(op:Operator#Value):Instruction = op match {
       case BinaryOperator.add => ADD
       case BinaryOperator.sub => SUB
       case BinaryOperator.mul => MUL
@@ -164,6 +162,7 @@ package mamaInstructions {
       case BinaryOperator.leq => LEQ
       case BinaryOperator.gr => GR
       case BinaryOperator.le => LE
+			case UnaryOperator.neg => NEG
     }
     
     def newLabel():LABEL = {
@@ -174,8 +173,7 @@ package mamaInstructions {
     def free(e:Expression,vs:Set[Id]):Set[Id] = e match {
       case x:Const => Set.empty
       case x@Id(_) => if (vs contains x) Set.empty else Set(x)
-      //FIXME UnOp
-      //case UnOp(_,e) => free(e,vs)
+      case UnOp(_,e) => free(e,vs)
       case BinOp(_,e1,e2) => free(e1,vs) ++ free(e2,vs)
       case IfThenElse(c,e1,e2) => free(c,vs) ++ free(e1,vs) ++ free(e2,vs)
       case App(f,args@_*) => 
