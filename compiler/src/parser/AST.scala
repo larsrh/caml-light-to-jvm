@@ -25,7 +25,7 @@ package expressions {
 	final case class Record(defs: (Id, Expression)*) extends Expression
 	final case class Field(record: Expression, name: Id) extends Expression
 	final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
-	final case class Lambda(body: Pattern, arguments: Pattern*) extends Expression
+	final case class Lambda(body: Expression, arguments: Pattern*) extends Expression
 
 	object ListExpression {
 
@@ -48,7 +48,7 @@ package expressions {
 	
 	object UnaryOperator extends Operator {
 		type UnaryOperator = Value
-		val neg = Value
+		val neg, not = Value
 	}
   
 	object BinaryOperator extends Operator {
@@ -81,7 +81,7 @@ package patterns {
 	case object Nil extends ListPattern
 	final case class Cons(head: Pattern, tail: Pattern) extends ListPattern
 	final case class Alternative(pat1: Pattern, pat2: Pattern) extends Pattern
-	final case class Tuple(patterns: Pattern) extends Pattern
+	final case class Tuple(patterns: Pattern*) extends Pattern
 
 }
 
