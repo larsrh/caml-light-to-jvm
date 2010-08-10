@@ -8,33 +8,34 @@ import edu.tum.cup2.grammar.Symbol
 import edu.tum.cup2.spec.util.RHSItem
 import scala.collection.mutable.ListBuffer
 
-object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
+// exported for usage in JFlex
+object CamlLightTerminals extends SymbolEnum {
+	val	IDENTIFIER,
+		INTCONST,
+		LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
+		MUL, PLUS, MINUS, DIV, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
+		LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
+		FUN, FUNCTION, MATCH, PIPE, // fun function match |
+		LETAND, AND, OR, NOT, // and, &, or, not
+		TYPE, // type
+		IF, THEN, ELSE, // if then else
+		IN, OF, LET, REC, // in of let rec
+		TRUE, FALSE,
+		STRING
+		= TerminalEnum
+}
 
-	object Terminals extends SymbolEnum {
-		val	IDENTIFIER,
-			INTCONST,
-			LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
-			MUL, PLUS, MINUS, DIV, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
-			LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
-			FUN, FUNCTION, MATCH, PIPE, // fun function match |
-			LETAND, AND, OR, NOT, // and, &, or, not
-			TYPE, // type
-			IF, THEN, ELSE, // if then else
-			IN, OF, LET, REC, // in of let rec
-			TRUE, FALSE,
-			STRING
-			= TerminalEnum
-	}
+object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object NonTerminals extends SymbolEnum {
 		val expr, const, typeexpr, typedef, pattern, binding, andbindings, commaseq, entry, record = NonTerminalEnum
 	}
 
-	import NonTerminals._
-	import Terminals._
-
-	val terminals = Terminals
+	val terminals = CamlLightTerminals
 	val nonTerminals = NonTerminals
+
+	import terminals._
+	import nonTerminals._
 
 	import parser.ast._
 	import expressions._

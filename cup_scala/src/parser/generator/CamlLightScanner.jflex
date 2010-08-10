@@ -3,6 +3,8 @@ package parser.generator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static parser.generator.CamlLightTerminals.*;
+
 %%
 
 %class CamlLightScanner
@@ -16,8 +18,6 @@ import java.util.regex.Pattern;
   private StringBuffer string = new StringBuffer();
 
   private int nested_comment_counter = 0;
-
-  private CamlLightSpec$Terminals$ terminals = CamlLightSpec.terminals();
 
   private <T> ScannerToken<T> token(Object terminal, T value)
   {
@@ -77,56 +77,56 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   {WhiteSpace}	{ /* ignore */ }
 
   /* keywords */
-  "and"		{ return token(terminals.LETAND()); }
-  "else"	{ return token(terminals.ELSE()); }
-  "false"	{ return token(terminals.FALSE()); }
-  "fun"		{ return token(terminals.FUN()); }
-  "function"	{ return token(terminals.FUNCTION()); }
-  "if"		{ return token(terminals.IF()); }
-  "in"		{ return token(terminals.IN()); }
-  "let"		{ return token(terminals.LET()); }
-  "match"	{ return token(terminals.MATCH()); }
-  "not"		{ return token(terminals.NOT()); }
-  "of"		{ return token(terminals.OF()); }
-  "or"		{ return token(terminals.OR()); }
-  "rec"		{ return token(terminals.REC()); }
-  "then"	{ return token(terminals.THEN()); }
-  "true"	{ return token(terminals.TRUE()); }
-  "type"	{ return token(terminals.TYPE()); }
+  "and"		{ return token(LETAND()); }
+  "else"	{ return token(ELSE()); }
+  "false"	{ return token(FALSE()); }
+  "fun"		{ return token(FUN()); }
+  "function"	{ return token(FUNCTION()); }
+  "if"		{ return token(IF()); }
+  "in"		{ return token(IN()); }
+  "let"		{ return token(LET()); }
+  "match"	{ return token(MATCH()); }
+  "not"		{ return token(NOT()); }
+  "of"		{ return token(OF()); }
+  "or"		{ return token(OR()); }
+  "rec"		{ return token(REC()); }
+  "then"	{ return token(THEN()); }
+  "true"	{ return token(TRUE()); }
+  "type"	{ return token(TYPE()); }
 
-  "&"		{ return token(terminals.AND()); }
-  "("		{ return token(terminals.LBRACKET()); }
-  ")"		{ return token(terminals.RBRACKET()); }
-  "*"		{ return token(terminals.MUL()); }
-  "+"		{ return token(terminals.PLUS()); }
-  ","		{ return token(terminals.COMMA()); }
-  "-"		{ return token(terminals.MINUS()); }
-  "."		{ return token(terminals.POINT()); }
-  "/"		{ return token(terminals.DIV()); }
-  "::"		{ return token(terminals.CONS()); }
-  ";"		{ return token(terminals.SEMI()); }
-  "<"		{ return token(terminals.LESS()); }
-  "<="		{ return token(terminals.LEQ()); }
-  "<>"		{ return token(terminals.NEQ()); }
-  "="		{ return token(terminals.BIND()); }
-  "=="		{ return token(terminals.EQ()); }
-  ">"		{ return token(terminals.GREATER()); }
-  ">="		{ return token(terminals.GEQ()); }
-  "["		{ return token(terminals.LSQBRACKET()); }
-  "]"		{ return token(terminals.RSQBRACKET()); }
-  "{"		{ return token(terminals.LBRACE()); }
-  "|"		{ return token(terminals.PIPE()); }
-  "}"		{ return token(terminals.RBRACE()); }
+  "&"		{ return token(AND()); }
+  "("		{ return token(LBRACKET()); }
+  ")"		{ return token(RBRACKET()); }
+  "*"		{ return token(MUL()); }
+  "+"		{ return token(PLUS()); }
+  ","		{ return token(COMMA()); }
+  "-"		{ return token(MINUS()); }
+  "."		{ return token(POINT()); }
+  "/"		{ return token(DIV()); }
+  "::"		{ return token(CONS()); }
+  ";"		{ return token(SEMI()); }
+  "<"		{ return token(LESS()); }
+  "<="		{ return token(LEQ()); }
+  "<>"		{ return token(NEQ()); }
+  "="		{ return token(BIND()); }
+  "=="		{ return token(EQ()); }
+  ">"		{ return token(GREATER()); }
+  ">="		{ return token(GEQ()); }
+  "["		{ return token(LSQBRACKET()); }
+  "]"		{ return token(RSQBRACKET()); }
+  "{"		{ return token(LBRACE()); }
+  "|"		{ return token(PIPE()); }
+  "}"		{ return token(RBRACE()); }
 
-  {DecIntegerLiteral}	{ return token(terminals.INTCONST(), Integer.parseInt(yytext())); }
+  {DecIntegerLiteral}	{ return token(INTCONST(), Integer.parseInt(yytext())); }
 
-  {HexIntegerLiteral}	{ return token(terminals.INTCONST(), parseHexInt(yytext())); }
+  {HexIntegerLiteral}	{ return token(INTCONST(), parseHexInt(yytext())); }
 
-  {OctIntegerLiteral}	{ return token(terminals.INTCONST(), parseOctInt(yytext())); }
+  {OctIntegerLiteral}	{ return token(INTCONST(), parseOctInt(yytext())); }
 
-  {BinIntegerLiteral}	{ return token(terminals.INTCONST(), parseBinInt(yytext())); }
+  {BinIntegerLiteral}	{ return token(INTCONST(), parseBinInt(yytext())); }
 
-  {Identifier}	{ return token(terminals.IDENTIFIER(), new String(yytext())); }
+  {Identifier}	{ return token(IDENTIFIER(), new String(yytext())); }
 
   \"		{ string.setLength(0); yybegin(STRING); }
 
@@ -134,7 +134,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 }
 
 <STRING> {
-  \"		{ yybegin(YYINITIAL); return token(terminals.STRING(), string.toString()); }
+  \"		{ yybegin(YYINITIAL); return token(STRING(), string.toString()); }
   [^\n\r\"\\]+	{ string.append( yytext() ); }
   \\t		{ string.append('\t'); }
   \\n		{ string.append('\n'); }
