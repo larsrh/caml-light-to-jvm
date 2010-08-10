@@ -1,5 +1,8 @@
 package parser.generator;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 %%
 
 %class CamlLightScanner
@@ -19,6 +22,30 @@ package parser.generator;
   private ScannerToken<Object> token(Object terminal)
   {
     return new ScannerToken<Object>((Terminal) terminal, yyline, yycolumn);
+  }
+
+  private int parseHexInt(String str)
+  {
+    Pattern p = Pattern.compile("(-?)0[xX]([0-9a-fA-F]+)");
+    Matcher m = p.matcher(str);
+    m.matches();
+    return Integer.parseInt(m.group(1) + m.group(2), 16);
+  }
+
+  private int parseOctInt(String str)
+  {
+    Pattern p = Pattern.compile("(-?)0[oO]([0-7]+)");
+    Matcher m = p.matcher(str);
+    m.matches();
+    return Integer.parseInt(m.group(1) + m.group(2), 8);
+  }
+
+  private int parseBinInt(String str)
+  {
+    Pattern p = Pattern.compile("(-?)0[bB]([0-1]+)");
+    Matcher m = p.matcher(str);
+    m.matches();
+    return Integer.parseInt(m.group(1) + m.group(2), 2);
   }
 %}
 
@@ -85,6 +112,12 @@ BinIntegerLiteral = "-"? 0 [bB] [0-1]+
 "}"		{ return token(terminals.RBRACE()); }
 
 {DecIntegerLiteral}	{ return token(terminals.INTCONST(), Integer.parseInt(yytext())); }
+
+{HexIntegerLiteral}	{ return token(terminals.INTCONST(), parseHexInt(yytext())); }
+
+{OctIntegerLiteral}	{ return token(terminals.INTCONST(), parseOctInt(yytext())); }
+
+{BinIntegerLiteral}	{ return token(terminals.INTCONST(), parseBinInt(yytext())); }
 
 {Identifier}	{ return token(terminals.IDENTIFIER(), new String(yytext())); }
 
