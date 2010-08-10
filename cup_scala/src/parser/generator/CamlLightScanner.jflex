@@ -16,12 +16,12 @@ import java.util.regex.Pattern;
 
   private <T> ScannerToken<T> token(Object terminal, T value)
   {
-    return new ScannerToken<T>((Terminal) terminal, value, yyline, yycolumn);
+    return new ScannerToken<T>((Terminal) terminal, value, yyline+1, yycolumn);
   }
 
   private ScannerToken<Object> token(Object terminal)
   {
-    return new ScannerToken<Object>((Terminal) terminal, yyline, yycolumn);
+    return new ScannerToken<Object>((Terminal) terminal, yyline+1, yycolumn);
   }
 
   private int parseHexInt(String str)
@@ -50,11 +50,10 @@ import java.util.regex.Pattern;
 %}
 
 LineTerminator = \r | \n | \r\n
-InputCharacter = [^\r\n]
+//InputCharacter = [^\r\n]
 WhiteSpace     = {LineTerminator} | [ \t\f]
 
-Comment = "(*" [^*] "*)"
-//        | "(*" [^*] {Comment} [^*] "*)"
+Comment = "(*" [^*\)]* "*)"
 
 Identifier = [:jletter:] [:jletterdigit:]*
 
@@ -66,6 +65,8 @@ OctIntegerLiteral = "-"? 0 [oO] [0-7]+
 
 BinIntegerLiteral = "-"? 0 [bB] [0-1]+
 
+// string: "foo"
+
 %%
 
 {Comment}	{ /* ignore */ }
@@ -73,7 +74,9 @@ BinIntegerLiteral = "-"? 0 [bB] [0-1]+
 {WhiteSpace}	{ /* ignore */ }
 
 /* keywords */
+"and"		{ return token(terminals.LETAND()); }
 "else"		{ return token(terminals.ELSE()); }
+"false"		{ return token(terminals.FALSE()); }
 "fun"		{ return token(terminals.FUN()); }
 "function"	{ return token(terminals.FUNCTION()); }
 "if"		{ return token(terminals.IF()); }
@@ -85,6 +88,7 @@ BinIntegerLiteral = "-"? 0 [bB] [0-1]+
 "or"		{ return token(terminals.OR()); }
 "rec"		{ return token(terminals.REC()); }
 "then"		{ return token(terminals.THEN()); }
+"true"		{ return token(terminals.TRUE()); }
 "type"		{ return token(terminals.TYPE()); }
 
 "&"		{ return token(terminals.AND()); }
@@ -121,4 +125,4 @@ BinIntegerLiteral = "-"? 0 [bB] [0-1]+
 
 {Identifier}	{ return token(terminals.IDENTIFIER(), new String(yytext())); }
 
-.		{ System.err.println("Error: Illegal character at line " + yyline + " and column " + yycolumn); }
+.		{ System.err.println("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn); }

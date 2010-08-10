@@ -20,10 +20,11 @@ class CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			MUL, PLUS, MINUS, DIV, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
 			LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
 			FUN, FUNCTION, MATCH, PIPE, // fun function match |
-			AND, OR, NOT, // &, or, not
+			LETAND, AND, OR, NOT, // and, &, or, not
 			TYPE, // type
 			IF, THEN, ELSE, // if then else
-			IN, OF, LET, REC // in of let rec
+			IN, OF, LET, REC, // in of let rec
+                        TRUE, FALSE
 			= TerminalEnum
 	}
 
