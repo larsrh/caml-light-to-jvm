@@ -72,6 +72,11 @@ public class Machine {
 	private class Closure extends MachineData {
 		private int cp;
 		private Function gp;
+
+		private Closure(int cp, Function gp) {
+			this.cp = cp;
+			this.gp = gp;
+		}
 	}
 
 	private final Stack<MachineData> stack;
@@ -211,6 +216,29 @@ public class Machine {
 		sp -= 2;
 		fp--;
 		return label;
+	}
+
+	/* yeah, return is taken and Java does not support `return` syntax */
+	public int return_(int k) {
+		if (sp - fp - 1 <= k) {
+			return popenv();
+		} else {
+			slide(k);
+			return apply();
+		}
+	}
+
+	public void alloc(int n) {
+		for (int i = 0; i < n; i++) {
+			stack.push(new Closure(-1, null));
+			sp++;
+		}
+	}
+
+	public void rewrite(int j) {
+		MachineData value = stack.pop();
+		stack.set(sp - j, value);
+		sp--;
 	}
 }
 
