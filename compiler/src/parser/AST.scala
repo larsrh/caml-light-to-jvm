@@ -33,7 +33,7 @@ package expressions {
 		type UnaryOperator = Value
 		val neg, not = Value
 	}
-  
+	
 	object BinaryOperator extends Operator {
 		type BinaryOperator = Value
 		val add, sub, mul, div, 

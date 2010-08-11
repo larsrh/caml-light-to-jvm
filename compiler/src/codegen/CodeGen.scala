@@ -2,88 +2,91 @@
 package codegen.mama
 
 package mamaInstructions {
-  import parser.ast._
-  import parser.ast.expressions._
-  import scala.collection.immutable.HashMap
+	import parser.ast._
+	import parser.ast.expressions._
+	import scala.collection.immutable.HashMap
 	import scala.collection.immutable.ListSet
 
-  object VarKind extends Enumeration {
+	object VarKind extends Enumeration {
 		type VarKind = Value
 		val Global, Local = Value
-  }
+	}
 
 	/******************************************************************************/
 	/*														INSTRUCTION SET																	*/
 	/******************************************************************************/
-  sealed abstract class Instruction(str: String) {
-    final override def toString() = str + (this match {
-			case SETLABEL(_) => ""
-			case LABEL(_) => ""
-			case _ => "\n"
-		})
+	sealed abstract class Instruction(str: String) {
+		final override def toString() = str + (this match {
+				case SETLABEL(_) => "\n"
+				case LABEL(_) => ""
+				case _ => "\n"
+			})
 	}
-  final case class LABEL(nr:Int) extends Instruction("_" + nr.toString)
+	final case class LABEL(nr:Int) extends Instruction("_" + nr.toString)
 	final case class SETLABEL(label:LABEL) extends Instruction(label + ":")
 
 	case object ADD extends Instruction("add") 
 	final case class ALLOC(value:Int) extends Instruction("alloc " + value)
 	case object AND extends Instruction("and")
-  case object APPLY extends Instruction("apply")
-  // case object APPLY0 extends Instruction("apply0") TODO necessary?
-  case object CONS extends Instruction("cons")
-  case object COPYGLOB extends Instruction("copyglob")	
-  case object DIV extends Instruction("div")
+	case object APPLY extends Instruction("apply")
+	// case object APPLY0 extends Instruction("apply0") TODO necessary?
+	case object CONS extends Instruction("cons")
+	case object COPYGLOB extends Instruction("copyglob")	
+	case object DIV extends Instruction("div")
 	case object EQ extends Instruction("eq")
-  case object EVAL extends Instruction("eval")
-  case object GEQ extends Instruction("geq")
-  final case class GET(offset:Int) extends Instruction("get " + offset)
-  case object GETBASIC extends Instruction("getbasic")
+	case object EVAL extends Instruction("eval")
+	case object GEQ extends Instruction("geq")
+	final case class GET(offset:Int) extends Instruction("get " + offset)
+	case object GETBASIC extends Instruction("getbasic")
 	// case object GETREF extends Instruction("getref") TODO necessary?
-  final case class GETVEC(locvars:Int) extends Instruction("getvec" + locvars)
+	final case class GETVEC(locvars:Int) extends Instruction("getvec" + locvars)
 	case object GR extends Instruction("gr")
 	case object HALT extends Instruction("halt")
-  final case class JUMP(target:LABEL) extends Instruction("jump " + target)
-  final case class JUMPZ(target:LABEL) extends Instruction("jumpz " + target)
+	final case class JUMP(target:LABEL) extends Instruction("jump " + target)
+	final case class JUMPZ(target:LABEL) extends Instruction("jumpz " + target)
 	case object LE extends Instruction("le")
-  case object LEQ extends Instruction("leq")
-  final case class LOADC(value:Int) extends Instruction("loadc " + value)
-  final case class MARK(ret:LABEL) extends Instruction("mark " + ret)
-  // case object MARK0 extends Instruction("mark0") TODO necessary?
-  case object MKBASIC extends Instruction("mkbasic")
-  final case class MKCLOS(target:LABEL) extends Instruction("mkclos " + target)
-  final case class MKFUNVAL(target:LABEL) extends Instruction("mkfunval " + target)
-  // case object MKREF extends Instruction("mkref") TODO necessary?
-  final case class MKVEC(length:Int) extends Instruction("mkvec " + length)
-  // case object MKVEC0 extends Instruction("mkvec0") TODO necessary?
+	case object LEQ extends Instruction("leq")
+	final case class LOADC(value:Int) extends Instruction("loadc " + value)
+	final case class MARK(ret:LABEL) extends Instruction("mark " + ret)
+	// case object MARK0 extends Instruction("mark0") TODO necessary?
+	case object MKBASIC extends Instruction("mkbasic")
+	final case class MKCLOS(target:LABEL) extends Instruction("mkclos " + target)
+	final case class MKFUNVAL(target:LABEL) extends Instruction("mkfunval " + target)
+	// case object MKREF extends Instruction("mkref") TODO necessary?
+	final case class MKVEC(length:Int) extends Instruction("mkvec " + length)
+	// case object MKVEC0 extends Instruction("mkvec0") TODO necessary?
 	case object MUL extends Instruction("mul")
-  case object NEG extends Instruction("neg")
-  case object NEQ extends Instruction("neq")
-  case object NIL extends Instruction("nil")
+	case object NEG extends Instruction("neg")
+	case object NEQ extends Instruction("neq")
+	case object NIL extends Instruction("nil")
 	case object NOT extends Instruction("not")
-  case object OR extends Instruction("or")
+	case object OR extends Instruction("or")
 	case object POP extends Instruction("pop")
-  case object POPENV extends Instruction("popenv")
-  final case class PUSHGLOB(value:Int) extends Instruction("pushglob " + value)
-  final case class PUSHLOC(value:Int) extends Instruction("pushloc " + value)
-  final case class RETURN(drop:Int) extends Instruction("return " + drop)
-  final case class REWRITE(depth:Int) extends Instruction("rewrite " + depth)
-  final case class SLIDE(drop:Int) extends Instruction("slide " + drop)
-  case object STORE extends Instruction("store")
+	case object POPENV extends Instruction("popenv")
+	final case class PUSHGLOB(value:Int) extends Instruction("pushglob " + value)
+	final case class PUSHLOC(value:Int) extends Instruction("pushloc " + value)
+	final case class RETURN(drop:Int) extends Instruction("return " + drop)
+	final case class REWRITE(depth:Int) extends Instruction("rewrite " + depth)
+	final case class SLIDE(drop:Int) extends Instruction("slide " + drop)
+	case object STORE extends Instruction("store")
 	case object SUB extends Instruction("sub")
-  final case class TARG(drop:Int) extends Instruction("targ " + drop)
+	final case class TARG(drop:Int) extends Instruction("targ " + drop)
 	final case class TLIST(target:LABEL) extends Instruction("tlist " + target)
-  case object UPDATE extends Instruction("update")
-  case object WRAP extends Instruction("wrap")
-  case object XOR extends Instruction("xor")
-  
-  object Translator {
-    var counter = 0 // kind of ugly, because not functional 
-    
+	case object UPDATE extends Instruction("update")
+	case object WRAP extends Instruction("wrap")
+	case object XOR extends Instruction("xor")
+	
+	object Translator {
+		var counter = 0 // kind of ugly, because not functional
+		
+		val CBN = true // call-by-name / call-by-value switch
+		val cbfun = if(CBN) codec _ else codev _ 
+		
 		/******************************************************************************/
 		/*																	CODEGEN																		*/
 		/******************************************************************************/
-    // on-stack computations for mama
-    def codeb(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
+		// on-stack computations for mama
+		def codeb(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
 		:List[Instruction] = expr match {
 			case Integer(x) => List(LOADC(x))
 			case Bool(x) => List(LOADC(if(x) 1 else 0))
@@ -94,13 +97,13 @@ package mamaInstructions {
 			case BinOp(op,e1,e2) => 
 				codeb(e1,rho,sd) ++ codeb(e2,rho,sd+1) :+ instrOfOp(op)
 			case IfThenElse(c,e1,e2) => {
-          val A = newLabel()
-          val B = newLabel()
-          (codeb(c, rho, sd) ++ List(JUMPZ(A)) 
+					val A = newLabel()
+					val B = newLabel()
+					(codeb(c, rho, sd) ++ List(JUMPZ(A)) 
 					 ++ codeb(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A))
 					 ++ codeb(e2, rho, sd) :+ SETLABEL(B))
-        }
-			case _ => codev(expr, rho, sd) :+ GETBASIC
+				}
+			case _ => codev(expr, rho, sd) :+ {Console println expr; GETBASIC}
 		}
 			
 		def codec(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
@@ -116,9 +119,9 @@ package mamaInstructions {
 			((globs foldLeft (List.empty:List[Instruction]))((l:List[Instruction],i:Int) => 
 					l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
 			List(MKVEC(globs.length),MKCLOS(A),JUMP(B),SETLABEL(A)) ++ codev(expr,rhoNew,0) ++ 
-						List(UPDATE,SETLABEL(B))
+			List(UPDATE,SETLABEL(B))
 		}
-      
+			
 		def codev(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
 		:List[Instruction] = expr match {
 			case Integer(x) => List(LOADC(x),MKBASIC)
@@ -137,8 +140,7 @@ package mamaInstructions {
 					codev(e2, rho, sd) :+ SETLABEL(B)
 				}
 			case Let(x,definition,body) => x match {
-					// TODO first codev to be replaced by codec when CBN is used
-					case patterns.Id(x) => codev(definition, rho, sd) ++ 
+					case patterns.Id(x) => cbfun(definition, rho, sd) ++ 
 						codev(body, rho + (x -> (VarKind.Local,sd+1)), sd+1) :+ SLIDE(1)
 					case _ => throw new Exception("TODO")
 				}
@@ -152,17 +154,16 @@ package mamaInstructions {
 					def update(r:HashMap[String,(VarKind.Value,Int)],i:Int)
 					:HashMap[String,(VarKind.Value,Int)] = r + (varI(i) -> (VarKind.Local,sd+i))
 					val rhoNew = (list foldLeft rho)(update _)
-          
+					
 					ALLOC(n) +:
-					// TODO codev inside of flatMap to be replaced by codec when CBN is used
-					(list.flatMap((i:Int)=>codev(patDef(i) _2, rhoNew, sd+n) :+ REWRITE(n-i+1)) ++
+					(list.flatMap((i:Int)=>cbfun(patDef(i) _2, rhoNew, sd+n) :+ REWRITE(n-i+1)) ++
 					 codev(body,rhoNew,sd+n) :+ SLIDE(n))
 				}
 			case Lambda(body,args@_*) => {
 					val zs = (free(expr,ListSet.empty)).toList
 					val locs = (0 to args.length-1).toList
 					val globs = (0 to zs.size-1).toList
-          
+					
 					val rhoNew = 
 						(globs foldLeft ((locs foldLeft rho)(updateLoc(args.toList,_,_))))(updateGlob(zs,_,_))	
 						
@@ -172,38 +173,37 @@ package mamaInstructions {
 					((globs foldLeft (List.empty:List[Instruction]))((l:List[Instruction],i:Int) => 
 							l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
 					List(MKVEC(globs.length),MKFUNVAL(A),JUMP(B),SETLABEL(A),TARG(locs.length)) ++ 
-					codev(body,rhoNew,0) :+ SETLABEL(B)
+					codev(body,rhoNew,0) ++ List(RETURN(locs.length), SETLABEL(B))
 				}
 			case App(fun,args@_*) => {
 					val A = newLabel()
 					val m = args.length
 					val is = (0 to m - 1).toList
 					
-					// TODO codev inside of foldLeft function to be replaced by codec when CBN is used
 					(is foldLeft (List(MARK(A)):List[Instruction]))((l:List[Instruction],i:Int) => 
-						codev(args(m-1-i),rho,sd+3+i)) ++ List(APPLY,SETLABEL(A))
+						l ++ cbfun(args(m-1-i),rho,sd+3+i)) ++ codev(fun,rho,sd+3+m) ++ List(APPLY,SETLABEL(A))
 				}
 			case Tuple(elems@_*) => {
 					val ks = (0 to elems.length-1).toList
 					
 					(ks foldLeft (List.empty:List[Instruction]))((l:List[Instruction],k:Int) => 
-						codec(elems(k),rho,sd+k)) :+ MKVEC(ks.length)
-			}
+						l ++ codec(elems(k),rho,sd+k)) :+ MKVEC(ks.length)
+				}
 			case Nil => List(NIL)
 			case Cons(head,tail) => codec(head,rho,sd) ++ codec(tail,rho,sd+1) :+ CONS
 			case _ => throw new Exception("TODO")
 		}
-    
+		
 		/******************************************************************************/
 		/*																	MACROS																		*/
 		/******************************************************************************/
 		def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
-		:List[Instruction] = rho.get(x) match {
-			case Some((VarKind.Global,i)) => List(PUSHGLOB(i))
-			case Some((VarKind.Local,i)) => List(PUSHLOC(sd-i))
-			case _ => throw new Exception("Undefined variable in codegen-phase")
-		}
-    
+		:List[Instruction] = (rho.get(x) match {
+				case Some((VarKind.Global,i)) => PUSHGLOB(i)
+				case Some((VarKind.Local,i)) => PUSHLOC(sd-i)
+				case _ => throw new Exception("Undefined variable in codegen-phase")
+			}) +: (if(CBN) List(EVAL) else List.empty)
+		
 		// Finds the instruction corresponding to the given operator
 		def instrOfOp(op:Operator#Value):Instruction = op match {
 			case BinaryOperator.add => ADD
@@ -219,12 +219,12 @@ package mamaInstructions {
 			case UnaryOperator.neg => NEG
 			case UnaryOperator.not => NOT
 		}
-    
+		
 		def newLabel():LABEL = {
 			counter = counter + 1 
 			LABEL(counter)
 		}
-    
+		
 		def varTest(v:Any): String = v match { 
 			case patterns.Id(x) => x
 			case Id(x) => x
@@ -236,7 +236,7 @@ package mamaInstructions {
 		:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Global,i))
 			
 		/******************************************************************************/
-		/*														FREE & BOUND VARIABLES				  								*/
+		/*														FREE & BOUND VARIABLES													*/
 		/******************************************************************************/
 		def free(e:Expression,vs:ListSet[Id]):ListSet[Id] = e match {
 			case x@Id(_) => if (vs contains x) ListSet.empty else ListSet(x)
@@ -274,33 +274,53 @@ object CodeGen {
 	import scala.collection.immutable.HashMap
 		
 	def main(args:Array[String]):Unit = {
-		val e1 = Let(patterns.Id("a"),Integer(19),
-									 Let(patterns.Id("b"),BinOp(BinaryOperator.mul,Id("a"),Id("a")),
-											 BinOp(BinaryOperator.add,Id("a"),Id("b"))
+		// let a = 19 in let b = a * a in a + b
+		val e0 = Let(patterns.Id("a"),Integer(19),
+								 Let(patterns.Id("b"),BinOp(BinaryOperator.mul,Id("a"),Id("a")),
+										 BinOp(BinaryOperator.add,Id("a"),Id("b"))
 			)
 		)
 		
-	  val e2 = Let(patterns.Id("1"), Lambda(Id("1"), patterns.Id("1")),
-                 App(Id("1"),Id("1")))
-
-    val e3 = Lambda(Lambda(Lambda(
-        App(App(Id("1"),Id("2")), App(Id("2"), Id("3"))), patterns.Id("3")), patterns.Id("2")), patterns.Id("1"))
-
-    val e4 = Let(patterns.Id("1"),
-                Lambda(Id("2"), patterns.Id("2")),
-                Let(patterns.Id("2"),
-                    App(Id("1"), Id("1")),
-                    App(Id("2"), Id("1"))))
-
-
-    val e5 = Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs")))
-    val e6 = Lambda(Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
-                    patterns.Cons(patterns.Id("y"), patterns.Id("ys")))
+		// (\a.a) 42
+		val e1 = App(Lambda(Id("a"),patterns.Id("a")),Integer(42))
 		
-		val list = List(e1,e2,e3,e4/*,e5,e6*/)
+		// (\a.a + 3) 42
+		val e2 = App(Lambda(BinOp(BinaryOperator.add,Id("a"),Integer(3)),patterns.Id("a")),Integer(42))
 		
-		val res = list map (Translator.codeb(_,HashMap.empty,0))
+		// let a = \a.a in a a 
+		val e3 = Let(patterns.Id("a"), Lambda(Id("a"), patterns.Id("a")),
+								 App(Id("a"),Id("a")))
+		
+		// (let a = \a.a in a a) 5 
+		val e4 = App(e3,Integer(42))
+
+		// \a.(\b.(\c.(a b) (b c)))
+		val e5 = Lambda(Lambda(Lambda(
+					App(App(Id("a"),Id("b")), App(Id("b"), Id("c"))), patterns.Id("c")), patterns.Id("b")), patterns.Id("a"))
+
+		// let a = \b.b in let b = \a.a in \a.a
+		val e6 = Let(patterns.Id("a"),
+								 Lambda(Id("b"), patterns.Id("b")),
+								 Let(patterns.Id("b"),
+										 App(Id("a"), Id("a")),
+										 App(Id("a"), Id("a"))))
+	 
+		// (let a = \b.b in let b = \a.a in \a.a)
+		val e7 = App(e6,Character('a'));
+	 
+		val e8 = Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs")))
+		val e9 = Lambda(Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
+										patterns.Cons(patterns.Id("y"), patterns.Id("ys")))
+		
+		val list = List(e0,e1,e2,e3,e4,e5,e6,e7)	
 			
-		res map ( x => {x map (Console print); Console println "******************************"})
+		def out(e:Expression):Unit = {
+			val is = Translator.codeb(e,HashMap.empty,0)
+			val out = new java.io.FileWriter("e" + (list indexOf e).toString + ".mama")
+			is map ((i:Instruction) => out write (i.toString))
+			out close
+		}
+		
+		list map out
 	}
 }
