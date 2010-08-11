@@ -62,7 +62,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(COMMA), left(SEMI))
 
-	// TODO character, app, match, lambda
+	// TODO app, match, lambda
 
 	val opMapping = Map[Operator#Value, Symbol](
 		BinaryOperator.add -> PLUS,
@@ -77,18 +77,17 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		BinaryOperator.le -> LESS,
 		BinaryOperator.and -> AND,
 		BinaryOperator.or -> OR,
-		UnaryOperator.not -> NOT
+		UnaryOperator.not -> NOT,
+		UnaryOperator.neg -> MINUS
 	)
 
 	grammar(
 		expr -> (
 			IDENTIFIER ^^ (Id.apply _) |
-			MINUS ~ IDENTIFIER ^^ { (id: String) => UnOp(UnaryOperator.neg, Id(id)) } |
 			INTCONST ^^ (Integer.apply _) |
 			BOOLCONST ^^ (Bool.apply _) |
 			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str.map(Character.apply _).toList) } |
 			CHARCONST ^^ (Character.apply _) |
-			MINUS ~ INTCONST ^^ { (n: Int) => Integer(-n) } |
 			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
 				case List(expr) => expr
 				case List(l @ _*) => Tuple(l: _*)
@@ -99,7 +98,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			{
 				val buf = ListBuffer[RHSItem]()
 				BinaryOperator.values.foreach { op => buf ++= chain(opMapping(op), BinOp(op, _, _)) }
-				UnaryOperator.values.foreach  { op => if (opMapping.contains(op)) buf ++= (opMapping(op) ~ expr) ^^ { (expr: Expression) => UnOp(op, expr) } } // TODO
+				UnaryOperator.values.foreach  { op => buf ++= (opMapping(op) ~ expr) ^^ (UnOp(op, _: Expression)) }
 				buf.toSeq
 			} |
 			expr ~ POINT ~ IDENTIFIER ^^ { (expr: Expression, id: String) => Field(expr, Id(id)) } |
