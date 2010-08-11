@@ -60,7 +60,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(COMMA), left(SEMI))
 
-	// TODO bool, character, app, tuple, string, match, lambda
+	// TODO bool, character, app, string, match, lambda
 
 	val opMapping = Map[Operator#Value, Symbol](
 		BinaryOperator.add -> PLUS,
@@ -84,7 +84,10 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			MINUS ~ IDENTIFIER ^^ { (id: String) => UnOp(UnaryOperator.neg, Id(id)) } |
 			INTCONST ^^ (Integer.apply _) |
 			MINUS ~ INTCONST ^^ { (n: Int) => Integer(-n) } |
-			LBRACKET ~ expr ~ RBRACKET ^^ { (expr: Expression) => expr } |
+			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
+				case List(expr) => expr
+				case List(l @ _*) => Tuple(l: _*)
+			} } |
 			LSQBRACKET ~ expr ~ RSQBRACKET ^^ (ListExpression.fromExpression(_: Expression)) |
 			chain(SEMI, Sequence(_, _)) |
 			// ops
@@ -98,7 +101,6 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ (IfThenElse.apply _) |
 			LET ~ pattern ~ BIND ~ expr ~ IN ~ expr ^^ (Let.apply _) |
 			LET ~ REC ~ andbindings ~ IN ~ expr ^^ { (bindings: List[Definition], body: Expression) => LetRec(body, bindings: _*) } |
-			//commaseq ^^ { (seq: List[Expression]) => Tuple(seq: _*) }
 			LBRACE ~ record ~ RBRACE ^^ { (entries: List[Entry]) => expressions.Record(entries: _*) }
 		),
 		binding -> (
@@ -108,10 +110,10 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			binding ^^ { (d: Definition) => List(d) } |
 			binding ~ AND ~ andbindings ^^ { (head: Definition, tail: List[Definition]) => head :: tail }
 		),
-		/*commaseq -> (
+		commaseq -> (
 			expr ^^ { (expr: Expression) => List(expr) } |
 			expr ~ COMMA ~ commaseq ^^ { (head: Expression, tail: List[Expression]) => head :: tail }
-		),*/
+		),
 		entry -> (
 			IDENTIFIER ~ BIND ~ expr ^^ { (id: String, expr: Expression) => (Id(id), expr) }
 		),
