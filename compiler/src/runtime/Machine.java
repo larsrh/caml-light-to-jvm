@@ -324,7 +324,10 @@ public class Machine {
 		}
 	}
 
-	public static void main(String[] args) {
+	/* this method is only for demonstration purposes, the proper code
+	 * will be generated.
+	 */
+	public static void main_(String[] args) {
 		Machine m = new Machine();
 		m.loadc(19);
 		m.mkbasic();
