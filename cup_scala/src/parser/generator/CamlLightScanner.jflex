@@ -79,7 +79,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   /* keywords */
   "and"		{ return token(LETAND()); }
   "else"	{ return token(ELSE()); }
-  "false"	{ return token(FALSE()); }
+  "false"	{ return token(BOOLCONST(), false); }
   "fun"		{ return token(FUN()); }
   "function"	{ return token(FUNCTION()); }
   "if"		{ return token(IF()); }
@@ -91,7 +91,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   "or"		{ return token(OR()); }
   "rec"		{ return token(REC()); }
   "then"	{ return token(THEN()); }
-  "true"	{ return token(TRUE()); }
+  "true"	{ return token(BOOLCONST(), true); }
   "type"	{ return token(TYPE()); }
 
   "&"		{ return token(AND()); }
@@ -134,7 +134,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 }
 
 <STRING> {
-  \"		{ yybegin(YYINITIAL); return token(STRING(), string.toString()); }
+  \"		{ yybegin(YYINITIAL); return token(STRINGCONST(), string.toString()); }
   [^\n\r\"\\]+	{ string.append( yytext() ); }
   \\t		{ string.append('\t'); }
   \\n		{ string.append('\n'); }

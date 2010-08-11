@@ -11,7 +11,7 @@ import scala.collection.mutable.ListBuffer
 // exported for usage in JFlex
 object CamlLightTerminals extends SymbolEnum {
 	val	IDENTIFIER,
-		INTCONST,
+		INTCONST, BOOLCONST, STRINGCONST,
 		LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
 		STAR, PLUS, MINUS, SLASH, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
 		LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
@@ -20,8 +20,7 @@ object CamlLightTerminals extends SymbolEnum {
 		TYPE, // type
 		IF, THEN, ELSE, // if then else
 		IN, OF, LET, REC, // in of let rec
-		TRUE, FALSE,
-		STRING
+		DUMMY // TODO fails without 'DUMMY'
 		= TerminalEnum
 }
 
@@ -46,6 +45,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	type Entry = (Id, Expression)
 
 	class INTCONST extends SymbolValue[Int]
+	class BOOLCONST extends SymbolValue[Boolean]
+	class STRINGCONST extends SymbolValue[String]
 	class IDENTIFIER extends SymbolValue[String]
 	class expr extends SymbolValue[Expression]
 	class const extends SymbolValue[Const]
@@ -60,7 +61,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(COMMA), left(SEMI))
 
-	// TODO bool, character, app, string, match, lambda
+	// TODO character, app, match, lambda
 
 	val opMapping = Map[Operator#Value, Symbol](
 		BinaryOperator.add -> PLUS,
@@ -83,6 +84,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			IDENTIFIER ^^ (Id.apply _) |
 			MINUS ~ IDENTIFIER ^^ { (id: String) => UnOp(UnaryOperator.neg, Id(id)) } |
 			INTCONST ^^ (Integer.apply _) |
+			BOOLCONST ^^ (Bool.apply _) |
+			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str map { Character(_) } toList) } |
 			MINUS ~ INTCONST ^^ { (n: Int) => Integer(-n) } |
 			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
 				case List(expr) => expr

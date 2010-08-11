@@ -2,6 +2,7 @@
 package parser.generator
 
 import edu.tum.cup2.generator.LALR1Generator
+import edu.tum.cup2.io.LRParsingTableDump
 import edu.tum.cup2.parser.LRParser
 import java.io.StringReader
 import scala.io.Source
@@ -13,6 +14,8 @@ object Test extends Application {
 	val generator = new LALR1Generator(CamlLightSpec)
 	val table = generator.getParsingTable()
 	val parser = new LRParser(table)
+
+	LRParsingTableDump.dumpToHTML(table, new java.io.File("build/dump.htm"))
 
 	var i = 0
 	val failed = ListBuffer[Int]()
