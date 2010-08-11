@@ -1,5 +1,4 @@
 package runtime
-import scala.io.Source
 import java.io.FileOutputStream
 import java.util.zip.{ZipOutputStream, ZipEntry}
 
@@ -11,7 +10,9 @@ object JarPacker {
 		zip.putNextEntry(new ZipEntry("META-INF/MANIFEST.MF"))
 		// i could use "foo" splitlines map strip mkstring, but Java string ops suck
 		zip.write("""Manifest-Verion: 1.0
-Main-Class: runtime.Machine""" getBytes)
+Main-Class: runtime.Machine
+""" getBytes)
+		// the manifest needs to have a trailing newline
 	}
 
 	/* copies all Machine$* stuff that is not to be changed into the JAR */
@@ -29,6 +30,7 @@ Main-Class: runtime.Machine""" getBytes)
 
 			// holy cow, how much I hate these IOStreams!
 			// Scala makes it even harder to work with
+			// TODO: rewrite it, so I don't have to kill myself for this
 			var done = false
 			while (!done) {
 				val len = bytecodeStream.read(buf);
@@ -43,6 +45,7 @@ Main-Class: runtime.Machine""" getBytes)
 
 	/* writes Machine.class */
 	def injectCode(zip: ZipOutputStream) = {
+		zip.putNextEntry(new ZipEntry("runtime/Machine.class"))
 	}
   
   def main(args: Array[String]): Unit = {
