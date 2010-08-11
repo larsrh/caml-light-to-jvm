@@ -11,10 +11,10 @@ object JarPacker {
 
 	def addManifest(zip: ZipOutputStream) = {
 		zip.putNextEntry(new ZipEntry("META-INF/MANIFEST.MF"))
-		// i could use "foo" splitlines map strip mkstring, but Java string ops suck
+
 		zip.write("""Manifest-Verion: 1.0
-Main-Class: runtime.Machine
-""" getBytes)
+		Main-Class: runtime.Machine
+		""" split "\n" map(_.trim) mkString "\n" getBytes)
 		// the manifest needs to have a trailing newline
 	}
 
