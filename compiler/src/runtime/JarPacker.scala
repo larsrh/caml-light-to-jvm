@@ -3,7 +3,7 @@ import scala.collection.mutable.ListBuffer
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.zip.{ZipOutputStream, ZipEntry}
-import org.objectweb.asm.{ClassWriter, ClassReader, ClassAdapter}
+import org.objectweb.asm.{ClassWriter, ClassReader}
 
 object JarPacker {
 	def createJar(fileName: String) = new ZipOutputStream(
@@ -52,7 +52,7 @@ Main-Class: runtime.Machine
 
 		val cw = new ClassWriter(ClassWriter.COMPUTE_MAXS +
 																	ClassWriter.COMPUTE_FRAMES)
-		val ca = new ClassAdapter(cw)
+		val ca = new BytecodeAdapter(cw)
 		val `class` = classOf[Machine]
 		val className = `class`.getName.replace(".", "/") + ".class"
 		val bytecodeStream = `class`.getClassLoader.getResourceAsStream(className)
