@@ -44,6 +44,11 @@ public class Machine {
 		private Raw(int constant) {
 			v = constant;
 		}
+
+		public String toString() {
+			// nice example of weak typing in Java
+			return "" + v;
+		}
 	}
 
 	private class Vector extends MachineData {
@@ -53,6 +58,10 @@ public class Machine {
 		private Vector(MachineData[] v) {
 			this.v = v;
 			this.n = v.length;
+		}
+
+		public String toString() {
+			return "V(" + n + ", TODO)";
 		}
 	}
 
@@ -67,6 +76,10 @@ public class Machine {
 			this.ap = ap;
 			this.gp = gp;
 		}
+
+		public String toString() {
+			return "F(" + cp + ", TODO, TODO)";
+		}
 	}
 
 	private class Closure extends MachineData {
@@ -76,6 +89,10 @@ public class Machine {
 		private Closure(int cp, Vector gp) {
 			this.cp = cp;
 			this.gp = gp;
+		}
+
+		public String toString() {
+			return "C(" + cp + ", TODO)";
 		}
 	}
 
@@ -294,6 +311,20 @@ public class Machine {
 			stack.push(h.v[i]);
 			sp++;
 		}
+	}
+
+	public void _pstack() {
+		for (MachineData item: stack) {
+			System.out.println(item);
+		}
+	}
+
+	public static void main(String[] args) {
+		Machine m = new Machine();
+		m.loadc(42);
+		m.loadc(23);
+		m.add();
+		m._pstack();
 	}
 }
 
