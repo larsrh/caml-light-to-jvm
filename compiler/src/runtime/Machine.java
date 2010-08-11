@@ -268,6 +268,33 @@ public class Machine {
 		sp--;
 		return top.cp;
 	}
+
+	public void mkclos(int label) {
+		Vector gp = (Vector)stack.pop();
+		stack.push(new Closure(label, gp));
+	}
+
+	public int update() {
+		int ret = popenv();
+		rewrite(1);
+		return ret;
+	}
+
+	public void copyglob() {
+		stack.push(gp);
+		sp++;
+	}
+
+	public void getvec(int k) {
+		Vector h = (Vector)stack.pop();
+		sp--;
+		assert (h.n == k);
+
+		for (int i = 0; i < k; i++) {
+			stack.push(h.v[i]);
+			sp++;
+		}
+	}
 }
 
 /*
