@@ -12,7 +12,7 @@ import static parser.generator.CamlLightTerminals.*;
 %cup2
 %line
 %column
-%state STRING COMMENT
+%state CHARACTER COMMENT STRING
 
 %{
   private StringBuffer string = new StringBuffer();
@@ -51,6 +51,19 @@ import static parser.generator.CamlLightTerminals.*;
     Matcher m = p.matcher(str);
     m.matches();
     return Integer.parseInt(m.group(1), 2);
+  }
+
+  private char charFrom3Ints(String str)
+  {
+    Pattern p = Pattern.compile("\\\\([0-9])([0-9])([0-9])");
+    Matcher m = p.matcher(str);
+    m.matches();
+
+    int a = Integer.parseInt(m.group(1));
+    int b = Integer.parseInt(m.group(2));
+    int c = Integer.parseInt(m.group(3));
+
+    return (char)(a * 100 + b * 10 + c);
   }
 %}
 
@@ -128,17 +141,36 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   {Identifier}	{ return token(IDENTIFIER(), new String(yytext())); }
 
+  \'		{ string.setLength(0); yybegin(CHARACTER); }
+
   \"		{ string.setLength(0); yybegin(STRING); }
 
   .		{ throw new IllegalArgumentException("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn); }
 }
 
+<CHARACTER> {
+  \'		{ yybegin(YYINITIAL);
+		  if (string.length() != 1) throw new IllegalArgumentException("Error: More or less than one character found.");
+		  return token(CHARCONST(), string.toString().charAt(0));
+		}
+  \\[0-9]{3}	{ string.append(charFrom3Ints(yytext())); }
+  [^\n\r\"\\]	{ string.append( yytext() ); }
+  \\t		{ string.append('\t'); }
+  \\n		{ string.append('\n'); }
+  \\r		{ string.append('\r'); }
+  \\b		{ string.append('\b'); }
+  \\\"		{ string.append('\"'); }
+  \\		{ string.append('\\'); }
+}
+
 <STRING> {
   \"		{ yybegin(YYINITIAL); return token(STRINGCONST(), string.toString()); }
+  \\[0-9]{3}	{ string.append(charFrom3Ints(yytext())); }
   [^\n\r\"\\]+	{ string.append( yytext() ); }
   \\t		{ string.append('\t'); }
   \\n		{ string.append('\n'); }
   \\r		{ string.append('\r'); }
+  \\b		{ string.append('\b'); }
   \\\"		{ string.append('\"'); }
   \\		{ string.append('\\'); }
 }

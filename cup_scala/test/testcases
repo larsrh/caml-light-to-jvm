@@ -1,3 +1,6 @@
+"String \097"#Cons(Character(S),Cons(Character(t),Cons(Character(r),Cons(Character(i),Cons(Character(n),Cons(Character(g),Cons(Character( ),Cons(Character(a),Nil))))))))
+'\098'#Character(b)
+'a'#Character(a)
 3 (* blub *) *)#!
 3 (* (* blub *)#!
 3 (* foo *)#Integer(3)
@@ -12,4 +15,3 @@ a- -b#BinOp(sub,Id(a),UnOp(neg,Id(b)))
 [1,2,3]#!
 true#Bool(true)
 false#Bool(false)
-"ab"#Cons(Character(a),Cons(Character(b),Nil))
