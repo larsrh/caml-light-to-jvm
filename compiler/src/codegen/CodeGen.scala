@@ -16,9 +16,14 @@ package mamaInstructions {
 	/*														INSTRUCTION SET																	*/
 	/******************************************************************************/
   sealed abstract class Instruction(str: String) {
-    final override def toString() = str + "\n"
-  }
-  final case class LABEL(nr:Int) extends Instruction("_" + nr.toString + ":")
+    final override def toString() = str + (this match {
+			case SETLABEL(_) => ""
+			case LABEL(_) => ""
+			case _ => "\n"
+		})
+	}
+  final case class LABEL(nr:Int) extends Instruction("_" + nr.toString)
+	final case class SETLABEL(label:LABEL) extends Instruction(label + ":")
 
 	case object ADD extends Instruction("add") 
 	final case class ALLOC(value:Int) extends Instruction("alloc " + value)
@@ -92,8 +97,8 @@ package mamaInstructions {
           val A = newLabel()
           val B = newLabel()
           (codeb(c, rho, sd) ++ List(JUMPZ(A)) 
-					 ++ codeb(e1, rho, sd) ++ List(JUMP(B),A)
-					 ++ codeb(e2, rho, sd) :+ B)
+					 ++ codeb(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A))
+					 ++ codeb(e2, rho, sd) :+ SETLABEL(B))
         }
 			case _ => codev(expr, rho, sd) :+ GETBASIC
 		}
@@ -110,7 +115,8 @@ package mamaInstructions {
 			
 			((globs foldLeft (List.empty:List[Instruction]))((l:List[Instruction],i:Int) => 
 					l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
-			List(MKVEC(globs.length),MKCLOS(A),JUMP(B),A) ++ codev(expr,rhoNew,0) ++ List(UPDATE,B)
+			List(MKVEC(globs.length),MKCLOS(A),JUMP(B),SETLABEL(A)) ++ codev(expr,rhoNew,0) ++ 
+						List(UPDATE,SETLABEL(B))
 		}
       
 		def codev(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
@@ -127,8 +133,8 @@ package mamaInstructions {
 					val A = newLabel()
 					val B = newLabel()
 					codeb(c, rho, sd) ++ List(JUMPZ(A)) ++ 
-					codev(e1, rho, sd) ++ List(JUMP(B),A) ++ 
-					codev(e2, rho, sd) :+ B
+					codev(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A)) ++ 
+					codev(e2, rho, sd) :+ SETLABEL(B)
 				}
 			case Let(x,definition,body) => x match {
 					// TODO first codev to be replaced by codec when CBN is used
@@ -165,8 +171,8 @@ package mamaInstructions {
 					
 					((globs foldLeft (List.empty:List[Instruction]))((l:List[Instruction],i:Int) => 
 							l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
-					List(MKVEC(globs.length),MKFUNVAL(A),JUMP(B),A,TARG(locs.length)) ++ 
-					codev(body,rhoNew,0) :+ B
+					List(MKVEC(globs.length),MKFUNVAL(A),JUMP(B),SETLABEL(A),TARG(locs.length)) ++ 
+					codev(body,rhoNew,0) :+ SETLABEL(B)
 				}
 			case App(fun,args@_*) => {
 					val A = newLabel()
@@ -175,11 +181,16 @@ package mamaInstructions {
 					
 					// TODO codev inside of foldLeft function to be replaced by codec when CBN is used
 					(is foldLeft (List(MARK(A)):List[Instruction]))((l:List[Instruction],i:Int) => 
-						codev(args(m-1-i),rho,sd+3+i)) ++ List(APPLY,A)
+						codev(args(m-1-i),rho,sd+3+i)) ++ List(APPLY,SETLABEL(A))
 				}
-				//case Tuple(ts@_*) => 
+			case Tuple(elems@_*) => {
+					val ks = (0 to elems.length-1).toList
+					
+					(ks foldLeft (List.empty:List[Instruction]))((l:List[Instruction],k:Int) => 
+						codec(elems(k),rho,sd+k)) :+ MKVEC(ks.length)
+			}
 			case Nil => List(NIL)
-				//case Cons(head,tail) => 
+			case Cons(head,tail) => codec(head,rho,sd) ++ codec(tail,rho,sd+1) :+ CONS
 			case _ => throw new Exception("TODO")
 		}
     
@@ -217,7 +228,7 @@ package mamaInstructions {
 		def varTest(v:Any): String = v match { 
 			case patterns.Id(x) => x
 			case Id(x) => x
-			case _ => throw new Exception("TODO")
+			case _ => throw new Exception("TODO" + v.toString)
 		}
 		def updateLoc(l:List[Any],r:HashMap[String,(VarKind.Value,Int)],i:Int)
 		:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Local,-i))
@@ -263,13 +274,33 @@ object CodeGen {
 	import scala.collection.immutable.HashMap
 		
 	def main(args:Array[String]):Unit = {
-		val expr = Let(patterns.Id("a"),Integer(19),
+		val e1 = Let(patterns.Id("a"),Integer(19),
 									 Let(patterns.Id("b"),BinOp(BinaryOperator.mul,Id("a"),Id("a")),
 											 BinOp(BinaryOperator.add,Id("a"),Id("b"))
 			)
 		)
-		val res = Translator.codeb(expr,HashMap.empty,0)
+		
+	  val e2 = Let(patterns.Id("1"), Lambda(Id("1"), patterns.Id("1")),
+                 App(Id("1"),Id("1")))
+
+    val e3 = Lambda(Lambda(Lambda(
+        App(App(Id("1"),Id("2")), App(Id("2"), Id("3"))), patterns.Id("3")), patterns.Id("2")), patterns.Id("1"))
+
+    val e4 = Let(patterns.Id("1"),
+                Lambda(Id("2"), patterns.Id("2")),
+                Let(patterns.Id("2"),
+                    App(Id("1"), Id("1")),
+                    App(Id("2"), Id("1"))))
+
+
+    val e5 = Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs")))
+    val e6 = Lambda(Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
+                    patterns.Cons(patterns.Id("y"), patterns.Id("ys")))
+		
+		val list = List(e1,e2,e3,e4/*,e5,e6*/)
+		
+		val res = list map (Translator.codeb(_,HashMap.empty,0))
 			
-		res map (Console println)
+		res map ( x => {x map (Console print); Console println "******************************"})
 	}
 }
