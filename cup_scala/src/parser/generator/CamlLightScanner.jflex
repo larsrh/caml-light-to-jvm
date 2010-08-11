@@ -97,12 +97,12 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   "&"		{ return token(AND()); }
   "("		{ return token(LBRACKET()); }
   ")"		{ return token(RBRACKET()); }
-  "*"		{ return token(MUL()); }
+  "*"		{ return token(STAR()); }
   "+"		{ return token(PLUS()); }
   ","		{ return token(COMMA()); }
   "-"		{ return token(MINUS()); }
   "."		{ return token(POINT()); }
-  "/"		{ return token(DIV()); }
+  "/"		{ return token(SLASH()); }
   "::"		{ return token(CONS()); }
   ";"		{ return token(SEMI()); }
   "<"		{ return token(LESS()); }

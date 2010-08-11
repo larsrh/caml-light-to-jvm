@@ -13,7 +13,7 @@ object CamlLightTerminals extends SymbolEnum {
 	val	IDENTIFIER,
 		INTCONST,
 		LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
-		MUL, PLUS, MINUS, DIV, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
+		STAR, PLUS, MINUS, SLASH, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
 		LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
 		FUN, FUNCTION, MATCH, PIPE, // fun function match |
 		LETAND, AND, OR, NOT, // and, &, or, not
@@ -58,15 +58,15 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class entry extends SymbolValue[Entry]
 	class record extends SymbolValue[List[Entry]]
 
-	precedences(left(POINT), left(MUL), left(DIV), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(COMMA), left(SEMI))
+	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(COMMA), left(SEMI))
 
 	// TODO bool, character, app, tuple, string, match, lambda
 
 	val opMapping = Map[Operator#Value, Symbol](
 		BinaryOperator.add -> PLUS,
 		BinaryOperator.sub -> MINUS,
-		BinaryOperator.mul -> MUL,
-		BinaryOperator.div -> DIV,
+		BinaryOperator.mul -> STAR,
+		BinaryOperator.div -> SLASH,
 		BinaryOperator.eq -> EQ,
 		BinaryOperator.neq -> NEQ,
 		BinaryOperator.geq -> GEQ,
@@ -90,8 +90,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			// ops
 			{
 				val buf = ListBuffer[RHSItem]()
-				BinaryOperator.values.foreach { op => buf.append(binOp(op) : _*) }
-				UnaryOperator.values.foreach  { op => if (opMapping.contains(op)) buf.append(unOp(op) : _*) } // TODO
+				BinaryOperator.values.foreach { op => buf ++= chain(opMapping(op), BinOp(op, _, _)) }
+				UnaryOperator.values.foreach  { op => if (opMapping.contains(op)) buf ++= (opMapping(op) ~ expr) ^^ { (expr: Expression) => UnOp(op, expr) } } // TODO
 				buf.toSeq
 			} |
 			expr ~ POINT ~ IDENTIFIER ^^ { (expr: Expression, id: String) => Field(expr, Id(id)) } |
@@ -123,11 +123,5 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	def chain(terminal: Symbol, action: (Expression, Expression) => Expression) =
 		(expr ~ terminal ~ expr) ^^ { (expr1: Expression, expr2: Expression) => action(expr1, expr2) }
-
-	def binOp(op: BinaryOperator.Value) = 
-		chain(opMapping(op), BinOp(op, _, _))
-
-	def unOp(op: UnaryOperator.Value) =
-		(opMapping(op) ~ expr) ^^ { (expr: Expression) => UnOp(op, expr) }
 
 }
