@@ -113,8 +113,13 @@ public class Machine {
 	// thows a ClassCastException when the code is wrong, which is more
 	// or less what we want. Me wants pattern match in this Java!
 	public void getbasic() {
-		Base b = (Base)this.stack.pop();
-		this.stack.push(new Raw(b.v));
+		Base b = (Base)stack.pop();
+		stack.push(new Raw(b.v));
+	}
+
+	public void mkbasic() {
+		Raw r = (Raw)stack.pop();
+		stack.push(new Base(r.v));
 	}
 
 	public void pushloc(int depth) {
@@ -321,9 +326,24 @@ public class Machine {
 
 	public static void main(String[] args) {
 		Machine m = new Machine();
-		m.loadc(42);
-		m.loadc(23);
+		m.loadc(19);
+		m.mkbasic();
+		m.pushloc(0);
+		m.getbasic();
+		m.pushloc(1);
+		m.getbasic();
+		m.mul();
+		m.mkbasic();
+		m.pushloc(1);
+		m.getbasic();
+		m.pushloc(1);
+		m.getbasic();
 		m.add();
+		m.mkbasic();
+		m.slide(1);
+		m.slide(1);
+		m.getbasic();
+
 		m._pstack();
 	}
 }
