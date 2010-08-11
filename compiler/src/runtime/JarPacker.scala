@@ -50,9 +50,6 @@ Main-Class: runtime.Machine
 	def injectCode(zip: ZipOutputStream) = {
 		import runtime.Machine
 
-		val cw = new ClassWriter(ClassWriter.COMPUTE_MAXS +
-																	ClassWriter.COMPUTE_FRAMES)
-		val ca = new BytecodeAdapter(cw)
 		val `class` = classOf[Machine]
 		val className = `class`.getName.replace(".", "/") + ".class"
 		val bytecodeStream = `class`.getClassLoader.getResourceAsStream(className)
@@ -61,7 +58,10 @@ Main-Class: runtime.Machine
 		// don't ask why ClassReader cannot load the class without failing
 		//val cr = new ClassReader("runtime.Machine")
 		val cr = new ClassReader(bytesInput)
-		cr.accept(cw, 0)
+		val cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS +
+														 ClassWriter.COMPUTE_FRAMES)
+		val ca = new BytecodeAdapter(cw)
+		cr.accept(ca, 0)
 
 		zip.putNextEntry(new ZipEntry("runtime/Machine.class"))
 		val bytes = cw.toByteArray
