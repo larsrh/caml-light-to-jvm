@@ -71,9 +71,9 @@ public class Machine {
 
 	private class Closure extends MachineData {
 		private int cp;
-		private Function gp;
+		private Vector gp;
 
-		private Closure(int cp, Function gp) {
+		private Closure(int cp, Vector gp) {
 			this.cp = cp;
 			this.gp = gp;
 		}
@@ -239,6 +239,34 @@ public class Machine {
 		MachineData value = stack.pop();
 		stack.set(sp - j, value);
 		sp--;
+	}
+
+	/* eval needs to supply a label that is right *after* the call of eval */
+	public int eval(int label) {
+		try {
+			Closure c = (Closure)stack.peek();
+			mark0(label);
+			pushloc(3);
+			return apply0();
+		}
+		catch (ClassCastException e) {
+			return -1;
+		}
+	}
+
+	public void mark0(int label) {
+		stack.push(gp);
+		stack.push(new Base(fp));
+		stack.push(new Base(label));
+		sp += 3;
+		fp = sp;
+	}
+
+	public int apply0() {
+		Closure top = (Closure)stack.pop();
+		gp = top.gp;
+		sp--;
+		return top.cp;
 	}
 }
 
