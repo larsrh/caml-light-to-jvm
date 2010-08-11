@@ -8,6 +8,14 @@
  *
  * $ java -cp asm.jar:asm-util.jar org.objectweb.asm.util.ASMifierClassVisitor
  *   Machine.class
+ *
+ * An alternate approach is compiling the Bytecode and then using the ASM
+ * library, walk into it and create a main() method.
+ *
+ * Actually, this machine does not correspond completely to MaMa, because
+ * some instructions take additional params and some return the next label
+ * to jump to, instead of changing the PC. Therefore, a better name for the
+ * machine would be deineMama.
  */
 
 package runtime;
@@ -18,6 +26,7 @@ public class Machine {
 	private int fp;
 	private int sp;
 	private Vector gp;
+
 	abstract class MachineData {};
 	private class Base extends MachineData {
 		private int v;
@@ -162,12 +171,18 @@ public class Machine {
 		return h.cp;
 	}
 
-	public void targ(int k, int label) {
+	/* contrary to what MaMa did, targ takes a label to jump to, in case
+	 * that the function had to few arguments.
+	 */
+	public int targ(int k, int label) {
 		if (sp - fp < k) {
 			mkvec0();
-			// TODO: implement sane wrap
-			//wrap();
-			//popenv();
+			wrap(label);
+			return popenv();
+		}
+		else {
+			// TODO: find a better 'invalid' value
+			return -1;
 		}
 	}
 
@@ -181,6 +196,21 @@ public class Machine {
 			a[i] = stack.pop();
 		}
 		stack.push(new Vector(a));
+	}
+
+	public void wrap(int label) {
+		stack.push(new Function(label, (Vector)stack.pop(), gp));
+	}
+
+	/* returns the label to which to jump */
+	public int popenv() {
+		gp = (Vector)stack.get(fp - 2);
+		int label = ((Base)stack.get(fp)).v;
+		stack.set(fp - 2, stack.pop());
+		stack.pop();
+		sp -= 2;
+		fp--;
+		return label;
 	}
 }
 
