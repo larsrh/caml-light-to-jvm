@@ -1,6 +1,9 @@
 package runtime
+import scala.collection.mutable.ListBuffer
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.zip.{ZipOutputStream, ZipEntry}
+import org.objectweb.asm.{ClassWriter, ClassReader, ClassAdapter}
 
 object JarPacker {
 	def createJar(fileName: String) = new ZipOutputStream(
@@ -22,7 +25,7 @@ Main-Class: runtime.Machine
 
 		for (entry <- classes) {
 			val `class` = Class.forName("runtime.Machine$" + entry)
-			val className = `class`.getName.replaceAll("\\.", "/") + ".class"
+			val className = `class`.getName.replace(".", "/") + ".class"
 			val bytecodeStream = `class`.getClassLoader.getResourceAsStream(className)
 
 			val buf = new Array[Byte](1024);
@@ -45,7 +48,24 @@ Main-Class: runtime.Machine
 
 	/* writes Machine.class */
 	def injectCode(zip: ZipOutputStream) = {
+		import runtime.Machine
+
+		val cw = new ClassWriter(ClassWriter.COMPUTE_MAXS +
+																	ClassWriter.COMPUTE_FRAMES)
+		val ca = new ClassAdapter(cw)
+		val `class` = classOf[Machine]
+		val className = `class`.getName.replace(".", "/") + ".class"
+		val bytecodeStream = `class`.getClassLoader.getResourceAsStream(className)
+		val bytesInput = BytesUtil.readWholeStream(bytecodeStream)
+
+		// don't ask why ClassReader cannot load the class without failing
+		//val cr = new ClassReader("runtime.Machine")
+		val cr = new ClassReader(bytesInput)
+		cr.accept(cw, 0)
+
 		zip.putNextEntry(new ZipEntry("runtime/Machine.class"))
+		val bytes = cw.toByteArray
+		zip.write(bytes, 0, bytes.length)
 	}
   
   def main(args: Array[String]): Unit = {
@@ -57,4 +77,24 @@ Main-Class: runtime.Machine
 		jar close
   }
 
+}
+
+object BytesUtil {
+	/* returns the whole contents of the input stream into a byte array
+	 * Was it so hard, Sun? I mean Oracle. */
+	def readWholeStream(stream: InputStream): Array[Byte] = {
+		val bufs = ListBuffer[Byte]()
+
+		var done = false
+		while (!done) {
+			val char = stream.read()
+			if (char == -1) {
+				done = true
+			} else {
+				bufs += char.asInstanceOf[Byte]
+			}
+		}
+
+		bufs.toArray[Byte]
+	}
 }
