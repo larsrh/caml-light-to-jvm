@@ -20,7 +20,7 @@ object CamlLightTerminals extends SymbolEnum {
 		TYPE, // type
 		IF, THEN, ELSE, // if then else
 		IN, OF, LET, REC, // in of let rec
-		DUMMY // TODO fails without 'DUMMY'
+		CHARCONST // TODO fails when declared after 'STRINGCONST'
 		= TerminalEnum
 }
 
@@ -47,6 +47,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class INTCONST extends SymbolValue[Int]
 	class BOOLCONST extends SymbolValue[Boolean]
 	class STRINGCONST extends SymbolValue[String]
+	class CHARCONST extends SymbolValue[Char]
 	class IDENTIFIER extends SymbolValue[String]
 	class expr extends SymbolValue[Expression]
 	class const extends SymbolValue[Const]
@@ -85,7 +86,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			MINUS ~ IDENTIFIER ^^ { (id: String) => UnOp(UnaryOperator.neg, Id(id)) } |
 			INTCONST ^^ (Integer.apply _) |
 			BOOLCONST ^^ (Bool.apply _) |
-			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str map { Character(_) } toList) } |
+			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str.map(Character.apply _).toList) } |
+			CHARCONST ^^ (Character.apply _) |
 			MINUS ~ INTCONST ^^ { (n: Int) => Integer(-n) } |
 			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
 				case List(expr) => expr
