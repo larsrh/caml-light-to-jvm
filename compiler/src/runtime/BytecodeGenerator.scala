@@ -21,7 +21,7 @@ class BytecodeAdapter(cv: ClassVisitor) extends ClassAdapter(cv) {
 	override def visitEnd() = {
 		// add our custom main method here
 		val mv = cv.visitMethod(ACC_PUBLIC + ACC_STATIC, "main",
-														"([Ljava/lang/String;)V", null, null);
+														"([Ljava/lang/String;)V", null, null)
 		mv.visitCode
 		mv.visitTypeInsn(NEW, "runtime/Machine")
 		mv.visitInsn(DUP)
@@ -53,6 +53,11 @@ class BytecodeAdapter(cv: ClassVisitor) extends ClassAdapter(cv) {
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V")
 		mv.visitVarInsn(ALOAD, 1)
+		mv.visitInsn(ICONST_1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "pushloc", "(I)V");
+		mv.visitVarInsn(ALOAD, 1);
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V");
+		mv.visitVarInsn(ALOAD, 1);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "add", "()V")
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mkbasic", "()V")
@@ -72,6 +77,6 @@ class BytecodeAdapter(cv: ClassVisitor) extends ClassAdapter(cv) {
 		mv.visitEnd
 
 		// maybe the parent wants to do some fancy stuff
-		super.visitEnd()
+		super.visitEnd
 	}
 }
