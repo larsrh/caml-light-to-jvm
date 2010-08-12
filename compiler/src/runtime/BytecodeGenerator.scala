@@ -28,15 +28,14 @@ class BytecodeGenerator(mv: MethodVisitor) {
 		this
 	}
 
-	def setlabel(label: LABEL) {
-		val jvmLabel = new Label()
-		labels.put(label, jvmLabel)
-		this
+	def discoverLabel(label: LABEL):LABEL = {
+		labels.put(label, new Label())
+		label
 	}
 
-	def populateLabels(instr: Instruction) = { instr match {
-			case SETLABEL(label) => setlabel(label)
-			case _ => // couldn't care less about the rest
+	def populateLabels(instr: Instruction):Instruction = { instr match {
+			case SETLABEL(label) => discoverLabel(label)
+			case rest => rest
 		}
 	}
 
@@ -48,7 +47,7 @@ class BytecodeGenerator(mv: MethodVisitor) {
 			case MUL => aload invokevirtual("mul", "()V")
 			case ADD => aload invokevirtual("add", "()V")
 			case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
-			case SETLABEL(label) => setlabel(label)
+			case SETLABEL(label) => // visitLabel
 		}
 	}
 }
@@ -69,14 +68,11 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		mv.visitVarInsn(ASTORE, 1)
 		// TODO: add code for while loop + switch case so we can jump to labels
 
-		// from here starts the actual code
+		// from here starts the actual code generation
 		val gen = new BytecodeGenerator(mv)
-		for (single <- instr) {
-			gen populateLabels single
-		}
-		for (single <- instr) {
-			gen.generateInstruction(single)
-		}
+		// first we populate the labels
+		// then we generate the instructions
+		instr map(gen populateLabels) map(gen generateInstruction)
 
 		// end of generated code
 		mv.visitVarInsn(ALOAD, 1)
