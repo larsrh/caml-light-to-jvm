@@ -56,10 +56,8 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
  */
 class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassAdapter(cv) {
 	def discoverLabels(instr: List[Instruction]) = {
-		// get all SETLABELs
-		val setLabels = instr.filter({case SETLABEL(l) => true case _ => false})
-		// unwrap the LABELs
-		val mamaLabels = setLabels.map({case SETLABEL(l) => l})
+		// extract all LABELs from all SETLABELs
+		val mamaLabels = instr collect {case SETLABEL(l) => l}
 		// construct a hash containing the labels
 		mamaLabels.foldLeft(HashMap.empty[LABEL,Label])((h, e) => h + (e -> new Label()))
 	}
