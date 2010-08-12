@@ -103,6 +103,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   "of"		{ return token(OF()); }
   "or"		{ return token(OR()); }
   "rec"		{ return token(REC()); }
+  "with"    { return token(WITH()); }
   "then"	{ return token(THEN()); }
   "true"	{ return token(BOOLCONST(), true); }
   "type"	{ return token(TYPE()); }
@@ -130,6 +131,8 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   "{"		{ return token(LBRACE()); }
   "|"		{ return token(PIPE()); }
   "}"		{ return token(RBRACE()); }
+  "->"		{ return token(ARROW()); }
+  "_"		{ return token(UNDERSCORE()); }
 
   {DecIntegerLiteral}	{ return token(INTCONST(), Integer.parseInt(yytext())); }
 

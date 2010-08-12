@@ -16,3 +16,7 @@ a- -b#BinOp(sub,Id(a),UnOp(neg,Id(b)))
 [1,2,3]#!
 true#Bool(true)
 false#Bool(false)
+match 5 with _ -> foo#Match(Integer(5),List((Underscore,Id(foo))))
+match 5 with _ -> match 3 with bar -> baz#Match(Integer(5),List((Underscore,Match(Integer(3),List((Id(bar),Id(baz)))))))
+match 5 with x -> foo | _ -> match 3 with bar -> baz | x -> y#Match(Integer(5),List((Id(x),Id(foo)), (Underscore,Match(Integer(3),List((Id(bar),Id(baz)), (Id(x),Id(y)))))))
+match 5 with x -> foo | _ -> (match 3 with bar -> baz) | x -> y#Match(Integer(5),List((Id(x),Id(foo)), (Underscore,Match(Integer(3),List((Id(bar),Id(baz))))), (Id(x),Id(y))))

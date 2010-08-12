@@ -15,7 +15,7 @@ object CamlLightTerminals extends SymbolEnum {
 		LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
 		STAR, PLUS, MINUS, SLASH, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
 		LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
-		FUN, FUNCTION, MATCH, PIPE, // fun function match |
+		FUN, FUNCTION, MATCH, PIPE, ARROW, UNDERSCORE, WITH, // fun function match | -> _ with
 		LETAND, AND, OR, NOT, // and, &, or, not
 		TYPE, // type
 		IF, THEN, ELSE, // if then else
@@ -26,8 +26,8 @@ object CamlLightTerminals extends SymbolEnum {
 object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object NonTerminals extends SymbolEnum {
-		val expr, const, typeexpr, typedef, pattern, binding, andbindings, commaseq, entry, record = NonTerminalEnum
-		val param, cdecl = NonTerminalEnum
+		val expr, const, pattern, caselist, `case`, binding, andbindings, commaseq, entry, record, app = NonTerminalEnum
+		val typeexpr, typedef, param, cdecl = NonTerminalEnum
 	}
 
 	val terminals = CamlLightTerminals
@@ -51,16 +51,19 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class IDENTIFIER extends SymbolValue[String]
 	class expr extends SymbolValue[Expression]
 	class const extends SymbolValue[Const]
-	class typeexpr extends SymbolValue[TypeExpression]
-	class typedef extends SymbolValue[TypeDefinition]
 	class pattern extends SymbolValue[Pattern]
+	class `case` extends SymbolValue[Definition]
+	class caselist extends SymbolValue[List[Definition]]
 	class binding extends SymbolValue[Definition]
 	class andbindings extends SymbolValue[List[Definition]]
 	class commaseq extends SymbolValue[List[Expression]]
 	class entry extends SymbolValue[Entry]
 	class record extends SymbolValue[List[Entry]]
+	class app extends SymbolValue[List[Expression]]
+	class typeexpr extends SymbolValue[TypeExpression]
+	class typedef extends SymbolValue[TypeDefinition]
 
-	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(BIND), left(COMMA), left(SEMI))
+	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(LET), left(REC), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
 
 	// TODO app, match, lambda
 
@@ -88,6 +91,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			BOOLCONST ^^ (Bool.apply _) |
 			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str.map(Character.apply _).toList) } |
 			CHARCONST ^^ (Character.apply _) |
+			//expr ~ app ^^ { (head: Expression, tail: List[Expression]) => App(head, tail: _*) } |
 			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
 				case List(expr) => expr
 				case List(l @ _*) => Tuple(l: _*)
@@ -101,6 +105,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 				UnaryOperator.values.foreach  { op => buf ++= (opMapping(op) ~ expr) ^^ (UnOp(op, _: Expression)) }
 				buf.toSeq
 			} |
+			MATCH ~ expr ~ WITH ~ caselist ^^ { (expr: Expression, cases: List[Definition]) => Match(expr, cases: _*) } |
 			expr ~ POINT ~ IDENTIFIER ^^ { (expr: Expression, id: String) => Field(expr, Id(id)) } |
 			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ (IfThenElse.apply _) |
 			LET ~ pattern ~ BIND ~ expr ~ IN ~ expr ^^ (Let.apply _) |
@@ -124,7 +129,25 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		record -> (
 			entry ^^ { (e: Entry) => List(e) } |
 			entry ~ SEMI ~ record ^^ { (head: Entry, tail: List[Entry]) => head :: tail }
-		)/*,
+		),
+		/*app -> (
+			expr ^^ { (expr: Expression) => List(expr) } |
+			expr ~ app ^^ { (head: Expression, tail: List[Expression]) => head :: tail }
+		),*/
+		pattern -> (
+			IDENTIFIER ^^ (patterns.Id.apply _) |
+			UNDERSCORE ^^ { () => patterns.Underscore }
+			// TODO more cases
+		),
+		`case` -> (
+			pattern ~ ARROW ~ expr ^^ { (pattern: Pattern, expr: Expression) => (pattern, expr) }
+		),
+		caselist -> (
+			`case` ^^ { (c: Definition) => List(c) } |
+			`case` ~ PIPE ~ caselist ^^ { (head: Definition, tail: List[Definition]) => head :: tail }
+		)
+
+		/*,
 
 		typedef -> (
 			TYPE ~ param ~ IDENTIFIER ~ BIND ~ cdecl ^^ { (param: List[TypeVariable], id: String, cdecl: List[TypeExpression]) => val a = cdecl match {
