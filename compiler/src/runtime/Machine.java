@@ -16,6 +16,20 @@
  * some instructions take additional params and some return the next label
  * to jump to, instead of changing the PC. Therefore, a better name for the
  * machine would be deineMama.
+ *
+ * Changes from MaMa:
+ *  - targ takes an additional argument, label, which should point at a label
+ *    directly proceeding the targ call
+ *  - eval takes an additional argument, label, which should point at a label
+ *    directly after the eval call
+ *  - return is called return_ because that is a Java keyword. Would be possible
+ *    in Scala and probably the JVM would support it too.
+ *    TODO: determine whether we can just rename the method using bytecode
+ *    transformations, low priority though
+ *  - apply and targ return integers which represent labels that we need to jump
+ *    to
+ *  - jump* is not implemented, because jumps are done by setting the _goto
+ *    marker and calling continue in the outer code
  */
 
 package runtime;

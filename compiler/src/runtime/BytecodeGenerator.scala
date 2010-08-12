@@ -5,32 +5,39 @@ import org.objectweb.asm.Type._
 import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, _}
 
 object BytecodeGenerator {
-	def generateInstruction(instr: Instruction, w: ClassWriter) = { instr match {
-			case ADD => // JVM bytecode call
-		}
+	def loadc(constant: Int, mv: MethodVisitor) = {
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitIntInsn(BIPUSH, 19)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
 	}
 
-  def generateMain(instructions: List[Instruction], w: ClassWriter) = {
-		for (instr <- instructions) {
-			generateInstruction(instr, w)
+	def generateInstruction(instr: Instruction, mv: MethodVisitor) = { instr match {
+			case LOADC(constant) => loadc(constant, mv)
 		}
 	}
 }
 
-class BytecodeAdapter(cv: ClassVisitor) extends ClassAdapter(cv) {
-	override def visitEnd() = {
-		// add our custom main method here
+class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassAdapter(cv) {
+	def injectMain() = {
+		// method definition
 		val mv = cv.visitMethod(ACC_PUBLIC + ACC_STATIC, "main",
 														"([Ljava/lang/String;)V", null, null)
+		// code: instantiate Machine and store it in position 1
 		mv.visitCode
 		mv.visitTypeInsn(NEW, "runtime/Machine")
 		mv.visitInsn(DUP)
 		mv.visitMethodInsn(INVOKESPECIAL, "runtime/Machine", "<init>", "()V")
 		mv.visitVarInsn(ASTORE, 1)
+
 		// from here starts the actual content
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitIntInsn(BIPUSH, 19)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
+		for (single <- instr) {
+			BytecodeGenerator.generateInstruction(single, mv)
+		}
+
+		//mv.visitVarInsn(ALOAD, 1)
+		//mv.visitIntInsn(BIPUSH, 19)
+		//mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
+		// 
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mkbasic", "()V")
 		mv.visitVarInsn(ALOAD, 1)
@@ -75,6 +82,10 @@ class BytecodeAdapter(cv: ClassVisitor) extends ClassAdapter(cv) {
 		// (0, 0) might be a better idea
 		mv.visitMaxs(2, 2)
 		mv.visitEnd
+	}
+	override def visitEnd() = {
+		// add our custom main method now
+		injectMain
 
 		// maybe the parent wants to do some fancy stuff
 		super.visitEnd

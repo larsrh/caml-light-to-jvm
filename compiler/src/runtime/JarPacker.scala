@@ -4,6 +4,7 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.zip.{ZipOutputStream, ZipEntry}
 import org.objectweb.asm.{ClassWriter, ClassReader}
+import codegen.mama.mamaInstructions._
 
 object JarPacker {
 	def createJar(fileName: String) = new ZipOutputStream(
@@ -60,7 +61,10 @@ object JarPacker {
 		val cr = new ClassReader(bytesInput)
 		val cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS +
 														 ClassWriter.COMPUTE_FRAMES)
-		val ca = new BytecodeAdapter(cw)
+		// TODO: this is currently hardcoded and contains only one instruction
+		val instr = List(LOADC(19))
+
+		val ca = new BytecodeAdapter(cw, instr)
 		cr.accept(ca, 0)
 
 		zip.putNextEntry(new ZipEntry("runtime/Machine.class"))
