@@ -66,6 +66,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(LET), left(REC), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
 
 	// TODO app, match, lambda
+	// TODO fix letrec
 
 	val opMapping = Map[Operator#Value, Symbol](
 		BinaryOperator.add -> PLUS,
