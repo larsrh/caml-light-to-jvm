@@ -112,6 +112,11 @@ object TypeInferenceTest {
                   Integer(3),
                   Integer(2))
 
+    // Integer
+    val e28 = Let(patterns.Tuple(patterns.Id("x"),patterns.Id("y")),
+		  Tuple(Integer(1), Integer(2)),
+		  Id("y"))
+		  
 
     // println("e2: " + typeCheck(List(), e2))
     // println("e4: " + typeCheck(List(), e4))
@@ -128,7 +133,8 @@ object TypeInferenceTest {
 //    println("e24: " + TypeInference.typeCheck(List(), e24))
 //    println("e25: " + TypeInference.typeCheck(List(), e25))
     // TODO
-    println("e26: " + TypeInference.typeCheck(List(), e26))
-    println("e27: " + TypeInference.typeCheck(List(), e27))
+  //  println("e26: " + TypeInference.typeCheck(List(), e26))
+ //   println("e27: " + TypeInference.typeCheck(List(), e27))
+    println("e28: " + TypeInference.typeCheck(List(), e28))
   }
 }
