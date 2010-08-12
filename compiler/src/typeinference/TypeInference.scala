@@ -180,16 +180,12 @@ object TypeInference {
 //        }
 
       case expressions.Lambda(body,p@patterns.Underscore) =>
-        constraintGen(gamma,body,fresh) match {
-	  case (typeBody,fresh1,constraints) =>
-            (TypeFn(TypeVariable(fresh), typeBody),fresh1,constraints)
-        }
+        val (typeBody,fresh1,constraints) = constraintGen(gamma,body,fresh)
+	(TypeFn(TypeVariable(fresh), typeBody),fresh1,constraints)
 
       case expressions.Lambda(body,p@patterns.Nil) =>
-        constraintGen(gamma, body, fresh) match {
-	  case (typeBody,fresh1,constraints) =>
-            ((TypeFn(TypeList(TypeVariable(fresh)), typeBody),fresh1,constraints))
-        }
+        val (typeBody,fresh1,constraints) = constraintGen(gamma, body, fresh)
+	((TypeFn(TypeList(TypeVariable(fresh)), typeBody),fresh1,constraints))
 
       case l@expressions.Lambda(_, patterns@_*) =>
         constraintGen(gamma, curry(l), fresh)
@@ -201,6 +197,12 @@ object TypeInference {
           case (fields,fresh1,constraints) =>
             (TypeRecord("anonymous", fields:_*),fresh1,constraints)
         }
+
+      case expressions.Tuple(expr@_*) =>
+	// TODO: 2nd and 5th parameter may be omitted from caller
+	val (tupleTypes,freshNew,constraints) = determineTupleTypes(expr.toList, List(), gamma, fresh, List())
+	(TypeTuple(tupleTypes:_*),freshNew,constraints)
+
         // field access
       case expressions.Field(recExpr, fieldId) =>
         // generate type for recExpr
@@ -284,7 +286,21 @@ object TypeInference {
 	    }
         }
 
-	// TODO
+      case expressions.Let(p@patterns.Tuple(patterns@_*), expr, body) =>
+	val (gamma1,fresh1,_) = updateEnv(gamma, p, TypeVariable(fresh), fresh)
+	val (typeExpr, fresh2, _) = constraintGen(gamma1,expr,fresh)
+	val (typeBody, fresh3, constraints) = constraintGen(gamma1, body, fresh2)
+	typeExpr match {
+	  case TypeTuple(fields@_*) =>
+	    println(fresh3)
+	    println(fresh3 + fields.length)
+	    val newVars = fresh3 to fresh3 + (fields.length - 1) map (i => TypeVariable(i))
+	    println(TypeTuple(newVars:_*))
+	    (typeBody,fresh3 + fields.length + 1,
+	     (typeExpr,TypeTuple(newVars:_*))::constraints)
+	  case _ => throw new TypeError("Couldn't match tuple type.")
+	}
+
       case expressions.Let(patterns.Record(patterns@_*), expr, body) =>
         val (typeExpr,fresh1,_) = constraintGen(gamma, expr, fresh)
 	val (typeBody, fresh2, constraints) = constraintGen(gamma, body, fresh1)
@@ -295,7 +311,7 @@ object TypeInference {
 	    val newVars = fresh2 to fresh2 + fields.length map (i => TypeVariable(i))
 	    (typeBody,fresh2 + fields.length + 1,
 	     (typeExpr,TypeRecord("anonymous",fieldNames zip newVars:_*))::constraints)
-	  case _ => throw new TypeError("Couldn't match type.")
+	  case _ => throw new TypeError("Couldn't match record type.")
 	}
 	    
       case expressions.Match(scrut, clauses@_*) =>
@@ -330,6 +346,18 @@ object TypeInference {
           determineRecordFieldTypes(constraintsNew, (recField._1.name, typeexpr)::fields,
 				    gamma, fresh1, recordFields.tail:_*)
       }
+    }
+  }
+
+  def determineTupleTypes(exprs: List[expressions.Expression],
+			  types: List[TypeExpression], gamma: Env, fresh: Int,
+			  constraints: List[(TypeExpression,TypeExpression)]):
+  (List[TypeExpression], Int, List[(TypeExpression,TypeExpression)]) = {
+    exprs match {
+      case List() => (types,fresh,constraints)
+      case e::exprRest =>
+	val (typeExpr, fresh1, constraints1) = constraintGen(gamma, e, fresh)
+	determineTupleTypes(exprRest, typeExpr::types, gamma, fresh1, constraints ++ constraints1)
     }
   }
 
@@ -372,11 +400,17 @@ object TypeInference {
         ((x, (List(), typeExpr))::env,fresh+1,List())
       case patterns.Underscore => (env,fresh,List())
       case patterns.Nil  => (env,fresh,List())
-	// case tup@patterns.Tuple(pats) =>
-	//  var i = 0
-	// ((env,fresh,List()) /: pats) (((e,f,c),p) => i += 1; updateEnv(e, p, fresh + i, match {
-	//
-	//  }))
+      case tup@patterns.Tuple(pats@_*) =>
+	var gamma = env
+	var currFresh = fresh
+	var constraints: List[(TypeExpression,TypeExpression)] = List()
+	for (pat <- pats) {
+	  val (gamma1,fresh1,cs) = updateEnv(gamma,pat,TypeVariable(currFresh),currFresh+1)
+	  gamma = gamma1
+	  currFresh = fresh1
+	  constraints = cs ++ constraints
+	}
+	(gamma,currFresh,constraints)
       case cons@patterns.Cons(head, tail) =>
         val alpha = TypeVariable(fresh)
         updateEnv(env, head, alpha, fresh+1) match {
