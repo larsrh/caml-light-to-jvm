@@ -93,7 +93,7 @@ package types {
       TypeTuple(types.map(x => x.subst_(s)):_*)
   }
 
-  case class TypeRecord(val name: String, fields: (String, TypeExpression)*) extends TypeExpression {
+  case class TypeRecord(override val name: String, fields: (String, TypeExpression)*) extends TypeConstructor("Record", fields map (f => f._2):_*) {
     def subst_(s: (TypeExpression, TypeExpression)) = {
       TypeRecord(name, fields.map(x => (x._1, x._2.subst_(s))):_*)
     }
