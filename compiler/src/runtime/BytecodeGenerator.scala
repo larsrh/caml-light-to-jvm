@@ -10,10 +10,15 @@ class BytecodeGenerator(mv: MethodVisitor) {
 		this
 	}
 
+	/*
+	 * there is a version of bipush, iconst_<i> that can push from (-1...5)
+	 * but that's an optimization, we always use bipush for constants
+	 */
 	def bipush(constant: Int) = {
-		mv.visitIntInsn(BIPUSH, 19)
+		mv.visitIntInsn(BIPUSH, constant)
 		this
 	}
+	// TODO: implement iconst_<i> ? Not much use probably
 
 	def invokevirtual(name: String, sig: String) = {
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", name, sig)
@@ -23,6 +28,8 @@ class BytecodeGenerator(mv: MethodVisitor) {
 	def generateInstruction(instr: Instruction) = { instr match {
 			case LOADC(constant) => aload bipush 19 invokevirtual("loadc", "(I)V")
 			case MKBASIC => aload invokevirtual("mkbasic", "()V")
+			case PUSHLOC(value) => aload bipush value invokevirtual("pushloc", "(I)V")
+			case GETBASIC => aload invokevirtual("getbasic", "()V")
 		}
 	}
 }
@@ -46,16 +53,6 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 			gen.generateInstruction(single)
 		}
 
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitInsn(ICONST_0)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "pushloc", "(I)V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitInsn(ICONST_1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "pushloc", "(I)V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V")
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mul", "()V")
 		mv.visitVarInsn(ALOAD, 1)
