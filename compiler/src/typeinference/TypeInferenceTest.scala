@@ -102,26 +102,33 @@ object TypeInferenceTest {
     // should fail, texpr is not a list
     val e25  = Let(patterns.Nil, Integer(1), Integer(1))
 
-    val e26 = Let(patterns.Record((patterns.Id("one"), patterns.Cons(patterns.Id("x"), patterns.Id("xs")))),
-                  Cons(Integer(1), Nil),
-                  Id("x"))
+    // pattern match: should succeed: type Integer
+    val e26 = Let(patterns.Record((patterns.Id("one"), patterns.Cons(patterns.Id("x"), patterns.Nil))),
+                  Record((Id("one"), Cons(Integer(1),Nil))),
+                  Integer(2))
+
+    // pattern match should fail
+    val e27 = Let(patterns.Record((patterns.Id("one"), patterns.Cons(patterns.Id("x"), patterns.Nil))),
+                  Integer(3),
+                  Integer(2))
 
 
     // println("e2: " + typeCheck(List(), e2))
     // println("e4: " + typeCheck(List(), e4))
-    // println("e5: " + typeCheck(List(), e5))
+    // println("e5: " + type¸Check(List(), e5))
     // println("e7: " + typeCheck(List(), e9))
     // println(unify(List((TList(TInt()),TList(TypeVariable(2))))))
-    println("e16: " + TypeInference.typeCheck(List(), e16))
-    println("e18: " + TypeInference.typeCheck(List(), e18))
-    println("e19: " + TypeInference.typeCheck(List(), e19))
-    println("e20: " + TypeInference.typeCheck(List(), e20))
-    println("e21: " + TypeInference.typeCheck(List(), e21))
-    println("e22: " + TypeInference.typeCheck(List(), e22))
-    println("e23: " + TypeInference.typeCheck(List(), e23))
-    println("e24: " + TypeInference.typeCheck(List(), e24))
-    println("e25: " + TypeInference.typeCheck(List(), e25))
+//    println("e16: " + TypeInference.typeCheck(List(), e16))
+//    println("e18: " + TypeInference.typeCheck(List(), e18))
+//    println("e19: " + TypeInference.typeCheck(List(), e19))
+//    println("e20: " + TypeInference.typeCheck(List(), e20))
+//    println("e21: " + TypeInference.typeCheck(List(), e21))
+//    println("e22: " + TypeInference.typeCheck(List(), e22))
+//    println("e23: " + TypeInference.typeCheck(List(), e23))
+//    println("e24: " + TypeInference.typeCheck(List(), e24))
+//    println("e25: " + TypeInference.typeCheck(List(), e25))
     // TODO
-   // println("e26: " + TypeInference.typeCheck(List(), e26))
+    println("e26: " + TypeInference.typeCheck(List(), e26))
+    println("e27: " + TypeInference.typeCheck(List(), e27))
   }
 }

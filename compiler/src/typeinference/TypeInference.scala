@@ -286,16 +286,20 @@ object TypeInference {
 
 	// TODO
       case expressions.Let(patterns.Record(patterns@_*), expr, body) =>
-        constraintGen(gamma, expr, fresh) match {
-          case (typeExpr,fresh1,_) =>
-            constraintGen(gamma, body, fresh1) match {
-              case (typeBody, fresh2, constraints) =>
-                (typeBody, fresh2, constraints)
-            }
-        }
-
+        val (typeExpr,fresh1,_) = constraintGen(gamma, expr, fresh)
+	val (typeBody, fresh2, constraints) = constraintGen(gamma, body, fresh1)
+	typeExpr match {
+	  case TypeRecord(_,fields@_*) =>
+	    // extract field names
+	    val fieldNames = fields map (f => f._1)
+	    val newVars = fresh2 to fresh2 + fields.length map (i => TypeVariable(i))
+	    (typeBody,fresh2 + fields.length + 1,
+	     (typeExpr,TypeRecord("anonymous",fieldNames zip newVars:_*))::constraints)
+	  case _ => throw new TypeError("Couldn't match type.")
+	}
+	    
       case expressions.Match(scrut, clauses@_*) =>
-        // TODO: check if clauses are non-empty, check type of scrut
+        // TODO: check if clauses are non-empty, check type of scrut againtst patterns
         // all clauses must match the same type
         checkClauses(clauses.toList, gamma, List(), fresh, TypeVariable(fresh)) match {
           // TODO: as pattern?
