@@ -62,7 +62,7 @@ object JarPacker {
 		val cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS +
 														 ClassWriter.COMPUTE_FRAMES)
 		// TODO: this is currently hardcoded and contains only one instruction
-		val instr = List(LOADC(19))
+		val instr = List(LOADC(19), MKBASIC)
 
 		val ca = new BytecodeAdapter(cw, instr)
 		cr.accept(ca, 0)
