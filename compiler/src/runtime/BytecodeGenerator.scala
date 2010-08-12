@@ -5,6 +5,9 @@ import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type._
 import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, _}
 
+// TODO inherit from some better suited exception
+class CompilerAssertion(msg: String) extends Exception
+
 class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 
 	def aload = {
@@ -27,6 +30,14 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 		this
 	}
 
+	def enterLabel(label: LABEL) = {
+		labels get label match {
+			case Some(l) => mv.visitLabel(l)
+			case None => throw new CompilerAssertion("trying to enter unknown label")
+		}
+		this
+	}
+
 	def generateInstruction(instr: Instruction) = { instr match {
 			case LOADC(constant) => aload bipush 19 invokevirtual("loadc", "(I)V")
 			case MKBASIC => aload invokevirtual("mkbasic", "()V")
@@ -35,7 +46,7 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 			case MUL => aload invokevirtual("mul", "()V")
 			case ADD => aload invokevirtual("add", "()V")
 			case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
-			case SETLABEL(label) => // visitLabel
+			case SETLABEL(label) => enterLabel(label)
 		}
 	}
 }
