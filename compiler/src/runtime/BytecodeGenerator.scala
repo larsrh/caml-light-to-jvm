@@ -5,20 +5,24 @@ import org.objectweb.asm.Type._
 import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, _}
 
 class BytecodeGenerator(mv: MethodVisitor) {
-	def loadc(constant: Int) = {
+	def aload = {
 		mv.visitVarInsn(ALOAD, 1)
-		mv.visitIntInsn(BIPUSH, 19)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
+		this
 	}
 
-	def mkbasic = {
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mkbasic", "()V")
+	def bipush(constant: Int) = {
+		mv.visitIntInsn(BIPUSH, 19)
+		this
+	}
+
+	def invokevirtual(name: String, sig: String) = {
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", name, sig)
+		this
 	}
 
 	def generateInstruction(instr: Instruction) = { instr match {
-			case LOADC(constant) => loadc(constant)
-			case MKBASIC => mkbasic
+			case LOADC(constant) => aload bipush 19 invokevirtual("loadc", "(I)V")
+			case MKBASIC => aload invokevirtual("mkbasic", "()V")
 		}
 	}
 }
