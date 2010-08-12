@@ -47,6 +47,7 @@ package types {
 	sealed trait TypeExpression
 	final case class TypeVariable(name: String) extends TypeExpression
 	final case class TypeConstructor(name: String, params: TypeExpression*) extends TypeExpression
+	final case class TypeRecord(name: String, fields: (String, TypeExpression)*) extends TypeExpression
 
 	sealed trait TypeDefinition { val name: String }
 	final case class Data(override val name: String, params: Seq[TypeVariable], declaration: (String, Seq[TypeExpression])*) extends TypeDefinition

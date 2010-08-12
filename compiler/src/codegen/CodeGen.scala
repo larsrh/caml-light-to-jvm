@@ -34,7 +34,7 @@ package mamaInstructions {
 	case object COPYGLOB extends Instruction("copyglob")	
 	case object DIV extends Instruction("div")
 	case object EQ extends Instruction("eq")
-	case object EVAL extends Instruction("eval")
+	final case class EVAL(label:LABEL) extends Instruction("eval")
 	case object GEQ extends Instruction("geq")
 	final case class GET(offset:Int) extends Instruction("get " + offset)
 	case object GETBASIC extends Instruction("getbasic")
@@ -70,7 +70,7 @@ package mamaInstructions {
 	final case class SLIDE(drop:Int) extends Instruction("slide " + drop)
 	case object STORE extends Instruction("store")
 	case object SUB extends Instruction("sub")
-	final case class TARG(drop:Int) extends Instruction("targ " + drop)
+	final case class TARG(drop:Int, label:LABEL) extends Instruction("targ " + drop)
 	final case class TLIST(target:LABEL) extends Instruction("tlist " + target)
 	case object UPDATE extends Instruction("update")
 	case object WRAP extends Instruction("wrap")
@@ -172,7 +172,7 @@ package mamaInstructions {
 					
 					((globs foldLeft (List.empty:List[Instruction]))((l:List[Instruction],i:Int) => 
 							l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
-					List(MKVEC(globs.length),MKFUNVAL(A),JUMP(B),SETLABEL(A),TARG(locs.length)) ++ 
+					List(MKVEC(globs.length),MKFUNVAL(A),JUMP(B),SETLABEL(A),TARG(locs.length,A)) ++ 
 					codev(body,rhoNew,0) ++ List(RETURN(locs.length), SETLABEL(B))
 				}
 			case App(fun,args@_*) => {
@@ -190,19 +190,49 @@ package mamaInstructions {
 						l ++ codec(elems(k),rho,sd+k)) :+ MKVEC(ks.length)
 				}
 			case Nil => List(NIL)
-			case Cons(head,tail) => codec(head,rho,sd) ++ codec(tail,rho,sd+1) :+ CONS
-			case _ => throw new Exception("TODO")
+			case Cons(head,tail) => cbfun(head,rho,sd) ++ cbfun(tail,rho,sd+1) :+ CONS
+				// FIXME For now ignore e1 - this will be changed when side effects are allowed
+			case Sequence(e1,e2) => codev(e2,rho,sd) 
+			case Record(idVals@_*) => {
+					val ks = (0 to idVals.length-1).toList
+					
+					(ks foldLeft (List.empty:List[Instruction]))((l:List[Instruction],k:Int) => 
+						l ++ codec(idVals(k) _2,rho,sd+k)) :+ MKVEC(ks.length)
+				}
+				// FIXME get position from type checking
+			case Field(rec,name) => codev(rec,rho,sd) ++ List(GET(0/*getPos(rec,name)*/)) 
+			case Match(e0,(patterns.Nil,e1:Expression),
+										(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression)) => {
+					val A = newLabel()
+					val B = newLabel()
+					 
+					(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
+					 codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++ 
+					 List(SLIDE(2),SETLABEL(B)))
+				}			
+			/*case Match(e0,patDefs@_*) => {
+					List.empty
+					//patDefs.toList flatMap { matchCG(e0,_) } //work in progress
+				}*/
+			case _ => List.empty
 		}
 		
 		/******************************************************************************/
 		/*																	MACROS																		*/
 		/******************************************************************************/
+		def matchCG(e:Expression, p:patterns.Pattern, res:Expression):List[Instruction] = {
+			val A = newLabel()
+			val B = newLabel()
+			
+			List.empty // TODO	
+		}
+		
 		def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
 		:List[Instruction] = (rho.get(x) match {
 				case Some((VarKind.Global,i)) => PUSHGLOB(i)
 				case Some((VarKind.Local,i)) => PUSHLOC(sd-i)
 				case _ => throw new Exception("Undefined variable in codegen-phase")
-			}) +: (if(CBN) List(EVAL) else List.empty)
+			}) +: (if(CBN) { val A = newLabel(); List(EVAL(A), SETLABEL(A))} else List.empty)
 		
 		// Finds the instruction corresponding to the given operator
 		def instrOfOp(op:Operator#Value):Instruction = op match {
@@ -305,7 +335,7 @@ object CodeGen {
 										 App(Id("a"), Id("a")),
 										 App(Id("a"), Id("a"))))
 	 
-		// (let a = \b.b in let b = \a.a in \a.a)
+		// (let a = \b.b in let b = \a.a in \a.a) 'a'
 		val e7 = App(e6,Character('a'));
 	 
 		val e8 = Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs")))
