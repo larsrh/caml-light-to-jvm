@@ -103,7 +103,7 @@ package mamaInstructions {
 					 ++ codeb(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A))
 					 ++ codeb(e2, rho, sd) :+ SETLABEL(B))
 				}
-			case _ => codev(expr, rho, sd) :+ {Console println expr; GETBASIC}
+			case _ => codev(expr, rho, sd) :+ GETBASIC
 		}
 			
 		def codec(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
@@ -201,30 +201,29 @@ package mamaInstructions {
 				}
 				// FIXME get position from type checking
 			case Field(rec,name) => codev(rec,rho,sd) ++ List(GET(0/*getPos(rec,name)*/)) 
-			case Match(e0,(patterns.Nil,e1:Expression),
-										(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression)) => {
-					val A = newLabel()
-					val B = newLabel()
+			case Match(e0,patDefs@_*) => codev(e0,rho,sd) ++ patDefs match {
+					case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
+						=> {
+							val A = newLabel()
+							val B = newLabel()
 					 
-					(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
-					 codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++ 
-					 List(SLIDE(2),SETLABEL(B)))
-				}			
-			/*case Match(e0,patDefs@_*) => {
-					List.empty
-					//patDefs.toList flatMap { matchCG(e0,_) } //work in progress
-				}*/
-			case _ => List.empty
+							(List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
+							 codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++ 
+							 List(SLIDE(2),SETLABEL(B)))
+						}			
+					case _ => patDefs.toList flatMap { case (p,e) => matchCG(p,e,rho,sd) } //work in progress
+				}
 		}
 		
 		/******************************************************************************/
 		/*																	MACROS																		*/
 		/******************************************************************************/
-		def matchCG(e:Expression, p:patterns.Pattern, res:Expression):List[Instruction] = {
+		def matchCG(p:patterns.Pattern, res:Expression, 
+								rho:HashMap[String,(VarKind.Value,Int)],sd:Int):List[Instruction] = {
 			val A = newLabel()
 			val B = newLabel()
 			
-			List.empty // TODO	
+			List(JUMPZ(B)) ++ codev(res,rho,sd) :+ SETLABEL(B)
 		}
 		
 		def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
@@ -342,7 +341,15 @@ object CodeGen {
 		val e9 = Lambda(Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
 										patterns.Cons(patterns.Id("y"), patterns.Id("ys")))
 		
-		val list = List(e0,e1,e2,e3,e4,e5,e6,e7)	
+		// match (1,2,3) with (1,2,6) -> 5 | (1,2,y) -> y
+		val e10 = Match(Tuple(Integer(1),Integer(2),Integer(3)),
+										(patterns.Tuple(patterns.Integer(1),patterns.Integer(2),patterns.Integer(3)),
+										 Integer(0)),
+										(patterns.Tuple(patterns.Integer(1),patterns.Integer(2),patterns.Id("y")),
+										 Id("y"))
+		)
+		
+		val list = List(e0,e1,e2,e3,e4,e5,e6,e7,e10)	
 			
 		def out(e:Expression):Unit = {
 			val is = Translator.codeb(e,HashMap.empty,0)
