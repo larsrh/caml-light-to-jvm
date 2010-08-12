@@ -110,7 +110,7 @@ package patterns {
 
   sealed trait Pattern
   final case class Id(name: String) extends Pattern
-	sealed trait Const extends Pattern
+  sealed trait Const extends Pattern
   final case class Integer(value: Int) extends Const
   final case class Bool(value: Boolean) extends Const
   final case class Character(value: Char) extends Const

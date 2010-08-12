@@ -16,6 +16,20 @@
  * some instructions take additional params and some return the next label
  * to jump to, instead of changing the PC. Therefore, a better name for the
  * machine would be deineMama.
+ *
+ * Changes from MaMa:
+ *  - targ takes an additional argument, label, which should point at a label
+ *    directly proceeding the targ call
+ *  - eval takes an additional argument, label, which should point at a label
+ *    directly after the eval call
+ *  - return is called return_ because that is a Java keyword. Would be possible
+ *    in Scala and probably the JVM would support it too.
+ *    TODO: determine whether we can just rename the method using bytecode
+ *    transformations, low priority though
+ *  - apply and targ return integers which represent labels that we need to jump
+ *    to
+ *  - jump* is not implemented, because jumps are done by setting the _goto
+ *    marker and calling continue in the outer code
  */
 
 package runtime;
@@ -348,6 +362,35 @@ public class Machine {
 		m.getbasic();
 
 		m._pstack();
+	}
+
+	/* version of a main that uses switch to simulate goto */
+	public static void main_switch(String[] args) {
+		final int END = Integer.MAX_VALUE;
+
+		int _goto = 0;
+		boolean terminate = false;
+
+		while(!terminate) {
+			switch(_goto)
+			{
+				case 0:
+				case 1:
+					System.out.println("Foo");
+					_goto = 3;
+					continue;
+				case 2:
+					System.out.println("Baz");
+					_goto = END;
+					continue;
+				case 3:
+					System.out.println("Bar");
+					_goto = 2;
+					continue;
+				case END:
+					terminate = true;
+			}
+		}
 	}
 }
 

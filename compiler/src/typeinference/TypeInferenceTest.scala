@@ -112,6 +112,20 @@ object TypeInferenceTest {
                   Integer(3),
                   Integer(2))
 
+    val e28 = IfThenElse(Bool(true), Integer(1), Integer(2))
+
+    // test should fail
+    val e29 = IfThenElse(Bool(true), Integer(1), Bool(false))
+
+    val e30 = UnOp(UnaryOperator.neg, Integer(1))
+
+    // test should fail
+    val e31 = UnOp(UnaryOperator.neg, Bool(true))
+
+    val e32 = UnOp(UnaryOperator.not, Bool(true))
+
+    // test should fail
+    val e33 = UnOp(UnaryOperator.not, Integer(1))
 
     // println("e2: " + typeCheck(List(), e2))
     // println("e4: " + typeCheck(List(), e4))
@@ -127,8 +141,34 @@ object TypeInferenceTest {
 //    println("e23: " + TypeInference.typeCheck(List(), e23))
 //    println("e24: " + TypeInference.typeCheck(List(), e24))
 //    println("e25: " + TypeInference.typeCheck(List(), e25))
-    // TODO
-    println("e26: " + TypeInference.typeCheck(List(), e26))
-    println("e27: " + TypeInference.typeCheck(List(), e27))
+  //  println("e26: " + TypeInference.typeCheck(List(), e26))
+ //   println("e27: " + TypeInference.typeCheck(List(), e27))
+    println("e28: " + TypeInference.typeCheck(List(), e28))
+    println("e28: " + TypeInference.typeCheck(List(), e28))
+
+    try {
+      println("e29: " + TypeInference.typeCheck(List(), e29))
+      println("This shouldn't happen e29")
+    } catch {
+      case _:TypeInference.TypeError => println("Expected Failure for e29")
+    }
+
+    println("e30: " + TypeInference.typeCheck(List(), e30))
+
+    try {
+      println("e31: " + TypeInference.typeCheck(List(), e31))
+      println("This shouldn't happen e31")
+    } catch {
+      case _:TypeInference.TypeError => println("Expected Failure for e31")
+    }
+
+    println("e32: " + TypeInference.typeCheck(List(), e32))
+
+    try {
+      println("e33: " + TypeInference.typeCheck(List(), e33))
+      println("This shouldn't happen e33")
+    } catch {
+      case _:TypeInference.TypeError => println("Expected Failure for e33")
+    }
   }
 }
