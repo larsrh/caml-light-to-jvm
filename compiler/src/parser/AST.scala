@@ -14,7 +14,7 @@ package expressions {
   final case class Sequence(expr1: Expression, expr2: Expression) extends Expression
   final case class IfThenElse(cond: Expression, ifTrue: Expression, ifFalse: Expression) extends Expression
   final case class Let(pattern: Pattern, definition: Expression, body: Expression) extends Expression
-  final case class LetRec(body: Expression, patDef: (Pattern, Expression)*) extends Expression
+  final case class LetRec(body: Expression, patDef: (patterns.Id, Expression)*) extends Expression
   final case class BinOp(op: BinaryOperator.Value, expr1: Expression, expr2: Expression) extends Expression
   final case class UnOp(op: UnaryOperator.Value, expr: Expression) extends Expression
   final case class App(func: Expression, param: Expression*) extends Expression
@@ -22,6 +22,7 @@ package expressions {
   final case class Cons(head: Expression, tail: Expression) extends ListExpression
   case object Nil extends ListExpression
   final case class Tuple(exprs: Expression*) extends Expression
+	final case class TupleElem(tuple: Expression, nr: Int) extends Expression
   final case class Record(defs: (Id, Expression)*) extends Expression
   final case class Field(record: Expression, name: Id) extends Expression
   final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
