@@ -32,18 +32,8 @@ object JarPacker {
 			val buf = new Array[Byte](1024);
 			zip.putNextEntry(new ZipEntry("runtime/Machine$" + entry + ".class"))
 
-			// holy cow, how much I hate these IOStreams!
-			// Scala makes it even harder to work with
-			// TODO: rewrite it, so I don't have to kill myself for this
-			var done = false
-			while (!done) {
-				val len = bytecodeStream.read(buf);
-				if (len == -1) {
-					done = true;
-				} else {
-					zip.write(buf, 0, len)
-				}
-			}
+			// push the whole stream into the file
+			zip.write(BytesUtil.readWholeStream(bytecodeStream));
 		}
 	}
 
