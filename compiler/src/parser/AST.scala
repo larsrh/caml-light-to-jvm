@@ -16,6 +16,7 @@ package expressions {
 	final case class Let(pattern: Pattern, definition: Expression, body: Expression) extends Expression
 	final case class LetRec(body: Expression, patDef: (Pattern, Expression)*) extends Expression
 	final case class BinOp(op: BinaryOperator.Value, expr1: Expression, expr2: Expression) extends Expression
+	final case class UnOp(op: UnaryOperator.Value, expr: Expression) extends Expression
 	final case class App(func: Expression, param: Expression*) extends Expression
 	sealed trait ListExpression extends Expression
 	final case class Cons(head: Expression, tail: Expression) extends ListExpression
@@ -26,11 +27,18 @@ package expressions {
 	final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
 	final case class Lambda(body: Expression, arguments: Pattern*) extends Expression
 
-	object BinaryOperator extends Enumeration {
+	sealed trait Operator extends Enumeration
+	
+	object UnaryOperator extends Operator {
+		type UnaryOperator = Value
+		val neg, not = Value
+	}
+	
+	object BinaryOperator extends Operator {
 		type BinaryOperator = Value
 		val add, sub, mul, div, 
-                  eq, neq, geq, leq, gr, le,
-                  and, or = Value
+			eq, neq, geq, leq, gr, le,
+			and, or = Value
 	}
 }
 
@@ -56,7 +64,7 @@ package patterns {
 	case object Nil extends ListPattern
 	final case class Cons(head: Pattern, tail: Pattern) extends ListPattern
 	final case class Alternative(pat1: Pattern, pat2: Pattern) extends Pattern
-	final case class Tuple(patterns: Pattern) extends Pattern
+	final case class Tuple(patterns: Pattern*) extends Pattern
 
 }
 

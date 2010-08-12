@@ -12,4 +12,6 @@ pushloc 1
 getbasic
 add
 mkbasic
-slide 2
+slide 1
+slide 1
+getbasic
