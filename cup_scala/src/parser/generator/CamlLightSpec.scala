@@ -28,6 +28,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object NonTerminals extends SymbolEnum {
 		val expr, const, typeexpr, typedef, pattern, binding, andbindings, commaseq, entry, record = NonTerminalEnum
+		val param, cdecl = NonTerminalEnum
 	}
 
 	val terminals = CamlLightTerminals
@@ -125,6 +126,27 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		record -> (
 			entry ^^ { (e: Entry) => List(e) } |
 			entry ~ SEMI ~ record ^^ { (head: Entry, tail: List[Entry]) => head :: tail }
+		),
+
+		typedef -> (
+			TYPE ~ param ~ IDENTIFIER ~ BIND ~ cdecl ^^ { (param: List[TypeVariable], id: String, cdecl: List[TypeExpression]) => val a = cdecl match {
+				case List(x) => x
+				case List(l @ _*) => TypeConstructor("Tuple", l: _*)
+			}
+			val b = param match {
+				case List(id) => id
+				case List(l @ _*) => TypeConstructor("Tuple", l: _*)
+			}
+			Data.apply(id, a, b)
+			}
+		),
+
+		param -> (
+			IDIENTIFIER ^^ { x: String => (Id(x), None) }
+		),
+
+		cdecl -> (
+			IDENTIFIER ^^ { x: String => (Id(x), None) }
 		)
 	)
 
