@@ -1,10 +1,13 @@
 package runtime
+import scala.collection.mutable.HashMap
 import org.objectweb.asm._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type._
 import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, _}
 
 class BytecodeGenerator(mv: MethodVisitor) {
+	var labels = new HashMap[LABEL,Label]();
+
 	def aload = {
 		mv.visitVarInsn(ALOAD, 1)
 		this
@@ -25,6 +28,14 @@ class BytecodeGenerator(mv: MethodVisitor) {
 		this
 	}
 
+	// TODO: label-adding pass?
+	def setlabel(label: LABEL) {
+		val jvmLabel = new Label()
+		labels.put(label, jvmLabel)
+		mv.visitLabel(jvmLabel)
+		this
+	}
+
 	def generateInstruction(instr: Instruction) = { instr match {
 			case LOADC(constant) => aload bipush 19 invokevirtual("loadc", "(I)V")
 			case MKBASIC => aload invokevirtual("mkbasic", "()V")
@@ -33,6 +44,7 @@ class BytecodeGenerator(mv: MethodVisitor) {
 			case MUL => aload invokevirtual("mul", "()V")
 			case ADD => aload invokevirtual("add", "()V")
 			case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
+			case SETLABEL(label) => setlabel(label)
 		}
 	}
 }
