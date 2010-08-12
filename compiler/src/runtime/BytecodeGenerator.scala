@@ -28,12 +28,16 @@ class BytecodeGenerator(mv: MethodVisitor) {
 		this
 	}
 
-	// TODO: needs distinct pass for creating all Label() objects beforehand
 	def setlabel(label: LABEL) {
 		val jvmLabel = new Label()
 		labels.put(label, jvmLabel)
-		mv.visitLabel(jvmLabel)
 		this
+	}
+
+	def populateLabels(instr: Instruction) = { instr match {
+			case SETLABEL(label) => setlabel(label)
+			case _ => // couldn't care less about the rest
+		}
 	}
 
 	def generateInstruction(instr: Instruction) = { instr match {
@@ -67,6 +71,9 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 
 		// from here starts the actual code
 		val gen = new BytecodeGenerator(mv)
+		for (single <- instr) {
+			gen populateLabels single
+		}
 		for (single <- instr) {
 			gen.generateInstruction(single)
 		}
