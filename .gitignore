@@ -1,9 +1,6 @@
-compiler/dist
-compiler/build
-compiler/nbproject/private
-cup_scala/dist
-cup_scala/build
-cup_scala/nbproject/private
+*/dist
+*/build
+*/nbproject/private
 *.swp
 *.class
 .ant-targets-build.xml

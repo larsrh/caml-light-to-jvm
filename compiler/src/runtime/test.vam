@@ -1,7 +1,6 @@
 loadc 19
 mkbasic
 pushloc 0
-targ 5
 getbasic
 pushloc 1
 getbasic
@@ -13,4 +12,6 @@ pushloc 1
 getbasic
 add
 mkbasic
-slide 2
+slide 1
+slide 1
+getbasic

@@ -8,6 +8,28 @@
  *
  * $ java -cp asm.jar:asm-util.jar org.objectweb.asm.util.ASMifierClassVisitor
  *   Machine.class
+ *
+ * An alternate approach is compiling the Bytecode and then using the ASM
+ * library, walk into it and create a main() method.
+ *
+ * Actually, this machine does not correspond completely to MaMa, because
+ * some instructions take additional params and some return the next label
+ * to jump to, instead of changing the PC. Therefore, a better name for the
+ * machine would be deineMama.
+ *
+ * Changes from MaMa:
+ *  - targ takes an additional argument, label, which should point at a label
+ *    directly proceeding the targ call
+ *  - eval takes an additional argument, label, which should point at a label
+ *    directly after the eval call
+ *  - return is called return_ because that is a Java keyword. Would be possible
+ *    in Scala and probably the JVM would support it too.
+ *    TODO: determine whether we can just rename the method using bytecode
+ *    transformations, low priority though
+ *  - apply and targ return integers which represent labels that we need to jump
+ *    to
+ *  - jump* is not implemented, because jumps are done by setting the _goto
+ *    marker and calling continue in the outer code
  */
 
 package runtime;
@@ -18,6 +40,7 @@ public class Machine {
 	private int fp;
 	private int sp;
 	private Vector gp;
+
 	abstract class MachineData {};
 	private class Base extends MachineData {
 		private int v;
@@ -35,6 +58,11 @@ public class Machine {
 		private Raw(int constant) {
 			v = constant;
 		}
+
+		public String toString() {
+			// nice example of weak typing in Java
+			return "" + v;
+		}
 	}
 
 	private class Vector extends MachineData {
@@ -44,6 +72,10 @@ public class Machine {
 		private Vector(MachineData[] v) {
 			this.v = v;
 			this.n = v.length;
+		}
+
+		public String toString() {
+			return "V(" + n + ", TODO)";
 		}
 	}
 
@@ -58,11 +90,24 @@ public class Machine {
 			this.ap = ap;
 			this.gp = gp;
 		}
+
+		public String toString() {
+			return "F(" + cp + ", TODO, TODO)";
+		}
 	}
 
 	private class Closure extends MachineData {
 		private int cp;
-		private Function gp;
+		private Vector gp;
+
+		private Closure(int cp, Vector gp) {
+			this.cp = cp;
+			this.gp = gp;
+		}
+
+		public String toString() {
+			return "C(" + cp + ", TODO)";
+		}
 	}
 
 	private final Stack<MachineData> stack;
@@ -82,8 +127,13 @@ public class Machine {
 	// thows a ClassCastException when the code is wrong, which is more
 	// or less what we want. Me wants pattern match in this Java!
 	public void getbasic() {
-		Base b = (Base)this.stack.pop();
-		this.stack.push(new Raw(b.v));
+		Base b = (Base)stack.pop();
+		stack.push(new Raw(b.v));
+	}
+
+	public void mkbasic() {
+		Raw r = (Raw)stack.pop();
+		stack.push(new Base(r.v));
 	}
 
 	public void pushloc(int depth) {
@@ -162,12 +212,18 @@ public class Machine {
 		return h.cp;
 	}
 
-	public void targ(int k, int label) {
+	/* contrary to what MaMa did, targ takes a label to jump to, in case
+	 * that the function had to few arguments.
+	 */
+	public int targ(int k, int label) {
 		if (sp - fp < k) {
 			mkvec0();
-			// TODO: implement sane wrap
-			//wrap();
-			//popenv();
+			wrap(label);
+			return popenv();
+		}
+		else {
+			// TODO: find a better 'invalid' value
+			return -1;
 		}
 	}
 
@@ -181,6 +237,160 @@ public class Machine {
 			a[i] = stack.pop();
 		}
 		stack.push(new Vector(a));
+	}
+
+	public void wrap(int label) {
+		stack.push(new Function(label, (Vector)stack.pop(), gp));
+	}
+
+	/* returns the label to which to jump */
+	public int popenv() {
+		gp = (Vector)stack.get(fp - 2);
+		int label = ((Base)stack.get(fp)).v;
+		stack.set(fp - 2, stack.pop());
+		stack.pop();
+		sp -= 2;
+		fp--;
+		return label;
+	}
+
+	/* yeah, return is taken and Java does not support `return` syntax */
+	public int return_(int k) {
+		if (sp - fp - 1 <= k) {
+			return popenv();
+		} else {
+			slide(k);
+			return apply();
+		}
+	}
+
+	public void alloc(int n) {
+		for (int i = 0; i < n; i++) {
+			stack.push(new Closure(-1, null));
+			sp++;
+		}
+	}
+
+	public void rewrite(int j) {
+		MachineData value = stack.pop();
+		stack.set(sp - j, value);
+		sp--;
+	}
+
+	/* eval needs to supply a label that is right *after* the call of eval */
+	public int eval(int label) {
+		try {
+			Closure c = (Closure)stack.peek();
+			mark0(label);
+			pushloc(3);
+			return apply0();
+		}
+		catch (ClassCastException e) {
+			return -1;
+		}
+	}
+
+	public void mark0(int label) {
+		stack.push(gp);
+		stack.push(new Base(fp));
+		stack.push(new Base(label));
+		sp += 3;
+		fp = sp;
+	}
+
+	public int apply0() {
+		Closure top = (Closure)stack.pop();
+		gp = top.gp;
+		sp--;
+		return top.cp;
+	}
+
+	public void mkclos(int label) {
+		Vector gp = (Vector)stack.pop();
+		stack.push(new Closure(label, gp));
+	}
+
+	public int update() {
+		int ret = popenv();
+		rewrite(1);
+		return ret;
+	}
+
+	public void copyglob() {
+		stack.push(gp);
+		sp++;
+	}
+
+	public void getvec(int k) {
+		Vector h = (Vector)stack.pop();
+		sp--;
+		assert (h.n == k);
+
+		for (int i = 0; i < k; i++) {
+			stack.push(h.v[i]);
+			sp++;
+		}
+	}
+
+	public void _pstack() {
+		for (MachineData item: stack) {
+			System.out.println(item);
+		}
+	}
+
+	/* this method is only for demonstration purposes, the proper code
+	 * will be generated.
+	 */
+	public static void main_(String[] args) {
+		Machine m = new Machine();
+		m.loadc(19);
+		m.mkbasic();
+		m.pushloc(0);
+		m.getbasic();
+		m.pushloc(1);
+		m.getbasic();
+		m.mul();
+		m.mkbasic();
+		m.pushloc(1);
+		m.getbasic();
+		m.pushloc(1);
+		m.getbasic();
+		m.add();
+		m.mkbasic();
+		m.slide(1);
+		m.slide(1);
+		m.getbasic();
+
+		m._pstack();
+	}
+
+	/* version of a main that uses switch to simulate goto */
+	public static void main_switch(String[] args) {
+		final int END = Integer.MAX_VALUE;
+
+		int _goto = 0;
+		boolean terminate = false;
+
+		while(!terminate) {
+			switch(_goto)
+			{
+				case 0:
+				case 1:
+					System.out.println("Foo");
+					_goto = 3;
+					continue;
+				case 2:
+					System.out.println("Baz");
+					_goto = END;
+					continue;
+				case 3:
+					System.out.println("Bar");
+					_goto = 2;
+					continue;
+				case END:
+					terminate = true;
+			}
+		}
 	}
 }
 
