@@ -1,12 +1,11 @@
 package runtime
-import scala.collection.mutable.HashMap
+import scala.collection.immutable.HashMap
 import org.objectweb.asm._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type._
 import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, _}
 
-class BytecodeGenerator(mv: MethodVisitor) {
-	var labels = new HashMap[LABEL,Label]();
+class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 
 	def aload = {
 		mv.visitVarInsn(ALOAD, 1)
@@ -28,17 +27,6 @@ class BytecodeGenerator(mv: MethodVisitor) {
 		this
 	}
 
-	def discoverLabel(label: LABEL):LABEL = {
-		labels.put(label, new Label())
-		label
-	}
-
-	def populateLabels(instr: Instruction):Instruction = { instr match {
-			case SETLABEL(label) => discoverLabel(label)
-			case rest => rest
-		}
-	}
-
 	def generateInstruction(instr: Instruction) = { instr match {
 			case LOADC(constant) => aload bipush 19 invokevirtual("loadc", "(I)V")
 			case MKBASIC => aload invokevirtual("mkbasic", "()V")
@@ -56,6 +44,15 @@ class BytecodeGenerator(mv: MethodVisitor) {
  * used to inject our own main() method, which contains our compiled code
  */
 class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassAdapter(cv) {
+	def discoverLabels(instr: List[Instruction]) = {
+		// get all SETLABELs
+		val setLabels = instr.filter({case SETLABEL(l) => true case _ => false})
+		// unwrap the LABELs
+		val mamaLabels = setLabels.map({case SETLABEL(l) => l})
+		// construct a hash containing the labels
+		mamaLabels.foldLeft(HashMap.empty[LABEL,Label])((h, e) => h + (e -> new Label()))
+	}
+
 	def injectMain() = {
 		// method definition
 		val mv = cv.visitMethod(ACC_PUBLIC + ACC_STATIC, "main",
@@ -69,10 +66,10 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		// TODO: add code for while loop + switch case so we can jump to labels
 
 		// from here starts the actual code generation
-		val gen = new BytecodeGenerator(mv)
-		// first we populate the labels
-		// then we generate the instructions
-		instr map(gen populateLabels) map(gen generateInstruction)
+		// we need to discover the labels first
+		val gen = new BytecodeGenerator(mv, discoverLabels(instr))
+		// generate the instructions
+		instr map gen.generateInstruction
 
 		// end of generated code
 		mv.visitVarInsn(ALOAD, 1)
