@@ -100,13 +100,19 @@ object TypeInference {
                   val rest = unify_(u.subst_((t,al)))
                   (t,al)::rest
                 }
-              case (TypeConstructor(_,params1@_*),TypeConstructor(_,params2@_*)) =>
+              case (TypeConstructor(n1,params1@_*),TypeConstructor(n2,params2@_*)) =>
                 if (params1.length != params2.length) {
                   throw new TypeError("TODO: unify - reasonable error message")
-                } else {
+                } else if (params1.length == 0) {
+		  if (n1 == n2) {
+		    unify_(u)
+		  } else {
+		    throw new TypeError("Couldn't unify TODO")
+		  }
+		} else {
                   unify_(params1.zip(params2).toList ++ u)
                 }
-              case _ => throw new TypeError("TODO: unify - reasonable error message")
+              case _ => System.err.println("blub"); throw new TypeError("TODO: unify - reasonable error message")
             }
           }
       }
@@ -150,6 +156,12 @@ object TypeInference {
 	      case (typeExpr,fresh1) => (typeExpr,fresh,List())
 	    }
         }
+
+      case expressions.IfThenElse(e1, e2, e3) =>
+	val (t1, fresh1, c1) = constraintGen(gamma, e1, fresh)
+	val (t2, fresh2, c2) = constraintGen(gamma, e2, fresh1)
+	val (t3, fresh3, c3) = constraintGen(gamma, e3, fresh2)
+	(t2, fresh3, (t2,t3) :: (TypeBool(),t1) :: c1 ++ c2 ++ c3)
 
       case expressions.Lambda(body,patterns.Id(id)) =>
 	val gamma1 = update(gamma,id,(List(),TypeVariable(fresh)))

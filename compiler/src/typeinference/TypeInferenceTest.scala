@@ -112,6 +112,11 @@ object TypeInferenceTest {
                   Integer(3),
                   Integer(2))
 
+    val e28 = IfThenElse(Bool(true), Integer(1), Integer(2))
+
+    // pattern should fail
+    val e29 = IfThenElse(Bool(true), Integer(1), Bool(false))
+
 
     // println("e2: " + typeCheck(List(), e2))
     // println("e4: " + typeCheck(List(), e4))
@@ -128,7 +133,14 @@ object TypeInferenceTest {
 //    println("e24: " + TypeInference.typeCheck(List(), e24))
 //    println("e25: " + TypeInference.typeCheck(List(), e25))
     // TODO
-    println("e26: " + TypeInference.typeCheck(List(), e26))
-    println("e27: " + TypeInference.typeCheck(List(), e27))
+//    println("e26: " + TypeInference.typeCheck(List(), e26))
+//    println("e27: " + TypeInference.typeCheck(List(), e27))
+
+    println("e28: " + TypeInference.typeCheck(List(), e28))
+    try {
+      println("e29: " + TypeInference.typeCheck(List(), e29))
+    } catch {
+      case _:TypeInference.TypeError => println("Expected Failure for e29")
+    }
   }
 }
