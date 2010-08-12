@@ -11,7 +11,7 @@ import scala.collection.mutable.ListBuffer
 // exported for usage in JFlex
 object CamlLightTerminals extends SymbolEnum {
 	val	IDENTIFIER,
-		INTCONST, BOOLCONST, STRINGCONST,
+		INTCONST, BOOLCONST, STRINGCONST, CHARCONST,
 		LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
 		STAR, PLUS, MINUS, SLASH, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
 		LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
@@ -19,8 +19,7 @@ object CamlLightTerminals extends SymbolEnum {
 		LETAND, AND, OR, NOT, // and, &, or, not
 		TYPE, // type
 		IF, THEN, ELSE, // if then else
-		IN, OF, LET, REC, // in of let rec
-		CHARCONST // TODO fails when declared after 'STRINGCONST'
+		IN, OF, LET, REC // in of let rec
 		= TerminalEnum
 }
 
@@ -61,7 +60,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class entry extends SymbolValue[Entry]
 	class record extends SymbolValue[List[Entry]]
 
-	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(COMMA), left(SEMI))
+	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(BIND), left(COMMA), left(SEMI))
 
 	// TODO app, match, lambda
 
@@ -125,7 +124,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		record -> (
 			entry ^^ { (e: Entry) => List(e) } |
 			entry ~ SEMI ~ record ^^ { (head: Entry, tail: List[Entry]) => head :: tail }
-		),
+		)/*,
 
 		typedef -> (
 			TYPE ~ param ~ IDENTIFIER ~ BIND ~ cdecl ^^ { (param: List[TypeVariable], id: String, cdecl: List[TypeExpression]) => val a = cdecl match {
@@ -146,7 +145,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 		cdecl -> (
 			IDENTIFIER ^^ { x: String => (Id(x), None) }
-		)
+		)*/
 	)
 
 	def chain(terminal: Symbol, action: (Expression, Expression) => Expression) =
