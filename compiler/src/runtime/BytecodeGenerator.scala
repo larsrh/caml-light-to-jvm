@@ -1,56 +1,77 @@
 package runtime
-import java.io.FileOutputStream
 import org.objectweb.asm._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type._
-import codegen.mama.mamaInstructions._
+import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, _}
 
 object BytecodeGenerator {
-	/*
-	def generateInstruction(instr: Instruction, writer: ClassWriter) = { instr match {
+	def generateInstruction(instr: Instruction, w: ClassWriter) = { instr match {
 			case ADD => // JVM bytecode call
 		}
 	}
-	*/
-	def generateClass(): Array[Byte] = {
-		val `class` = new ClassWriter(ClassWriter.COMPUTE_MAXS +
-																	ClassWriter.COMPUTE_FRAMES)
-		`class`.visit(V1_5, ACC_PUBLIC + ACC_SUPER, "Foo", null,
-									"java/lang/Object", null)
 
-		// does not seem to be neccessary, yet the java compiler generates this
-		/*
-		val init = `class`.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null)
-		init.visitCode()
-		init.visitVarInsn(ALOAD, 0)
-		init.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V")
-		init.visitInsn(RETURN)
-		init.visitMaxs(1, 1)
-		init.visitEnd()
-		*/
-
-		val main = `class`.visitMethod(ACC_PUBLIC + ACC_STATIC, "main",
-																	 "([Ljava/lang/String;)V", null, null)
-		main.visitCode()
-		main.visitFieldInsn(GETSTATIC, "java/lang/System", "out",
-												"Ljava/io/PrintStream;")
-		main.visitLdcInsn("Hello World")
-		main.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println",
-												 "(Ljava/lang/String;)V")
-		main.visitInsn(Opcodes.RETURN)
-		main.visitMaxs(2, 1)
-		main.visitEnd()
-
-		// build bytecodes for each instruction
-
-		`class`.visitEnd()
-		`class`.toByteArray()
+  def generateMain(instructions: List[Instruction], w: ClassWriter) = {
+		for (instr <- instructions) {
+			generateInstruction(instr, w)
+		}
 	}
-	def main(args: Array[String]) {
-		//val filename = args(1)
-		val filename = "Foo.class"
-		val fileStream = new FileOutputStream(filename);
-		fileStream.write(generateClass())
-		fileStream.close()
+}
+
+class BytecodeAdapter(cv: ClassVisitor) extends ClassAdapter(cv) {
+	override def visitEnd() = {
+		// add our custom main method here
+		val mv = cv.visitMethod(ACC_PUBLIC + ACC_STATIC, "main",
+														"([Ljava/lang/String;)V", null, null);
+		mv.visitCode
+		mv.visitTypeInsn(NEW, "runtime/Machine")
+		mv.visitInsn(DUP)
+		mv.visitMethodInsn(INVOKESPECIAL, "runtime/Machine", "<init>", "()V")
+		mv.visitVarInsn(ASTORE, 1)
+		// from here starts the actual content
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitIntInsn(BIPUSH, 19)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mkbasic", "()V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitInsn(ICONST_0)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "pushloc", "(I)V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitInsn(ICONST_1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "pushloc", "(I)V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mul", "()V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mkbasic", "()V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitInsn(ICONST_1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "pushloc", "(I)V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "add", "()V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mkbasic", "()V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitInsn(ICONST_1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "slide", "(I)V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitInsn(ICONST_1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "slide", "(I)V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V")
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "_pstack", "()V")
+		mv.visitInsn(RETURN)
+		// (0, 0) might be a better idea
+		mv.visitMaxs(2, 2)
+		mv.visitEnd
+
+		// maybe the parent wants to do some fancy stuff
+		super.visitEnd()
 	}
 }
