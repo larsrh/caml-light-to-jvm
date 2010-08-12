@@ -53,7 +53,8 @@ object JarPacker {
 														 ClassWriter.COMPUTE_FRAMES)
 		// TODO: this is currently hardcoded and contains only one instruction
 		val instr = List(LOADC(19), MKBASIC, PUSHLOC(0), GETBASIC, PUSHLOC(1),
-			GETBASIC)
+			GETBASIC, MUL, MKBASIC, PUSHLOC(1), GETBASIC, PUSHLOC(1), GETBASIC,
+			ADD, MKBASIC, SLIDE(1), SLIDE(1), GETBASIC)
 
 		val ca = new BytecodeAdapter(cw, instr)
 		cr.accept(ca, 0)

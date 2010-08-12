@@ -30,10 +30,16 @@ class BytecodeGenerator(mv: MethodVisitor) {
 			case MKBASIC => aload invokevirtual("mkbasic", "()V")
 			case PUSHLOC(value) => aload bipush value invokevirtual("pushloc", "(I)V")
 			case GETBASIC => aload invokevirtual("getbasic", "()V")
+			case MUL => aload invokevirtual("mul", "()V")
+			case ADD => aload invokevirtual("add", "()V")
+			case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
 		}
 	}
 }
 
+/*
+ * used to inject our own main() method, which contains our compiled code
+ */
 class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassAdapter(cv) {
 	def injectMain() = {
 		// method definition
@@ -47,38 +53,11 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		mv.visitVarInsn(ASTORE, 1)
 		// TODO: add code for while loop + switch case so we can jump to labels
 
-		// from here starts the actual content
+		// from here starts the actual code
 		val gen = new BytecodeGenerator(mv)
 		for (single <- instr) {
 			gen.generateInstruction(single)
 		}
-
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mul", "()V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mkbasic", "()V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitInsn(ICONST_1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "pushloc", "(I)V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitInsn(ICONST_1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "pushloc", "(I)V");
-		mv.visitVarInsn(ALOAD, 1);
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V");
-		mv.visitVarInsn(ALOAD, 1);
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "add", "()V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "mkbasic", "()V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitInsn(ICONST_1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "slide", "(I)V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitInsn(ICONST_1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "slide", "(I)V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "getbasic", "()V")
 
 		// end of generated code
 		mv.visitVarInsn(ALOAD, 1)
