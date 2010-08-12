@@ -28,7 +28,7 @@ class BytecodeGenerator(mv: MethodVisitor) {
 		this
 	}
 
-	// TODO: label-adding pass?
+	// TODO: needs distinct pass for creating all Label() objects beforehand
 	def setlabel(label: LABEL) {
 		val jvmLabel = new Label()
 		labels.put(label, jvmLabel)
