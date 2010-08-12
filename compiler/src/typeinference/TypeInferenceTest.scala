@@ -127,6 +127,10 @@ object TypeInferenceTest {
     // test should fail
     val e33 = UnOp(UnaryOperator.not, Integer(1))
 
+    val e40 = Let(patterns.Tuple(patterns.Id("x"),patterns.Integer(1)),
+		  Tuple(Integer(1),Integer(2)),
+		  Id("x"))
+    
     // println("e2: " + typeCheck(List(), e2))
     // println("e4: " + typeCheck(List(), e4))
     // println("e5: " + type¸Check(List(), e5))
@@ -141,34 +145,36 @@ object TypeInferenceTest {
 //    println("e23: " + TypeInference.typeCheck(List(), e23))
 //    println("e24: " + TypeInference.typeCheck(List(), e24))
 //    println("e25: " + TypeInference.typeCheck(List(), e25))
-  //  println("e26: " + TypeInference.typeCheck(List(), e26))
- //   println("e27: " + TypeInference.typeCheck(List(), e27))
-    println("e28: " + TypeInference.typeCheck(List(), e28))
-    println("e28: " + TypeInference.typeCheck(List(), e28))
-
-    try {
-      println("e29: " + TypeInference.typeCheck(List(), e29))
-      println("This shouldn't happen e29")
-    } catch {
-      case _:TypeInference.TypeError => println("Expected Failure for e29")
-    }
-
-    println("e30: " + TypeInference.typeCheck(List(), e30))
-
-    try {
-      println("e31: " + TypeInference.typeCheck(List(), e31))
-      println("This shouldn't happen e31")
-    } catch {
-      case _:TypeInference.TypeError => println("Expected Failure for e31")
-    }
-
-    println("e32: " + TypeInference.typeCheck(List(), e32))
-
-    try {
-      println("e33: " + TypeInference.typeCheck(List(), e33))
-      println("This shouldn't happen e33")
-    } catch {
-      case _:TypeInference.TypeError => println("Expected Failure for e33")
-    }
+    println("e26: " + TypeInference.typeCheck(List(), e26))
+    println("e27: " + TypeInference.typeCheck(List(), e27))
+//    println("e28: " + TypeInference.typeCheck(List(), e28))
+//    println("e28: " + TypeInference.typeCheck(List(), e28))
+//
+//    try {
+//      println("e29: " + TypeInference.typeCheck(List(), e29))
+//      println("This shouldn't happen e29")
+//    } catch {
+//      case _:TypeInference.TypeError => println("Expected Failure for e29")
+//    }
+//
+//    println("e30: " + TypeInference.typeCheck(List(), e30))
+//
+//    try {
+//      println("e31: " + TypeInference.typeCheck(List(), e31))
+//      println("This shouldn't happen e31")
+//    } catch {
+//      case _:TypeInference.TypeError => println("Expected Failure for e31")
+//    }
+//
+//    println("e32: " + TypeInference.typeCheck(List(), e32))
+//
+//    try {
+//      println("e33: " + TypeInference.typeCheck(List(), e33))
+//      println("This shouldn't happen e33")
+//    } catch {
+//      case _:TypeInference.TypeError => println("Expected Failure for e33")
+//    }
+//
+//    println("e40: " + TypeInference.typeCheck(List(), e40))
   }
 }
