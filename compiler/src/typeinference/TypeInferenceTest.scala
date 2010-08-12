@@ -127,7 +127,6 @@ object TypeInferenceTest {
     // test should fail
     val e33 = UnOp(UnaryOperator.not, Integer(1))
 
-
     // println("e2: " + typeCheck(List(), e2))
     // println("e4: " + typeCheck(List(), e4))
     // println("e5: " + type¸Check(List(), e5))
@@ -142,10 +141,9 @@ object TypeInferenceTest {
 //    println("e23: " + TypeInference.typeCheck(List(), e23))
 //    println("e24: " + TypeInference.typeCheck(List(), e24))
 //    println("e25: " + TypeInference.typeCheck(List(), e25))
-    // TODO
-//    println("e26: " + TypeInference.typeCheck(List(), e26))
-//    println("e27: " + TypeInference.typeCheck(List(), e27))
-
+  //  println("e26: " + TypeInference.typeCheck(List(), e26))
+ //   println("e27: " + TypeInference.typeCheck(List(), e27))
+    println("e28: " + TypeInference.typeCheck(List(), e28))
     println("e28: " + TypeInference.typeCheck(List(), e28))
 
     try {
