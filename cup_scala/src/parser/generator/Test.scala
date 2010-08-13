@@ -1,6 +1,9 @@
 
 package parser.generator
 
+import parser.ast.expressions.Expression
+import Normalizer.normalize
+
 import edu.tum.cup2.generator.LR1Generator
 import edu.tum.cup2.io.LRParsingTableDump
 import edu.tum.cup2.parser.LRParser
@@ -19,7 +22,7 @@ object Test extends Application {
 
 	var i = 0
 	val failed = ListBuffer[Int]()
-	for (line <- Source.fromFile("test/testcases").getLines()) {
+	for (line <- Source.fromFile("test/testcases").getLines() if !line.startsWith("#")) {
 		val Array(input, output) = line.split('#')
 
 		println("TEST "+i+":")
@@ -27,7 +30,7 @@ object Test extends Application {
 
 		val result =
 			try {
-				Left(parser.parse(new CamlLightScanner(new StringReader(input))).toString);
+				Left(normalize(parser.parse(new CamlLightScanner(new StringReader(input))).asInstanceOf[Expression]).toString);
 			}
 			catch {
 				case ex => Right(ex)
