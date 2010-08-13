@@ -22,7 +22,7 @@ object Test extends Application {
 
 	var i = 0
 	val failed = ListBuffer[Int]()
-	for (line <- Source.fromFile("test/testcases").getLines() if !line.startsWith("#")) {
+	for (line <- Source.fromFile("test/parser/generator/testcases").getLines() if !line.startsWith("#")) {
 		val Array(input, output) = line.split('#')
 
 		println("TEST "+i+":")
