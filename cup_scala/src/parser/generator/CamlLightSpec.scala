@@ -27,7 +27,8 @@ object CamlLightTerminals extends SymbolEnum {
 object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object NonTerminals extends SymbolEnum {
-		val expr, const, pattern, caselist, `case`, binding, andbindings, commaseq, entry, record = NonTerminalEnum
+		val expr, const, binding, andbindings, commaseq, entry, record = NonTerminalEnum
+		val pattern, caselist, `case`, patentry, patrecord = NonTerminalEnum
 		val typeexpr, typedef, param, cdecl = NonTerminalEnum
 	}
 
@@ -45,6 +46,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	type Case = (Pattern, Expression)
 	type Definition = (patterns.Id, Expression)
 	type Entry = (Id, Expression)
+	type PatEntry = (patterns.Id, Pattern)
 
 	class INTCONST extends SymbolValue[Int]
 	class BOOLCONST extends SymbolValue[Boolean]
@@ -56,6 +58,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class pattern extends SymbolValue[Pattern]
 	class `case` extends SymbolValue[Case]
 	class caselist extends SymbolValue[List[Case]]
+	class patentry extends SymbolValue[PatEntry]
+	class patrecord extends SymbolValue[List[PatEntry]]
 	class binding extends SymbolValue[Definition]
 	class andbindings extends SymbolValue[List[Definition]]
 	class commaseq extends SymbolValue[List[Expression]]
@@ -134,8 +138,16 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		),
 		pattern -> (
 			IDENTIFIER ^^ (patterns.Id.apply _) |
-			UNDERSCORE ^^ { () => patterns.Underscore }
+			UNDERSCORE ^^ { () => patterns.Underscore } |
+			LBRACE ~ patrecord ~ RBRACE ^^ { (pats: List[PatEntry]) => patterns.Record(pats: _*) }
 			// TODO more cases
+		),
+		patentry -> (
+			IDENTIFIER ~ BIND ~ pattern ^^ { (id: String, pat: Pattern) => (patterns.Id(id), pat) }
+		),
+		patrecord -> (
+			patentry ^^ { (e: PatEntry) => List(e) } |
+			patentry ~ SEMI ~ patrecord ^^ { (head: PatEntry, tail: List[PatEntry]) => head :: tail }
 		),
 		`case` -> (
 			pattern ~ ARROW ~ expr ^^ { (pattern: Pattern, expr: Expression) => (pattern, expr) }
