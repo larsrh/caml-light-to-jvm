@@ -60,12 +60,12 @@ package types {
   }
 
   abstract case class TypeConstructor(name: String, params: TypeExpression*) extends TypeExpression {
-    override def toString = name match {
-      case "Function" => params(0) + " -> " + params(1)
-      case "List" => "[" + params(0) + "]"
-      case "Tupel" => "(" + params.mkString(",") + ")"
-      case n => n
-    }
+//    override def toString = name match {
+//      case "Function" => params(0) + " -> " + params(1)
+//      case "List" => "[" + params(0) + "]"
+//      case "Tupel" => "(" + params.mkString(",") + ")"
+//      case n => n
+//    }
   }
 
   case class TypeInt() extends TypeConstructor("Integer") {
