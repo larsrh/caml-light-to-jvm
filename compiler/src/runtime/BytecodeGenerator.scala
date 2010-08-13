@@ -10,6 +10,7 @@ class CompilerAssertion(msg: String) extends Exception
 
 class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 
+	/* loads value 1 from the frame. this value holds a Machine instance */
 	def aload = {
 		mv.visitVarInsn(ALOAD, 1)
 		this
@@ -47,6 +48,7 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 			case ADD => aload invokevirtual("add", "()V")
 			case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
 			case SETLABEL(label) => enterLabel(label)
+			case EQ => aload invokevirtual("eq", "()V")
 		}
 	}
 }

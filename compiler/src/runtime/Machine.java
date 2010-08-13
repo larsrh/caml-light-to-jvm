@@ -332,6 +332,18 @@ public class Machine {
 		}
 	}
 
+	public void eq() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		if (r1.v == r2.v) {
+			// push true
+			stack.push(new Raw(1));
+		} else {
+			stack.push(new Raw(0));
+		}
+		sp--;
+	}
+
 	public void _pstack() {
 		for (MachineData item: stack) {
 			System.out.println(item);
