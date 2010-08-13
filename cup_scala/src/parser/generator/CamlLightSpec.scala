@@ -27,7 +27,7 @@ object CamlLightTerminals extends SymbolEnum {
 object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object NonTerminals extends SymbolEnum {
-		val expr, const, binding, andbindings, commaseq, entry, record = NonTerminalEnum
+		val expr, binding, andbindings, commaseq, entry, record = NonTerminalEnum
 		val pattern, caselist, `case`, patentry, patrecord = NonTerminalEnum
 		val typeexpr, typedef, param, cdecl = NonTerminalEnum
 	}
@@ -54,7 +54,6 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class CHARCONST extends SymbolValue[Char]
 	class IDENTIFIER extends SymbolValue[String]
 	class expr extends SymbolValue[Expression]
-	class const extends SymbolValue[Const]
 	class pattern extends SymbolValue[Pattern]
 	class `case` extends SymbolValue[Case]
 	class caselist extends SymbolValue[List[Case]]
@@ -140,7 +139,14 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		pattern -> (
 			IDENTIFIER ^^ (patterns.Id.apply _) |
 			UNDERSCORE ^^ { () => patterns.Underscore } |
-			LBRACE ~ patrecord ~ RBRACE ^^ { (pats: List[PatEntry]) => patterns.Record(pats: _*) }
+			LBRACE ~ patrecord ~ RBRACE ^^ { (pats: List[PatEntry]) => patterns.Record(pats: _*) } |
+			INTCONST ^^ (patterns.Integer.apply _) |
+			BOOLCONST ^^ (patterns.Bool.apply _) |
+			CHARCONST ^^ (patterns.Character.apply _) |
+			LSQBRACKET ~ RSQBRACKET ^^ { () => patterns.Nil } |
+			pattern ~ CONS ~ pattern ^^ { (pat1: Pattern, pat2: Pattern) => patterns.Cons(pat1, pat2) }
+
+			// TODO string const
 			// TODO more cases
 		),
 		patentry -> (

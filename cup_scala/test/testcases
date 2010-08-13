@@ -23,6 +23,7 @@ match 5 with x -> foo | _ -> match 3 with bar -> baz | x -> y#Match(Integer(5),L
 match 5 with x -> foo | _ -> (match 3 with bar -> baz) | x -> y#Match(Integer(5),List((Id(x),Id(foo)), (Underscore,Match(Integer(3),List((Id(bar),Id(baz))))), (Id(x),Id(y))))
 match {a = 3;b = 4} with {a = c;b = _} -> 0#Match(Record(List((Id(a),Integer(3)), (Id(b),Integer(4)))),List((Record(List((Id(a),Id(c)), (Id(b),Underscore))),Integer(0))))
 match {a = 3;b = 4} with _ -> 0#Match(Record(List((Id(a),Integer(3)), (Id(b),Integer(4)))),List((Underscore,Integer(0))))
+match 1::[] with 1::2::[] -> 2::x#Match(Cons(Integer(1),Nil),List((Cons(Integer(1),Cons(Integer(2),Nil)),Cons(Integer(2),Id(x)))))
 let a = 3 in b#Let(Id(a),Integer(3),Id(b))
 let _ = 3 in b#Let(Underscore,Integer(3),Id(b))
 let rec a = 3 in b#LetRec(Id(b),List((Id(a),Integer(3))))
