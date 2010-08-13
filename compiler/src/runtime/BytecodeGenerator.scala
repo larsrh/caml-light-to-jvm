@@ -58,6 +58,7 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 			case EQ => aload invokevirtual("eq", "()V")
 			case JUMPZ(label) => aload invokevirtual("popraw", "()I") condjump(IFEQ, label)
 			case JUMP(label) => condjump(GOTO, label)
+			case ALLOC(value) => aload bipush value invokevirtual("alloc", "(I)V")
 		}
 	}
 }

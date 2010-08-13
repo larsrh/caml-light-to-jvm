@@ -58,10 +58,19 @@ object JarPacker {
 			ADD, MKBASIC, SLIDE(1), SLIDE(1), GETBASIC)
 		*/
 
+		/*
 		val l116 = LABEL(116)
 		val l117 = LABEL(117)
 		val instr = List(LOADC(97), LOADC(97), EQ, JUMPZ(l116), LOADC(42),
 			JUMP(l117), SETLABEL(l116), LOADC(0), SETLABEL(l117))
+		*/
+		val l118 = LABEL(118)
+		val l119 = LABEL(119)
+		val l120 = LABEL(120)
+		val instr = List(ALLOC(0), LOADC(3), LOADC(2), EQ, JUMPZ(l119), LOADC(1),
+			MKBASIC, SLIDE(0), JUMP(l118), SETLABEL(l119), ALLOC(0), LOADC(2),
+			LOADC(2), EQ, JUMPZ(l120), LOADC(0), MKBASIC, SLIDE(0), JUMP(l118),
+			SETLABEL(l120), SETLABEL(l118), GETBASIC)
 
 		/* end of TODO */
 
