@@ -62,65 +62,64 @@ package expressions {
 
 package types {
 
-	trait Subst[A] {
-		def subst_(s: (TypeExpression,TypeExpression)): A
-	}
+  trait Subst[A] {
+    def subst_(s: (TypeExpression,TypeExpression)): A
+  }
 
-	sealed abstract trait TypeExpression extends Subst[TypeExpression] {
-		def subst(t: List[(TypeExpression,TypeExpression)]): TypeExpression =
-			t.foldLeft(this){(a: TypeExpression, t: (TypeExpression,TypeExpression)) => a.subst_(t)}
-	}
+  sealed abstract trait TypeExpression extends Subst[TypeExpression] {
+    def subst(t: List[(TypeExpression,TypeExpression)]): TypeExpression = 
+      t.foldLeft(this){(a: TypeExpression, t: (TypeExpression,TypeExpression)) => a.subst_(t)}
+  }
 
-	final case class TypeVariable(i: Int) extends TypeExpression {
-		def subst_(s: (TypeExpression,TypeExpression)) =
-			if (this == s._2) { s._1 } else { this }
-	}
+  final case class TypeVariable(i: Int) extends TypeExpression {
+    def subst_(s: (TypeExpression,TypeExpression)) =
+      if (this == s._2) { s._1 } else { this }
+  }
 
-	abstract case class TypeConstructor(name: String, params: TypeExpression*) extends TypeExpression {
-		override def toString = name match {
-			case "Function" => params(0) + " -> " + params(1)
-			case "List" => "[" + params(0) + "]"
-			case "Tupel" => "(" + params.mkString(",") + ")"
-			case n => n
-		}
-	}
+  abstract case class TypeConstructor(name: String, params: TypeExpression*) extends TypeExpression {
+//    override def toString = name match {
+//      case "Function" => params(0) + " -> " + params(1)
+//      case "List" => "[" + params(0) + "]"
+//      case "Tupel" => "(" + params.mkString(",") + ")"
+//      case n => n
+//    }
+  }
 
-	case class TypeInt() extends TypeConstructor("Integer") {
-		def subst_(t: (TypeExpression,TypeExpression)) = TypeInt()
-	}
+  case class TypeInt() extends TypeConstructor("Integer") {
+    def subst_(t: (TypeExpression,TypeExpression)) = TypeInt()
+  }
 
-	case class TypeBool() extends TypeConstructor("Boolean") {
-		def subst_(t: (TypeExpression,TypeExpression)) = TypeBool()
-	}
+  case class TypeBool() extends TypeConstructor("Boolean") {
+    def subst_(t: (TypeExpression,TypeExpression)) = TypeBool()
+  }
 
-	case class TypeChar() extends TypeConstructor("Character") {
-		def subst_(t: (TypeExpression,TypeExpression)) = TypeChar()
-	}
+  case class TypeChar() extends TypeConstructor("Character") {
+    def subst_(t: (TypeExpression,TypeExpression)) = TypeChar()
+  }
 
-	case class TypeFn(from: TypeExpression, to: TypeExpression) extends TypeConstructor("Function", from, to) {
-		def subst_(s: (TypeExpression,TypeExpression)) =
-			TypeFn(from.subst_(s), to.subst_(s))
-	}
+  case class TypeFn(from: TypeExpression, to: TypeExpression) extends TypeConstructor("Function", from, to) {
+    def subst_(s: (TypeExpression,TypeExpression)) =
+      TypeFn(from.subst_(s), to.subst_(s))
+  }
 
-	case class TypeList(t: TypeExpression) extends TypeConstructor("List", t) {
-		def subst_(s: (TypeExpression, TypeExpression)) = TypeList(t.subst_(s))
-	}
+  case class TypeList(t: TypeExpression) extends TypeConstructor("List", t) {
+    def subst_(s: (TypeExpression, TypeExpression)) = TypeList(t.subst_(s))
+  }
 
-	case class TypeTuple(types: TypeExpression*) extends TypeConstructor("Tupel", types:_*) {
-		def subst_(s: (TypeExpression, TypeExpression)) =
-			TypeTuple(types.map(x => x.subst_(s)):_*)
-	}
+  case class TypeTuple(types: TypeExpression*) extends TypeConstructor("Tupel", types:_*) {
+    def subst_(s: (TypeExpression, TypeExpression)) =
+      TypeTuple(types.map(x => x.subst_(s)):_*)
+  }
 
-	case class TypeRecord(override val name: String, fields: (String, TypeExpression)*) extends TypeConstructor("Record", fields map (f => f._2):_*) {
-		def subst_(s: (TypeExpression, TypeExpression)) = {
-			TypeRecord(name, fields.map(x => (x._1, x._2.subst_(s))):_*)
-		}
-	}
+  case class TypeRecord(override val name: String, fields: (String, TypeExpression)*) extends TypeConstructor("Record", fields map (f => f._2):_*) {
+    def subst_(s: (TypeExpression, TypeExpression)) = {
+      TypeRecord(name, fields.map(x => (x._1, x._2.subst_(s))):_*)
+    }
+  }
 
-	sealed trait TypeDefinition { val name: String }
-	final case class Data(override val name: String, params: Seq[TypeVariable], declaration: (String, Seq[TypeExpression])*) extends TypeDefinition
-	final case class Record(override val name: String, fields: (String, TypeExpression)*) extends TypeDefinition
-
+  sealed trait TypeDefinition { val name: String }
+  final case class Data(override val name: String, params: Seq[TypeVariable], declaration: (String, Seq[TypeExpression])*) extends TypeDefinition
+  final case class Record(override val name: String, fields: (String, TypeExpression)*) extends TypeDefinition
 }
 
 package patterns {
