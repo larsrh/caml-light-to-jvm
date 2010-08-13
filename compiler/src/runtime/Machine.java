@@ -387,8 +387,8 @@ public class Machine {
 	}
 
 	/* version of a main that uses switch to simulate goto */
-	public static void main_switch(String[] args) {
-		final int END = Integer.MAX_VALUE;
+	public static void main(String[] args) {
+		Machine m = new Machine();
 
 		int _goto = 0;
 		boolean terminate = false;
@@ -397,22 +397,26 @@ public class Machine {
 			switch(_goto)
 			{
 				case 0:
+					System.out.println("Init");
 				case 1:
-					System.out.println("Foo");
+					m.loadc(97);
+					m.loadc(97);
+					m.eq();
+					if (m.popraw() == 0) {
+						_goto = 2;
+						continue;
+					}
+					m.loadc(97);
 					_goto = 3;
 					continue;
 				case 2:
-					System.out.println("Baz");
-					_goto = END;
-					continue;
+					m.loadc(0);
 				case 3:
-					System.out.println("Bar");
-					_goto = 2;
-					continue;
-				case END:
 					terminate = true;
 			}
 		}
+
+		m._pstack();
 	}
 }
 

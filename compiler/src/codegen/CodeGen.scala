@@ -79,7 +79,7 @@ package mamaInstructions {
 	case object XOR extends Instruction("xor")
 	
 	object Translator {
-		var counter = 0 // kind of ugly, because not functional
+		var counter = 1 // kind of ugly, because not functional
 		
 		val CBN = true // call-by-name / call-by-value switch
 		val cbfun = if(CBN) codec _ else codev _ 
