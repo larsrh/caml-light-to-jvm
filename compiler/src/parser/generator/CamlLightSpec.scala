@@ -66,10 +66,9 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class typeexpr extends SymbolValue[TypeExpression]
 	class typedef extends SymbolValue[TypeDefinition]
 
-	precedences(left(POINT), left(APP_DUMMY), left(NEG_DUMMY), left(TUPLEACC), left(STAR), left(SLASH), left(PLUS), left(MINUS), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
+	precedences(left(POINT), left(APP_DUMMY), left(TUPLEACC), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(NEG_DUMMY), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
 
 	// TODO lambda
-	// TODO fix unary minus
 
 	grammar(
 		expr -> (
@@ -103,7 +102,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 				BinaryOperator.or -> OR
 			) flatMap { ops => chain(ops._2, BinOp(ops._1, _, _)) } toSeq) |
 			NOT ~ expr ^^ (UnOp(UnaryOperator.not, _: Expression)) |
-			//prec(rhs(MINUS, expr), NEG_DUMMY) ^^ (UnOp(UnaryOperator.neg, _: Expression)) |
+			prec(rhs(MINUS, expr), NEG_DUMMY) ^^ (UnOp(UnaryOperator.neg, _: Expression)) |
 			MATCH ~ expr ~ WITH ~ caselist ^^ { (expr: Expression, cases: List[Definition]) => Match(expr, cases: _*) } |
 			expr ~ POINT ~ IDENTIFIER ^^ { (expr: Expression, id: String) => Field(expr, Id(id)) } |
 			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ (IfThenElse.apply _) |
