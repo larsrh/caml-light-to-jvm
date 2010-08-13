@@ -387,7 +387,7 @@ public class Machine {
 	}
 
 	/* version of a main that uses switch to simulate goto */
-	public static void main(String[] args) {
+	public static void main_switch(String[] args) {
 		Machine m = new Machine();
 
 		int _goto = 0;
