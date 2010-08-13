@@ -1,0 +1,189 @@
+package parser.generator;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static parser.generator.CamlLightTerminals.*;
+
+%%
+
+%class CamlLightScanner
+%unicode
+%cup2
+%line
+%column
+%state CHARACTER COMMENT STRING
+
+%{
+  private StringBuffer string = new StringBuffer();
+
+  private int nested_comment_counter = 0;
+
+  private <T> ScannerToken<T> token(Object terminal, T value)
+  {
+    return new ScannerToken<T>((Terminal) terminal, value, yyline+1, yycolumn);
+  }
+
+  private ScannerToken<Object> token(Object terminal)
+  {
+    return new ScannerToken<Object>((Terminal) terminal, yyline+1, yycolumn);
+  }
+
+  private int parseHexInt(String str)
+  {
+    Pattern p = Pattern.compile("0[xX]([0-9a-fA-F]+)");
+    Matcher m = p.matcher(str);
+    m.matches();
+    return Integer.parseInt(m.group(1), 16);
+  }
+
+  private int parseOctInt(String str)
+  {
+    Pattern p = Pattern.compile("0[oO]([0-7]+)");
+    Matcher m = p.matcher(str);
+    m.matches();
+    return Integer.parseInt(m.group(1), 8);
+  }
+
+  private int parseBinInt(String str)
+  {
+    Pattern p = Pattern.compile("0[bB]([0-1]+)");
+    Matcher m = p.matcher(str);
+    m.matches();
+    return Integer.parseInt(m.group(1), 2);
+  }
+
+  private char charFrom3Ints(String str)
+  {
+    Pattern p = Pattern.compile("\\\\([0-9])([0-9])([0-9])");
+    Matcher m = p.matcher(str);
+    m.matches();
+
+    int a = Integer.parseInt(m.group(1));
+    int b = Integer.parseInt(m.group(2));
+    int c = Integer.parseInt(m.group(3));
+
+    return (char)(a * 100 + b * 10 + c);
+  }
+%}
+
+LineTerminator = \r | \n | \r\n
+
+WhiteSpace = {LineTerminator} | [ \t\f]
+
+Identifier = [:jletter:] [:jletterdigit:]*
+
+DecIntegerLiteral = [0-9]+
+
+HexIntegerLiteral = 0 [xX] [0-9a-fA-F]+
+
+OctIntegerLiteral = 0 [oO] [0-7]+
+
+BinIntegerLiteral = 0 [bB] [0-1]+
+
+%%
+
+<YYINITIAL> {
+  "(*"		{ ++nested_comment_counter; yybegin(COMMENT); }
+  "*)"		{ throw new IllegalArgumentException("Error: Wrong count of closing comments."); }
+
+  {WhiteSpace}	{ /* ignore */ }
+
+  /* keywords */
+  "and"		{ return token(LETAND()); }
+  "else"	{ return token(ELSE()); }
+  "false"	{ return token(BOOLCONST(), false); }
+  "fun"		{ return token(FUN()); }
+  "function"	{ return token(FUNCTION()); }
+  "if"		{ return token(IF()); }
+  "in"		{ return token(IN()); }
+  "let"		{ return token(LET()); }
+  "match"	{ return token(MATCH()); }
+  "not"		{ return token(NOT()); }
+  "of"		{ return token(OF()); }
+  "or"		{ return token(OR()); }
+  "rec"		{ return token(REC()); }
+  "with"    { return token(WITH()); }
+  "then"	{ return token(THEN()); }
+  "true"	{ return token(BOOLCONST(), true); }
+  "type"	{ return token(TYPE()); }
+
+  "&"		{ return token(AND()); }
+  "("		{ return token(LBRACKET()); }
+  ")"		{ return token(RBRACKET()); }
+  "*"		{ return token(STAR()); }
+  "+"		{ return token(PLUS()); }
+  ","		{ return token(COMMA()); }
+  "-"		{ return token(MINUS()); }
+  "."		{ return token(POINT()); }
+  "/"		{ return token(SLASH()); }
+  "::"		{ return token(CONS()); }
+  ";"		{ return token(SEMI()); }
+  "<"		{ return token(LESS()); }
+  "<="		{ return token(LEQ()); }
+  "<>"		{ return token(NEQ()); }
+  "="		{ return token(BIND()); }
+  "=="		{ return token(EQ()); }
+  ">"		{ return token(GREATER()); }
+  ">="		{ return token(GEQ()); }
+  "["		{ return token(LSQBRACKET()); }
+  "]"		{ return token(RSQBRACKET()); }
+  "{"		{ return token(LBRACE()); }
+  "|"		{ return token(PIPE()); }
+  "}"		{ return token(RBRACE()); }
+  "->"		{ return token(ARROW()); }
+  "_"		{ return token(UNDERSCORE()); }
+
+  {DecIntegerLiteral}	{ return token(INTCONST(), Integer.parseInt(yytext())); }
+
+  {HexIntegerLiteral}	{ return token(INTCONST(), parseHexInt(yytext())); }
+
+  {OctIntegerLiteral}	{ return token(INTCONST(), parseOctInt(yytext())); }
+
+  {BinIntegerLiteral}	{ return token(INTCONST(), parseBinInt(yytext())); }
+
+  {Identifier}	{ return token(IDENTIFIER(), new String(yytext())); }
+
+  \'		{ string.setLength(0); yybegin(CHARACTER); }
+
+  \"		{ string.setLength(0); yybegin(STRING); }
+
+  .		{ throw new IllegalArgumentException("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn); }
+}
+
+<CHARACTER> {
+  \'		{ yybegin(YYINITIAL);
+		  if (string.length() != 1) throw new IllegalArgumentException("Error: More or less than one character found.");
+		  return token(CHARCONST(), string.toString().charAt(0));
+		}
+  \\[0-9]{3}	{ string.append(charFrom3Ints(yytext())); }
+  [^\n\r\"\\]	{ string.append( yytext() ); }
+  \\t		{ string.append('\t'); }
+  \\n		{ string.append('\n'); }
+  \\r		{ string.append('\r'); }
+  \\b		{ string.append('\b'); }
+  \\\"		{ string.append('\"'); }
+  \\		{ string.append('\\'); }
+}
+
+<STRING> {
+  \"		{ yybegin(YYINITIAL); return token(STRINGCONST(), string.toString()); }
+  \\[0-9]{3}	{ string.append(charFrom3Ints(yytext())); }
+  [^\n\r\"\\]+	{ string.append( yytext() ); }
+  \\t		{ string.append('\t'); }
+  \\n		{ string.append('\n'); }
+  \\r		{ string.append('\r'); }
+  \\b		{ string.append('\b'); }
+  \\\"		{ string.append('\"'); }
+  \\		{ string.append('\\'); }
+}
+
+<COMMENT> {
+  "(*"		{ ++nested_comment_counter; }
+  "*)"		{ if (nested_comment_counter == 1)
+			yybegin(YYINITIAL);
+		  --nested_comment_counter;
+		}
+  <<EOF>>	{ throw new IllegalArgumentException("Error: Wrong count of opening comments."); }
+  .		{ /* ignore */ }
+}

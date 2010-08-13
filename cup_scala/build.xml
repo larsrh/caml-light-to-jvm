@@ -66,4 +66,21 @@
     nbproject/build-impl.xml file. 
 
     -->
+	<property name="jflex.dir" value="src/parser/generator" />
+	<property name="jflex.input" value="CamlLightScanner.jflex" />
+	<property name="jflex.output" value="CamlLightScanner.java" />
+
+	<target name="jflex">
+		<java jar="lib/JFlex.jar" fork="true" dir="${jflex.dir}">
+			<arg value="${jflex.input}" />
+		</java>
+	</target>
+
+	<target name="jflex-clean">
+		<delete file="${jflex.dir}/${jflex.output}" />
+	</target>
+
+	<!-- overrides -->
+	<target name="-compile-depend" depends="jflex" />
+	<target name="-javadoc-build" /> <!-- disabled because Scaladoc fails -->
 </project>
