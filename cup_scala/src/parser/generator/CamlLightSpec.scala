@@ -5,8 +5,6 @@ import edu.tum.cup2.semantics.{SymbolValue}
 import edu.tum.cup2.spec.CUP2Specification
 import edu.tum.cup2.spec.scala.{ScalaCUPSpecification, SymbolEnum}
 import edu.tum.cup2.grammar.Symbol
-import edu.tum.cup2.spec.util.RHSItem
-import scala.collection.mutable.ListBuffer
 
 // exported for usage in JFlex
 object CamlLightTerminals extends SymbolEnum {
@@ -20,7 +18,7 @@ object CamlLightTerminals extends SymbolEnum {
 		TYPE, // type
 		IF, THEN, ELSE, // if then else
 		IN, OF, LET, REC, // in of let rec
-		APP_DUMMY
+		APP_DUMMY, NEG_DUMMY // used for %prec
 		= TerminalEnum
 }
 
@@ -68,27 +66,10 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class typeexpr extends SymbolValue[TypeExpression]
 	class typedef extends SymbolValue[TypeDefinition]
 
-	precedences(left(POINT), left(APP_DUMMY), left(STAR), left(SLASH), left(PLUS), left(MINUS), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
+	precedences(left(POINT), left(APP_DUMMY), left(NEG_DUMMY), left(STAR), left(SLASH), left(PLUS), left(MINUS), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
 
-	// TODO match, lambda
+	// TODO lambda
 	// TODO fix unary minus
-
-	val opMapping = Map[Operator#Value, Symbol](
-		BinaryOperator.add -> PLUS,
-		BinaryOperator.sub -> MINUS,
-		BinaryOperator.mul -> STAR,
-		BinaryOperator.div -> SLASH,
-		BinaryOperator.eq -> EQ,
-		BinaryOperator.neq -> NEQ,
-		BinaryOperator.geq -> GEQ,
-		BinaryOperator.leq -> LEQ,
-		BinaryOperator.gr -> GREATER,
-		BinaryOperator.le -> LESS,
-		BinaryOperator.and -> AND,
-		BinaryOperator.or -> OR,
-		UnaryOperator.not -> NOT/*,
-		UnaryOperator.neg -> MINUS*/
-	)
 
 	grammar(
 		expr -> (
@@ -105,13 +86,23 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			LSQBRACKET ~ RSQBRACKET ^^ { () => expressions.Nil } |
 			chain(CONS, Cons.apply) |
 			chain(SEMI, Sequence.apply) |
-			// ops
-			{
-				val buf = ListBuffer[RHSItem]()
-				BinaryOperator.values.foreach { op => buf ++= chain(opMapping(op), BinOp(op, _, _)) }
-				UnaryOperator.values.foreach  { op => if (opMapping.contains(op)) buf ++= (opMapping(op) ~ expr) ^^ (UnOp(op, _: Expression)) }
-				buf.toSeq
-			} |
+			// bin ops
+			(Map(
+				BinaryOperator.add -> PLUS,
+				BinaryOperator.sub -> MINUS,
+				BinaryOperator.mul -> STAR,
+				BinaryOperator.div -> SLASH,
+				BinaryOperator.eq -> EQ,
+				BinaryOperator.neq -> NEQ,
+				BinaryOperator.geq -> GEQ,
+				BinaryOperator.leq -> LEQ,
+				BinaryOperator.gr -> GREATER,
+				BinaryOperator.le -> LESS,
+				BinaryOperator.and -> AND,
+				BinaryOperator.or -> OR
+			) flatMap { ops => chain(ops._2, BinOp(ops._1, _, _)) } toSeq) |
+			NOT ~ expr ^^ (UnOp(UnaryOperator.not, _: Expression)) |
+			//prec(rhs(MINUS, expr), NEG_DUMMY) ^^ (UnOp(UnaryOperator.neg, _: Expression)) |
 			MATCH ~ expr ~ WITH ~ caselist ^^ { (expr: Expression, cases: List[Definition]) => Match(expr, cases: _*) } |
 			expr ~ POINT ~ IDENTIFIER ^^ { (expr: Expression, id: String) => Field(expr, Id(id)) } |
 			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ (IfThenElse.apply _) |
