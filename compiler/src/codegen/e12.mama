@@ -1,0 +1,90 @@
+alloc 2
+mkvec 0
+mkclos _131
+jump _132
+_131:
+mkvec 0
+mkclos _133
+jump _134
+_133:
+loadc 1
+mkbasic
+update
+_134:
+mkvec 0
+mkclos _135
+jump _136
+_135:
+loadc 2
+mkbasic
+update
+_136:
+mkvec 0
+mkclos _137
+jump _138
+_137:
+loadc 3
+mkbasic
+update
+_138:
+mkvec 3
+get 0
+update
+_132:
+rewrite 2
+loadc 1
+loadc 1
+and
+mkvec 0
+mkclos _139
+jump _140
+_139:
+mkvec 0
+mkclos _141
+jump _142
+_141:
+loadc 1
+mkbasic
+update
+_142:
+mkvec 0
+mkclos _143
+jump _144
+_143:
+loadc 2
+mkbasic
+update
+_144:
+mkvec 0
+mkclos _145
+jump _146
+_145:
+loadc 3
+mkbasic
+update
+_146:
+mkvec 3
+get 2
+update
+_140:
+rewrite 2
+loadc 1
+and
+jumpz _130
+pushloc 1
+eval
+_147:
+eval
+getbasic
+pushloc 1
+eval
+_148:
+eval
+getbasic
+add
+mkbasic
+slide 2
+jump _129
+_130:
+_129:
+getbasic

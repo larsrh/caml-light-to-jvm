@@ -1,0 +1,9 @@
+loadc 97
+loadc 97
+eq
+jumpz _116
+loadc 42
+jump _117
+_116:
+loadc 0
+_117:
