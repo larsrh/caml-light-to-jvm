@@ -36,3 +36,4 @@ let rec _ = 3 in b#!
 f x + y#BinOp(add,App(Id(f),List(Id(x))),Id(y))
 f (x@1) (x@2)#App(Id(f),List(TupleElem(Id(x),1), TupleElem(Id(x),2)))
 f (-x)#App(Id(f),List(UnOp(neg,Id(x))))
+function _ -> 0 | (x,y) -> a#Lambda(Match(Id(00),List((Underscore,Integer(0)), (Tuple(List(Id(x), Id(y))),Id(a)))),List(Id(00)))
