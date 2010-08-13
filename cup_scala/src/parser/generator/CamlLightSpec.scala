@@ -19,14 +19,15 @@ object CamlLightTerminals extends SymbolEnum {
 		LETAND, AND, OR, NOT, // and, &, or, not
 		TYPE, // type
 		IF, THEN, ELSE, // if then else
-		IN, OF, LET, REC // in of let rec
+		IN, OF, LET, REC, // in of let rec
+		APP_DUMMY
 		= TerminalEnum
 }
 
 object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object NonTerminals extends SymbolEnum {
-		val expr, const, pattern, caselist, `case`, binding, andbindings, commaseq, entry, record, app = NonTerminalEnum
+		val expr, const, pattern, caselist, `case`, binding, andbindings, commaseq, entry, record = NonTerminalEnum
 		val typeexpr, typedef, param, cdecl = NonTerminalEnum
 	}
 
@@ -60,13 +61,13 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class commaseq extends SymbolValue[List[Expression]]
 	class entry extends SymbolValue[Entry]
 	class record extends SymbolValue[List[Entry]]
-	class app extends SymbolValue[List[Expression]]
 	class typeexpr extends SymbolValue[TypeExpression]
 	class typedef extends SymbolValue[TypeDefinition]
 
-	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(LET), left(REC), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
+	precedences(left(POINT), left(APP_DUMMY), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
 
-	// TODO app, match, lambda
+	// TODO match, lambda
+	// TODO fix unary minus
 
 	val opMapping = Map[Operator#Value, Symbol](
 		BinaryOperator.add -> PLUS,
@@ -81,18 +82,18 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		BinaryOperator.le -> LESS,
 		BinaryOperator.and -> AND,
 		BinaryOperator.or -> OR,
-		UnaryOperator.not -> NOT,
-		UnaryOperator.neg -> MINUS
+		UnaryOperator.not -> NOT/*,
+		UnaryOperator.neg -> MINUS*/
 	)
 
 	grammar(
 		expr -> (
+			prec(rhs(expr, expr), APP_DUMMY) ^^ { (head: Expression, tail: Expression) => App(head, tail) } |
 			IDENTIFIER ^^ (Id.apply _) |
 			INTCONST ^^ (Integer.apply _) |
 			BOOLCONST ^^ (Bool.apply _) |
 			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str.map(Character.apply _).toList) } |
 			CHARCONST ^^ (Character.apply _) |
-			//expr ~ app ^^ { (head: Expression, tail: List[Expression]) => App(head, tail: _*) } |
 			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
 				case List(expr) => expr
 				case List(l @ _*) => Tuple(l: _*)
@@ -103,7 +104,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			{
 				val buf = ListBuffer[RHSItem]()
 				BinaryOperator.values.foreach { op => buf ++= chain(opMapping(op), BinOp(op, _, _)) }
-				UnaryOperator.values.foreach  { op => buf ++= (opMapping(op) ~ expr) ^^ (UnOp(op, _: Expression)) }
+				UnaryOperator.values.foreach  { op => if (opMapping.contains(op)) buf ++= (opMapping(op) ~ expr) ^^ (UnOp(op, _: Expression)) }
 				buf.toSeq
 			} |
 			MATCH ~ expr ~ WITH ~ caselist ^^ { (expr: Expression, cases: List[Definition]) => Match(expr, cases: _*) } |
@@ -118,7 +119,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		),
 		andbindings -> (
 			binding ^^ { (d: Definition) => List(d) } |
-			binding ~ AND ~ andbindings ^^ { (head: Definition, tail: List[Definition]) => head :: tail }
+			binding ~ LETAND ~ andbindings ^^ { (head: Definition, tail: List[Definition]) => head :: tail }
 		),
 		commaseq -> (
 			expr ^^ { (expr: Expression) => List(expr) } |
@@ -131,10 +132,6 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			entry ^^ { (e: Entry) => List(e) } |
 			entry ~ SEMI ~ record ^^ { (head: Entry, tail: List[Entry]) => head :: tail }
 		),
-		/*app -> (
-			expr ^^ { (expr: Expression) => List(expr) } |
-			expr ~ app ^^ { (head: Expression, tail: List[Expression]) => head :: tail }
-		),*/
 		pattern -> (
 			IDENTIFIER ^^ (patterns.Id.apply _) |
 			UNDERSCORE ^^ { () => patterns.Underscore }
