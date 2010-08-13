@@ -30,8 +30,9 @@ class TypeInferenceTest {
 
   @Test
   def test_Let_Pattern_Id = {
-    val e2 = Let(patterns.Id("1"), Lambda(Id("2"), patterns.Id("2")), App(Id("1"),Id("1")))
-    assertEquals((List(TypeVariable(3)),TypeFn(TypeVariable(3),TypeVariable(3))),
+    // let x = \y -> y in x x
+    val e2 = Let(patterns.Id("x"), Lambda(Id("y"), patterns.Id("y")), App(Id("x"),Id("x")))
+    assertEquals((List(TypeVariable(4)),TypeFn(TypeVariable(4),TypeVariable(4))),
 		 TypeInference.typeCheck(List(), e2))
   }
 
@@ -45,8 +46,8 @@ class TypeInferenceTest {
 		 TypeInference.typeCheck(List(), e3))
   }
 
-  @Test
-  def test_Lambda_App_NonCurried = {
+  @Test (expected=classOf[TypeError])
+  def test_Unification_Fail = {
     val e4 = Lambda(App(App(Id("1"), Id("2")), App(Id("1"), Id("3"))),
 		    patterns.Id("1"), patterns.Id("2"), patterns.Id("3"))
     assertEquals(
@@ -68,7 +69,7 @@ class TypeInferenceTest {
   def test_Nested_Let_With_Poly_Fun = {
     val e5 = Let(patterns.Id("1"), Lambda(Id("2"), patterns.Id("2")),
 		 Let(patterns.Id("2"), App(Id("1"), Id("1")), App(Id("2"),Id("1"))))
-    assertEquals((List(TypeVariable(4)),TypeFn(TypeVariable(4),TypeVariable(4))),
+    assertEquals((List(TypeVariable(7)),TypeFn(TypeVariable(7),TypeVariable(7))),
 		 TypeInference.typeCheck(List(), e5))
   }
 
@@ -151,6 +152,18 @@ class TypeInferenceTest {
                            (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("x"))), patterns.Id("x"))
     assertEquals((TypeList(TypeVariable(2)),(List(TypeVariable(2)),TypeFn(TypeVariable(2),TypeVariable(2)))),
 		 TypeInference.typeCheck(List(), e14))
+  }
+
+  @Test
+  def test_Match = {
+  // \x -> match x with
+  //        (y:ys) -> ys
+  //        (y:[]) -> x
+    val e15 = Lambda(Match(Id("x"),
+                           (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("ys")),
+                           (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("x"))), patterns.Id("x"))
+    assertEquals((List(TypeVariable(1), TypeVariable(2)),TypeFn(TypeVariable(1),TypeList(TypeVariable(2)))),
+		 TypeInference.typeCheck(List(), e15))
   }
   
   // TODO
