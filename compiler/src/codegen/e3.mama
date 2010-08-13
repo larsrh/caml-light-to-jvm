@@ -1,40 +1,38 @@
 mkvec 0
-mkclos _22
-jump _23
-_22:
+mkclos _25
+jump _26
+_25:
 mkvec 0
-mkfunval _24
-jump _25
-_24:
+mkfunval _27
+jump _28
+_27:
 targ 1
 pushloc 0
 eval
-_26:
-eval
+_29:
 return 1
-_25:
+_28:
 update
-_23:
-mark _27
+_26:
+mark _30
 pushloc 3
 eval
-_30:
-eval
+_33:
 mkvec 1
-mkclos _28
-jump _29
-_28:
+mkclos _31
+jump _32
+_31:
 pushglob 0
 eval
-_31:
-eval
+_34:
 update
-_29:
+_32:
 pushloc 4
 eval
-_32:
-eval
+_35:
 apply
-_27:
+_30:
 slide 1
+eval
+_36:
 getbasic

@@ -1,23 +1,24 @@
-mark _10
+mark _11
 mkvec 0
-mkclos _11
-jump _12
-_11:
+mkclos _12
+jump _13
+_12:
 loadc 42
 mkbasic
 update
-_12:
-mkvec 0
-mkfunval _13
-jump _14
 _13:
+mkvec 0
+mkfunval _14
+jump _15
+_14:
 targ 1
 pushloc 0
 eval
-_15:
-eval
+_16:
 return 1
-_14:
+_15:
 apply
-_10:
+_11:
+eval
+_17:
 getbasic

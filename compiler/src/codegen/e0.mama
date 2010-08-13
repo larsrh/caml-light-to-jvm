@@ -9,7 +9,6 @@ _2:
 pushloc 0
 eval
 _5:
-eval
 mkvec 1
 mkclos _3
 jump _4
@@ -17,12 +16,10 @@ _3:
 pushglob 0
 eval
 _6:
-eval
 getbasic
 pushglob 0
 eval
 _7:
-eval
 getbasic
 mul
 mkbasic
@@ -31,15 +28,15 @@ _4:
 pushloc 1
 eval
 _8:
-eval
 getbasic
 pushloc 1
 eval
 _9:
-eval
 getbasic
 add
 mkbasic
 slide 1
 slide 1
+eval
+_10:
 getbasic

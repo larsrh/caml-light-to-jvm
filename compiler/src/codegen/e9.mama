@@ -1,22 +1,30 @@
+loadc 2
+mkbasic
 alloc 0
 loadc 3
 loadc 2
 eq
-jumpz _119
+jumpz _127
 loadc 1
 mkbasic
-slide 0
-jump _118
-_119:
+slide 1
+jump _126
+_127:
+slide 1
+loadc 2
+mkbasic
 alloc 0
 loadc 2
 loadc 2
 eq
-jumpz _120
+jumpz _128
 loadc 0
 mkbasic
-slide 0
-jump _118
-_120:
-_118:
+slide 1
+jump _126
+_128:
+slide 1
+_126:
+eval
+_129:
 getbasic

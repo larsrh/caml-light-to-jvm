@@ -1,56 +1,30 @@
 mkvec 0
-mkclos _73
-jump _74
-_73:
+mkclos _79
+jump _80
+_79:
 mkvec 0
-mkfunval _75
-jump _76
-_75:
+mkfunval _81
+jump _82
+_81:
 targ 1
 pushloc 0
 eval
-_77:
-eval
+_83:
 return 1
-_76:
+_82:
 update
-_74:
+_80:
 pushloc 0
 eval
-_80:
-eval
-mkvec 1
-mkclos _78
-jump _79
-_78:
-mark _81
-pushglob 0
-eval
-_84:
-eval
-mkvec 1
-mkclos _82
-jump _83
-_82:
-pushglob 0
-eval
-_85:
-eval
-update
-_83:
-pushglob 0
-eval
 _86:
-eval
-apply
-_81:
-update
-_79:
+mkvec 1
+mkclos _84
+jump _85
+_84:
 mark _87
-pushloc 4
+pushglob 0
 eval
 _90:
-eval
 mkvec 1
 mkclos _88
 jump _89
@@ -58,15 +32,35 @@ _88:
 pushglob 0
 eval
 _91:
-eval
 update
 _89:
-pushloc 5
+pushglob 0
 eval
 _92:
-eval
 apply
 _87:
+update
+_85:
+mark _93
+pushloc 4
+eval
+_96:
+mkvec 1
+mkclos _94
+jump _95
+_94:
+pushglob 0
+eval
+_97:
+update
+_95:
+pushloc 5
+eval
+_98:
+apply
+_93:
 slide 1
 slide 1
+eval
+_99:
 getbasic

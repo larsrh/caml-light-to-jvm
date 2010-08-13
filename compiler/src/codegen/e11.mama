@@ -1,21 +1,19 @@
-alloc 1
-mkvec 0
-mkclos _126
-jump _127
-_126:
 loadc 42
 mkbasic
-update
-_127:
+alloc 1
+loadc 42
+mkbasic
 rewrite 1
 loadc 1
-jumpz _125
+jumpz _135
 pushloc 0
 eval
-_128:
+_136:
+slide 2
+jump _134
+_135:
+slide 2
+_134:
 eval
-slide 1
-jump _124
-_125:
-_124:
+_137:
 getbasic

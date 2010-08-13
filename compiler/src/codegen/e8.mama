@@ -1,9 +1,9 @@
 loadc 97
 loadc 97
 eq
-jumpz _116
+jumpz _124
 loadc 42
-jump _117
-_116:
+jump _125
+_124:
 loadc 0
-_117:
+_125:

@@ -103,7 +103,8 @@ package mamaInstructions {
 					 ++ codeb(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A))
 					 ++ codeb(e2, rho, sd) :+ SETLABEL(B))
 				}
-			case _ => codev(expr, rho, sd) :+ GETBASIC
+			case _ => codev(expr, rho, sd) ++ 
+				(if(CBN) { val A = newLabel(); List(EVAL(A), SETLABEL(A))} else List.empty) :+ GETBASIC
 		}
 			
 		def codec(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
@@ -201,7 +202,7 @@ package mamaInstructions {
 						l ++ codec(idVals(k) _2,rho,sd+k)) :+ MKVEC(ks.length)
 				}
 				// FIXME get position from type checking
-			case Field(rec,name) => codev(rec,rho,sd) ++ List(GET(0/*getPos(rec,name)*/)) 
+			case Field(rec,name) => codev(rec,rho,sd) :+ GET(0/*getPos(rec,name)*/) 
 			case Match(e0,patDefs@_*) => patDefs match {
 					case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
 						=> {
@@ -216,11 +217,12 @@ package mamaInstructions {
 							val DONE = newLabel()
 							
 							(patDefs.toList flatMap { case (p,e) => {
-										val NEXT = newLabel()
-									
-										matchCG(e0,p,e,NEXT,DONE,rho,sd) :+ SETLABEL(NEXT) 
-									}
-							}) :+ SETLABEL(DONE)
+											val NEXT = newLabel()
+											val (matchingCode,n) = matchCG(e0,p,e,NEXT,DONE,rho,sd)
+											
+											matchingCode ++ List(SETLABEL(NEXT),SLIDE(n)) 
+										}
+								}) :+ SETLABEL(DONE)
 						}
 				}
 		}
@@ -229,28 +231,38 @@ package mamaInstructions {
 		/*																	MACROS																		*/
 		/******************************************************************************/
 		def matchCG(e:Expression, p:patterns.Pattern, res:Expression, NEXT:LABEL, DONE:LABEL,
-								rho:HashMap[String,(VarKind.Value,Int)],sd:Int):List[Instruction] = {
+								rho:HashMap[String,(VarKind.Value,Int)],sd:Int):(List[Instruction],Int) = {
+			
+			val vars = bound(p)
+			val n = vars.size			
+			val E = "42" //not a valid identifier -> no conflicts
+			val rhoNew = (((1 to n).toList foldLeft rho)
+										{case (rhoTemp,i) => 
+						rhoTemp + {((Id unapply (vars.toList)(i-1)).get) -> (VarKind.Local,sd +i+1)}}) + 
+			{E -> (VarKind.Local,sd+1)} // store value of e
 			
 			// FIXME save e in a (global?) variable
-			def matching(e:Expression, p:patterns.Pattern, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
-				:Tuple3[List[Instruction],HashMap[String,(VarKind.Value,Int)],Int] = p match {
-				case patterns.Integer(n) => (codeb(BinOp(BinaryOperator.eq,Integer(n),e),rho,sd),rho,sd)
-				case patterns.Character(a) => (codeb(BinOp(BinaryOperator.eq,Character(a),e),rho,sd),rho,sd)
-				case patterns.Bool(b) => (codeb(BinOp(BinaryOperator.eq,Bool(b),e),rho,sd),rho,sd)
-				case patterns.Underscore => (List(LOADC(1)),rho,sd)
-				case patterns.Id(x) => (cbfun(e,rho,sd) :+ LOADC(1),rho + {x -> (VarKind.Local,sd)}, sd+1)
-				case patterns.Tuple(ts@_*) => ((1 to ts.length - 1).toList foldLeft (List[Instruction](),rho,sd)){
-						case ((l,rhoTemp,sdTemp),i) => {
-							val (lt,rhot,sdt) = matching(TupleElem(e,i),ts(i),rhoTemp,sdTemp)
-							
-							(l ++ lt :+ AND,rhot,sdt)
+			def matching(e:Expression, p:patterns.Pattern, sdAct:Int, i:Int):(List[Instruction],Int,Int) =
+				p match {
+					case patterns.Integer(n) => (codeb(BinOp(BinaryOperator.eq,Integer(n),e),rhoNew,sdAct),sdAct+1,i)
+					case patterns.Character(a) => (codeb(BinOp(BinaryOperator.eq,Character(a),e),rhoNew,sdAct),sdAct+1,i)
+					case patterns.Bool(b) => (codeb(BinOp(BinaryOperator.eq,Bool(b),e),rhoNew,sdAct),sdAct+1,i)
+					case patterns.Underscore => (List(LOADC(1)),sdAct+1,i)
+					case patterns.Id(x) => (codev(e,rhoNew,sdAct) ++ List(REWRITE(i+(sdAct-(sd+n+1))),LOADC(1)),sdAct+1,i-1)
+					case patterns.Tuple(ts@_*) => 
+						((1 to ts.length - 1).toList foldLeft matching(TupleElem(Id(E),0),ts(0),sdAct,i)){
+							case ((l,sd,j),n) => {
+									val (lt,sdNew,jNew) = matching(TupleElem(Id(E),n),ts(n),sd,j)
+
+									(l ++ lt :+ AND,sdNew-1,jNew)
+								}
 						}
 				}
-			}
 
-			val (matchingCode,rhoNew,sdNew) = matching(e,p,rho,sd)
+			val (matchingCode,sdNew,_) = matching(e,p,sd+n+1,n)
 			
-			matchingCode ++ List(JUMPZ(NEXT)) ++ codev(res,rhoNew,sdNew) :+ JUMP(DONE)
+			(codev(e,rhoNew,sd) ++ List(ALLOC(n)) ++ matchingCode ++ List(JUMPZ(NEXT)) ++
+			 codev(res,rhoNew,sd+n+1) ++ List(SLIDE(n+1),JUMP(DONE)),n+1)
 		}
 		
 		def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
@@ -331,6 +343,7 @@ object CodeGen {
 		
 	def main(args:Array[String]):Unit = {
 		// let a = 19 in let b = a * a in a + b
+		// EXPECTED RESULT 380
 		val e0 = Let(patterns.Id("a"),Integer(19),
 								 Let(patterns.Id("b"),BinOp(BinaryOperator.mul,Id("a"),Id("a")),
 										 BinOp(BinaryOperator.add,Id("a"),Id("b"))
@@ -338,23 +351,29 @@ object CodeGen {
 		)
 		
 		// (\a.a) 42
+		// EXPECTED RESULT 42
 		val e1 = App(Lambda(Id("a"),patterns.Id("a")),Integer(42))
 		
 		// (\a.a + 3) 42
+		// EXPECTED RESULT 45
 		val e2 = App(Lambda(BinOp(BinaryOperator.add,Id("a"),Integer(3)),patterns.Id("a")),Integer(42))
 		
-		// let a = \a.a in a a 
+		// let a = \a.a in a a
+		// EXPECTED RESULT NOT BASIC ERROR 
 		val e3 = Let(patterns.Id("a"), Lambda(Id("a"), patterns.Id("a")),
 								 App(Id("a"),Id("a")))
 		
-		// (let a = \a.a in a a) 5 
+		// (let a = \a.a in a a) 42 
+		// EXPECTED RESULT 42
 		val e4 = App(e3,Integer(42))
 
 		// \a.(\b.(\c.(a b) (b c)))
+		// EXPECTED RESULT NOT BASIC ERROR
 		val e5 = Lambda(Lambda(Lambda(
 					App(App(Id("a"),Id("b")), App(Id("b"), Id("c"))), patterns.Id("c")), patterns.Id("b")), patterns.Id("a"))
 
 		// let a = \b.b in let b = \a.a in \a.a
+		// EXPECTED RESULT NOT BASIC ERROR
 		val e6 = Let(patterns.Id("a"),
 								 Lambda(Id("b"), patterns.Id("b")),
 								 Let(patterns.Id("b"),
@@ -362,39 +381,66 @@ object CodeGen {
 										 App(Id("a"), Id("a"))))
 	 
 		// (let a = \b.b in let b = \a.a in \a.a) 'a'
+		// EXPECTED RESULT 97
 		val e7 = App(e6,Character('a'));
 		
 		// if 97 = 'a' then 42 else false
+		// EXPECTED RESULT 42
 		val e8 = IfThenElse(BinOp(BinaryOperator.eq,Integer(97),Character('a')),Integer(42),Bool(false))
 		
 		// match 2 with 3 -> true | 2 -> false
+		// EXPECTED RESULT 0
 		val e9 = Match(Integer(2),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
 		
 		// match 4 with 3 -> true | 2 -> false
+		// EXPECTED RESULT SOME ERROR
 		val e10 = Match(Integer(4),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
 		
 		// match 42 with x -> x
+		// EXPECTED RESULT 42
 		val e11 = Match(Integer(42),(patterns.Id("x"),Id("x")))
 		
 		// match (1,2,3) with (x,_,y) -> x + y
+		// EXPECTED RESULT 4
 		val e12 = Match(Tuple(Integer(1),Integer(2),Integer(3)),
 										(patterns.Tuple(patterns.Id("x"),patterns.Underscore,patterns.Id("y")),
-										BinOp(BinaryOperator.add,Id("x"),Id("y")))
+										 BinOp(BinaryOperator.add,Id("x"),Id("y")))
+		)
+		
+		// match (1,(2,3),(5,3)) with (x,_,y) -> match y with (2,_) -> x | (z,3) -> x + z + 36 
+		// EXPECTED RESULT 42
+		val e13 = Match(Tuple(Integer(1),Tuple(Integer(2),Integer(3)),Tuple(Integer(5),Integer(3))),
+										(patterns.Tuple(patterns.Id("x"),patterns.Underscore,patterns.Id("y")),
+										 Match(Id("y"),
+													 (patterns.Tuple(patterns.Integer(2),patterns.Underscore),Id("x")),
+													 (patterns.Tuple(patterns.Id("z"),patterns.Integer(3)),
+														BinOp(BinaryOperator.add,Id("x"),BinOp(BinaryOperator.add,Id("z"),Integer(36))))))
+		)
+		
+		// match (1,(2,4),(5,3)) with (x,z,y) -> match z with (2,x) -> x | (z,3) -> x + z + 36
+		// EXPECTED RESULT 4
+		val e14 = Match(Tuple(Integer(1),Tuple(Integer(2),Integer(4)),Tuple(Integer(5),Integer(3))),
+										(patterns.Tuple(patterns.Id("x"),patterns.Id("z"),patterns.Id("y")),
+										 Match(Id("z"),
+													 (patterns.Tuple(patterns.Integer(2),patterns.Id("x")),Id("x")),
+													 (patterns.Tuple(patterns.Id("z"),patterns.Integer(3)),
+														BinOp(BinaryOperator.add,Id("x"),BinOp(BinaryOperator.add,Id("z"),Integer(36))))))
 		)
 
-		// match (1,2,3) with (1,2,6) -> 5 | (1,2,y) -> y
-		val e41 = Match(Tuple(Integer(1),Integer(2),Integer(3)),
-										(patterns.Tuple(patterns.Integer(1),patterns.Integer(2),patterns.Integer(3)),
-										 Integer(0)),
+		// match (1,2,3) with (x,z,6) -> 5 | (1,2,y) -> y
+		// EXPECTED RESULT 3
+		val e15 = Match(Tuple(Integer(1),Integer(2),Integer(3)),
+										(patterns.Tuple(patterns.Id("x"),patterns.Id("z"),patterns.Integer(6)),
+										 Integer(5)),
 										(patterns.Tuple(patterns.Integer(1),patterns.Integer(2),patterns.Id("y")),
 										 Id("y"))
-										)
+		)
 										
 		val e42 = Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs")))
 		val e43 = Lambda(Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
 										 patterns.Cons(patterns.Id("y"), patterns.Id("ys")))
 		
-		val list = List(e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12)	
+		val list = List(e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12,e13,e14,e15)	
 			
 		def out(e:Expression):Unit = {
 			val is = Translator.codeb(e,HashMap.empty,0)
