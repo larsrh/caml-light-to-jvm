@@ -11,7 +11,7 @@ object CamlLightTerminals extends SymbolEnum {
 	val	IDENTIFIER,
 		INTCONST, BOOLCONST, STRINGCONST, CHARCONST,
 		LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
-		STAR, PLUS, MINUS, SLASH, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
+		STAR, PLUS, MINUS, SLASH, CONS, SEMI, POINT, COMMA, TUPLEACC, // * + - / :: ; . , #
 		LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
 		FUN, FUNCTION, MATCH, PIPE, ARROW, UNDERSCORE, WITH, // fun function match | -> _ with
 		LETAND, AND, OR, NOT, // and, &, or, not
@@ -66,7 +66,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class typeexpr extends SymbolValue[TypeExpression]
 	class typedef extends SymbolValue[TypeDefinition]
 
-	precedences(left(POINT), left(APP_DUMMY), left(NEG_DUMMY), left(STAR), left(SLASH), left(PLUS), left(MINUS), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
+	precedences(left(POINT), left(APP_DUMMY), left(NEG_DUMMY), left(TUPLEACC), left(STAR), left(SLASH), left(PLUS), left(MINUS), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
 
 	// TODO lambda
 	// TODO fix unary minus
@@ -84,6 +84,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 				case List(l @ _*) => Tuple(l: _*)
 			} } |
 			LSQBRACKET ~ RSQBRACKET ^^ { () => expressions.Nil } |
+			expr ~ TUPLEACC ~ INTCONST ^^ { (expr: Expression, n: Int) => TupleElem(expr, n) } |
 			chain(CONS, Cons.apply) |
 			chain(SEMI, Sequence.apply) |
 			// bin ops

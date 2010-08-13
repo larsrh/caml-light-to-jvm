@@ -34,3 +34,4 @@ let rec a = 3 in b#LetRec(Id(b),List((Id(a),Integer(3))))
 let rec _ = 3 in b#!
 (1 a) 2 (3 4 5)#App(Integer(1),List(Id(a), Integer(2), App(Integer(3),List(Integer(4), Integer(5)))))
 f x + y#BinOp(add,App(Id(f),List(Id(x))),Id(y))
+f (x@1) (x@2)#App(Id(f),List(TupleElem(Id(x),1), TupleElem(Id(x),2)))
