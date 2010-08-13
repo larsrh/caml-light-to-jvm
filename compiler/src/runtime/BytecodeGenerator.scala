@@ -31,6 +31,13 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 		this
 	}
 
+	def condjump(comp: Int, label: LABEL) = {
+		labels get label match {
+			case Some(l) => mv.visitJumpInsn(comp, l)
+			case None => throw new CompilerAssertion("jump target unknown")
+		}
+	}
+
 	def enterLabel(label: LABEL) = {
 		labels get label match {
 			case Some(l) => mv.visitLabel(l)
@@ -40,7 +47,7 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 	}
 
 	def generateInstruction(instr: Instruction) = { instr match {
-			case LOADC(constant) => aload bipush 19 invokevirtual("loadc", "(I)V")
+			case LOADC(constant) => aload bipush constant invokevirtual("loadc", "(I)V")
 			case MKBASIC => aload invokevirtual("mkbasic", "()V")
 			case PUSHLOC(value) => aload bipush value invokevirtual("pushloc", "(I)V")
 			case GETBASIC => aload invokevirtual("getbasic", "()V")
@@ -49,6 +56,8 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 			case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
 			case SETLABEL(label) => enterLabel(label)
 			case EQ => aload invokevirtual("eq", "()V")
+			case JUMPZ(label) => aload invokevirtual("popraw", "()I") condjump(IFEQ, label)
+			case JUMP(label) => condjump(GOTO, label)
 		}
 	}
 }

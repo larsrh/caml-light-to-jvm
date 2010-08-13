@@ -344,6 +344,16 @@ public class Machine {
 		sp--;
 	}
 
+	/*
+	 * additional deineMama instruction, needed to get a number from the machine
+	 * stack into the JVM stack
+	 */
+	public int popraw() {
+		Raw r = (Raw)stack.pop();
+		sp--;
+		return r.v;
+	}
+
 	public void _pstack() {
 		for (MachineData item: stack) {
 			System.out.println(item);
