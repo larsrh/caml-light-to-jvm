@@ -22,7 +22,9 @@ package mamaInstructions {
 				case _ => "\n"
 			})
 	}
-	final case class LABEL(nr:Int) extends Instruction("_" + nr.toString)
+	final case class LABEL(nr:Int) extends Instruction("_" + nr.toString) with Ordered[LABEL] {
+		override def compare(that: LABEL) = nr compare that.nr
+	}
 	final case class SETLABEL(label:LABEL) extends Instruction(label + ":")
 
 	case object ADD extends Instruction("add") 
