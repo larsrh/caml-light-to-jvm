@@ -62,7 +62,6 @@ package expressions {
 
 package types {
 
-<<<<<<< HEAD
   trait Subst[A] {
     def subst_(s: (TypeExpression,TypeExpression)): A
   }
