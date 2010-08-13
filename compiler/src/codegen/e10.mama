@@ -1,0 +1,22 @@
+alloc 0
+loadc 3
+loadc 4
+eq
+jumpz _122
+loadc 1
+mkbasic
+slide 0
+jump _121
+_122:
+alloc 0
+loadc 2
+loadc 4
+eq
+jumpz _123
+loadc 0
+mkbasic
+slide 0
+jump _121
+_123:
+_121:
+getbasic

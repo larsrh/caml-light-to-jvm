@@ -1,0 +1,83 @@
+mark _93
+mkvec 0
+mkclos _94
+jump _95
+_94:
+loadc 97
+mkbasic
+update
+_95:
+mkvec 0
+mkclos _96
+jump _97
+_96:
+mkvec 0
+mkfunval _98
+jump _99
+_98:
+targ 1
+pushloc 0
+eval
+_100:
+eval
+return 1
+_99:
+update
+_97:
+pushloc 0
+eval
+_103:
+eval
+mkvec 1
+mkclos _101
+jump _102
+_101:
+mark _104
+pushglob 0
+eval
+_107:
+eval
+mkvec 1
+mkclos _105
+jump _106
+_105:
+pushglob 0
+eval
+_108:
+eval
+update
+_106:
+pushglob 0
+eval
+_109:
+eval
+apply
+_104:
+update
+_102:
+mark _110
+pushloc 4
+eval
+_113:
+eval
+mkvec 1
+mkclos _111
+jump _112
+_111:
+pushglob 0
+eval
+_114:
+eval
+update
+_112:
+pushloc 5
+eval
+_115:
+eval
+apply
+_110:
+slide 1
+slide 1
+apply
+_93:
+getbasic

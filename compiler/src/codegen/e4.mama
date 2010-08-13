@@ -1,0 +1,51 @@
+mark _33
+mkvec 0
+mkclos _34
+jump _35
+_34:
+loadc 42
+mkbasic
+update
+_35:
+mkvec 0
+mkclos _36
+jump _37
+_36:
+mkvec 0
+mkfunval _38
+jump _39
+_38:
+targ 1
+pushloc 0
+eval
+_40:
+eval
+return 1
+_39:
+update
+_37:
+mark _41
+pushloc 3
+eval
+_44:
+eval
+mkvec 1
+mkclos _42
+jump _43
+_42:
+pushglob 0
+eval
+_45:
+eval
+update
+_43:
+pushloc 4
+eval
+_46:
+eval
+apply
+_41:
+slide 1
+apply
+_33:
+getbasic
