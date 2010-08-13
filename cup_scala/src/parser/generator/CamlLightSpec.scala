@@ -41,7 +41,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	import types._
 	import patterns.Pattern
 
-	type Definition = (Pattern, Expression)
+	type Case = (Pattern, Expression)
+	type Definition = (patterns.Id, Expression)
 	type Entry = (Id, Expression)
 
 	class INTCONST extends SymbolValue[Int]
@@ -52,8 +53,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class expr extends SymbolValue[Expression]
 	class const extends SymbolValue[Const]
 	class pattern extends SymbolValue[Pattern]
-	class `case` extends SymbolValue[Definition]
-	class caselist extends SymbolValue[List[Definition]]
+	class `case` extends SymbolValue[Case]
+	class caselist extends SymbolValue[List[Case]]
 	class binding extends SymbolValue[Definition]
 	class andbindings extends SymbolValue[List[Definition]]
 	class commaseq extends SymbolValue[List[Expression]]
@@ -66,7 +67,6 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	precedences(left(POINT), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(LET), left(REC), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
 
 	// TODO app, match, lambda
-	// TODO fix letrec
 
 	val opMapping = Map[Operator#Value, Symbol](
 		BinaryOperator.add -> PLUS,
@@ -114,7 +114,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			LBRACE ~ record ~ RBRACE ^^ { (entries: List[Entry]) => expressions.Record(entries: _*) }
 		),
 		binding -> (
-			pattern ~ BIND ~ expr ^^ { (pattern: Pattern, expr: Expression) => (pattern, expr) }
+			IDENTIFIER ~ BIND ~ expr ^^ { (str: String, expr: Expression) => (patterns.Id(str), expr) }
 		),
 		andbindings -> (
 			binding ^^ { (d: Definition) => List(d) } |
@@ -144,8 +144,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			pattern ~ ARROW ~ expr ^^ { (pattern: Pattern, expr: Expression) => (pattern, expr) }
 		),
 		caselist -> (
-			`case` ^^ { (c: Definition) => List(c) } |
-			`case` ~ PIPE ~ caselist ^^ { (head: Definition, tail: List[Definition]) => head :: tail }
+			`case` ^^ { (c: Case) => List(c) } |
+			`case` ~ PIPE ~ caselist ^^ { (head: Case, tail: List[Case]) => head :: tail }
 		)
 
 		/*,
