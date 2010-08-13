@@ -104,6 +104,7 @@ object TypeInference {
                 if (params1.length != params2.length) {
                   throw new TypeError("TODO: unify - reasonable error message")
                 } else if (params1.length == 0) {
+		  // base types without any type parameters
 		  if (n1 == n2) {
 		    unify_(u)
 		  } else {
@@ -162,11 +163,11 @@ object TypeInference {
 	  case expressions.UnaryOperator.neg => constraintGen(gamma, e, fresh) match {
 	      case (t: TypeInt, fresh1, c) => (t, fresh1, c)
 	      case _ => throw new TypeError("error 42")
-	  }
+	    }
 	  case expressions.UnaryOperator.not => constraintGen(gamma, e, fresh) match {
 	      case (t: TypeBool, fresh1, c) => (t, fresh1, c)
 	      case _ => throw new TypeError("error 23")
-	  }
+	    }
 	  case _ => throw new TypeError("error 2")
 	}
 
@@ -185,7 +186,7 @@ object TypeInference {
         }
 
       case expressions.Lambda(typeBody, p@patterns.Cons(h,r)) =>
-        updateEnv(gamma, p, TypeVariable(fresh), fresh) match {
+        updateEnv(gamma, p, TypeList(TypeVariable(fresh)), fresh+1) match {
           case (gamma1, fresh1, constraints1) =>
             constraintGen(gamma1, typeBody, fresh1) match {
 	      case (typeBody,fresh2,constraints) =>
@@ -308,22 +309,20 @@ object TypeInference {
 	    constraintGen(gamma, body, fresh1) match {
 	      case (typeBody, fresh1, constraints) =>
 		(typeBody, fresh1+1,
-		       (typeExpr,TypeList(TypeVariable(fresh1)))::constraints)
+		 (typeExpr,TypeList(TypeVariable(fresh1)))::constraints)
 	    }
         }
 
       case expressions.Let(p@patterns.Tuple(patterns@_*), expr, body) =>
-	val (gamma1,fresh1,_) = updateEnv(gamma, p, TypeVariable(fresh), fresh)
-	val (typeExpr, fresh2, _) = constraintGen(gamma1,expr,fresh)
+	val (typeExpr, fresh1, _) = constraintGen(gamma,expr,fresh)
+	val (gamma1,fresh2,cs) = updateEnv(gamma, p, typeExpr, fresh1)
 	val (typeBody, fresh3, constraints) = constraintGen(gamma1, body, fresh2)
 	typeExpr match {
 	  case TypeTuple(fields@_*) =>
-	    println(fresh3)
-	    println(fresh3 + fields.length)
-	    val newVars = fresh3 to fresh3 + (fields.length - 1) map (i => TypeVariable(i))
-	    println(TypeTuple(newVars:_*))
-	    (typeBody,fresh3 + fields.length + 1,
-	     (typeExpr,TypeTuple(newVars:_*))::constraints)
+//	    val newVars = fresh3 to fresh3 + (fields.length - 1) map (i => TypeVariable(i))
+	    (typeBody,fresh3 + fields.length,
+	     cs ++ constraints)
+//	     (typeExpr,TypeTuple(newVars:_*))::constraints)
 	  case _ => throw new TypeError("Couldn't match tuple type.")
 	}
 
@@ -405,11 +404,13 @@ object TypeInference {
 	// introducing inner method
 	(fresh,constraints,typeExpr)
       case h::r =>
-	updateEnv(gamma, h._1, TypeVariable(fresh), fresh) match {
-	  case (gamma1,fresh1,_) =>
-	    constraintGen(gamma1, h._2, fresh1) match {
-	      case (thead, fresh2, _) =>
-		checkClauses(r, gamma, (thead,typeExpr)::constraints, fresh2, typeExpr)
+	val (hType,fresh1) = getPatternType(h._1, fresh)
+	println(hType)
+	updateEnv(gamma, h._1, hType, fresh1) match {
+	  case (gamma1,fresh2,_) =>
+	    constraintGen(gamma1, h._2, fresh2) match {
+	      case (thead, fresh3, _) =>
+		checkClauses(r, gamma, (thead,typeExpr)::constraints, fresh3, typeExpr)
 	    }
 	}
     }
@@ -417,35 +418,89 @@ object TypeInference {
 
   /**
    * Updates the type enviroment based on the given pattern and the given type.
+   * It is assumed that the given type matches the pattern.
    */
   def updateEnv(env: Env, pattern: patterns.Pattern, typeExpr: TypeExpression, fresh: Int):
   (Env,Int,List[(TypeExpression,TypeExpression)]) = {
 
     pattern match {
       case patterns.Id(x) =>
-        ((x, (List(), typeExpr))::env,fresh+1,List())
+        ((x, (List(), typeExpr))::env,fresh,List())
       case patterns.Underscore => (env,fresh,List())
       case patterns.Nil  => (env,fresh,List())
-      case tup@patterns.Tuple(pats@_*) =>
-	var gamma = env
-	var currFresh = fresh
-	var constraints: List[(TypeExpression,TypeExpression)] = List()
-	for (pat <- pats) {
-	  val (gamma1,fresh1,cs) = updateEnv(gamma,pat,TypeVariable(currFresh),currFresh+1)
-	  gamma = gamma1
-	  currFresh = fresh1
-	  constraints = cs ++ constraints
+      case patterns.Integer(_) =>
+	if (typeExpr != TypeInt()) {
+	  throw new TypeError("Int Match failed TODO")
+	} else {
+	  (env,fresh,List())
 	}
-	(gamma,currFresh,constraints)
+      case patterns.Bool(_) =>
+	if (typeExpr != TypeBool()) {
+	  throw new TypeError("Boolean Match failed TODO")
+	} else {
+	  (env,fresh,List())
+	}
+      case patterns.Character(_) =>
+	if (typeExpr != TypeChar()) {
+	  throw new TypeError("Character Match failed TODO")
+	} else {
+	  (env,fresh,List())
+	}
+      case tup@patterns.Tuple(pats@_*) =>
+	typeExpr match {
+	  case TypeTuple(types@_*) =>
+	    if (types.length != pats.length) {
+	      throw new TypeError("Match failed TODO")
+	    } else {
+
+	      var gamma = env
+	      var currFresh = fresh
+	      var constraints: List[(TypeExpression,TypeExpression)] = List()
+	      var i = 0
+	      
+	      for (pat <- pats) {
+		val (gamma1,fresh1,cs) = updateEnv(gamma,pat,types(i),currFresh+1)
+		gamma = gamma1
+		currFresh = fresh1
+		constraints = cs ++ constraints
+		i += 1
+	      }
+	      
+	      (gamma,currFresh,constraints)
+	    }
+	  case _ => throw new TypeError("Match failed TODO")
+	}
       case cons@patterns.Cons(head, tail) =>
-        val alpha = TypeVariable(fresh)
-        updateEnv(env, head, alpha, fresh+1) match {
-          case (env1, fresh1, constraints1) =>
-            updateEnv(env1, tail, TypeList(alpha), fresh1) match {
-              case (env2,fresh2,constraints2) =>
-                (env2,fresh2,(typeExpr,TypeList(alpha))::constraints1 ++ constraints2)
-            }
-        }
+	typeExpr match {
+	  case TypeList(a) => 
+	    val (env1, fresh1, constraints1) = updateEnv(env, head, a, fresh+1)
+	    val (env2,fresh2,constraints2) = updateEnv(env1, tail, TypeList(a), fresh1)
+	    // constraint (typeExpr,TypeList(a)) necessary?
+	    (env2,fresh2,(typeExpr,TypeList(a))::constraints1 ++ constraints2)
+	  case _ => throw new TypeError("List Pattern match failed TODO")
+	}
+    }
+  }
+
+  def getPatternType(p: patterns.Pattern, fresh: Int): (TypeExpression,Int) = {
+    p match {
+      case patterns.Id(x) => (TypeVariable(fresh),fresh+1)
+      case patterns.Underscore => (TypeVariable(fresh),fresh+1)
+      case patterns.Nil  => (TypeList(TypeVariable(fresh)), fresh+1)
+      case patterns.Integer(_) => (TypeInt(), fresh)
+      case patterns.Bool(_) => (TypeBool(), fresh)
+      case patterns.Character(_) => (TypeChar(), fresh)
+      case patterns.Tuple(pats@_*) =>
+	var currFresh = fresh
+	var types: List[TypeExpression] = List()
+	for (pat <- pats) {
+	  val (patType,fresh1) = getPatternType(pat, currFresh)
+	  currFresh = fresh1
+	  types = patType :: types
+	}
+	(TypeTuple(types:_*),currFresh)
+      case patterns.Cons(head, tail) =>
+	(TypeList(TypeVariable(fresh)),fresh+1)
     }
   }
 
