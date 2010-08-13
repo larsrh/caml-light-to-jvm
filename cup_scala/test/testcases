@@ -26,6 +26,9 @@ match {a = 3;b = 4} with _ -> 0#Match(Record(List((Id(a),Integer(3)), (Id(b),Int
 match 1::[] with 1::2::[] -> 2::x#Match(Cons(Integer(1),Nil),List((Cons(Integer(1),Cons(Integer(2),Nil)),Cons(Integer(2),Id(x)))))
 let a = 3 in b#Let(Id(a),Integer(3),Id(b))
 let _ = 3 in b#Let(Underscore,Integer(3),Id(b))
+let ((a)) = 3 in b#Let(Id(a),Integer(3),Id(b))
+let (a,b,c) = a in d#Let(Tuple(List(Id(a), Id(b), Id(c))),Id(a),Id(d))
+let rec (a,b,c) = a in d#!
 let rec a = 3 in b#LetRec(Id(b),List((Id(a),Integer(3))))
 let rec _ = 3 in b#!
 (1 a) 2 (3 4 5)#App(Integer(1),List(Id(a), Integer(2), App(Integer(3),List(Integer(4), Integer(5)))))
