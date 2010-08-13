@@ -35,14 +35,6 @@ package expressions {
 			case head :: tail => Cons(head, fromSeq(tail))
 		}
 
-		def fromExpression(expr: Expression) = {
-			def toSeq(e: Expression): List[Expression] = e match {
-				case Sequence(expr1, expr2) => toSeq(expr1) ::: toSeq(expr2)
-				case _ => List(e)
-			}
-			fromSeq(toSeq(expr))
-		}
-
 	}
 
 	sealed trait Operator extends Enumeration

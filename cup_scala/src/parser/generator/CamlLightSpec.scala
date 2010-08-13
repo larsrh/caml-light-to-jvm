@@ -68,7 +68,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class typeexpr extends SymbolValue[TypeExpression]
 	class typedef extends SymbolValue[TypeDefinition]
 
-	precedences(left(POINT), left(APP_DUMMY), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
+	precedences(left(POINT), left(APP_DUMMY), left(STAR), left(SLASH), left(PLUS), left(MINUS), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
 
 	// TODO match, lambda
 	// TODO fix unary minus
@@ -102,8 +102,9 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 				case List(expr) => expr
 				case List(l @ _*) => Tuple(l: _*)
 			} } |
-			LSQBRACKET ~ expr ~ RSQBRACKET ^^ (ListExpression.fromExpression(_: Expression)) |
-			chain(SEMI, Sequence(_, _)) |
+			LSQBRACKET ~ RSQBRACKET ^^ { () => expressions.Nil } |
+			chain(CONS, Cons.apply) |
+			chain(SEMI, Sequence.apply) |
 			// ops
 			{
 				val buf = ListBuffer[RHSItem]()
