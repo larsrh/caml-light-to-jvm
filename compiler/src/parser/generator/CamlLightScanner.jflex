@@ -10,6 +10,7 @@ import static parser.generator.CamlLightTerminals.*;
 %class CamlLightScanner
 %unicode
 %cup2
+%public
 %line
 %column
 %state CHARACTER COMMENT STRING
