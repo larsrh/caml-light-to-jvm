@@ -1,0 +1,213 @@
+alloc 1
+pushloc 0
+mkvec 1
+mkclos _2
+jump _3
+_2:
+pushglob 0
+mkvec 1
+mkfunval _4
+jump _5
+_4:
+targ 1
+pushloc 0
+eval
+_8:
+alloc 1
+pushloc 2
+eval
+_10:
+rewrite 1
+loadc 1
+jumpz _9
+pushglob 0
+pushloc 1
+mkvec 2
+mkfunval _11
+jump _12
+_11:
+targ 1
+pushloc 0
+eval
+_15:
+alloc 1
+pushloc 2
+eval
+_17:
+rewrite 1
+loadc 1
+jumpz _16
+pushglob 1
+eval
+_20:
+alloc 0
+loadc 0
+pushglob 1
+getbasic
+eq
+jumpz _21
+pushloc 1
+getbasic
+loadc 1
+add
+mkbasic
+slide 1
+jump _18
+_21:
+alloc 0
+loadc 1
+jumpz _22
+pushloc 1
+eval
+_25:
+alloc 0
+loadc 0
+pushloc 3
+getbasic
+eq
+jumpz _26
+mark _27
+mkvec 0
+mkclos _28
+jump _29
+_28:
+loadc 1
+mkbasic
+update
+_29:
+mark _30
+pushglob 1
+mkvec 1
+mkclos _31
+jump _32
+_31:
+pushglob 0
+getbasic
+loadc 1
+sub
+mkbasic
+update
+_32:
+pushglob 0
+eval
+_33:
+apply
+_30:
+apply
+_27:
+slide 1
+jump _23
+_26:
+alloc 0
+loadc 1
+jumpz _34
+mark _35
+pushglob 0
+pushglob 1
+pushloc 7
+mkvec 3
+mkclos _36
+jump _37
+_36:
+mark _38
+pushglob 2
+mkvec 1
+mkclos _39
+jump _40
+_39:
+pushglob 0
+getbasic
+loadc 1
+sub
+mkbasic
+update
+_40:
+mark _41
+pushglob 1
+mkvec 1
+mkclos _42
+jump _43
+_42:
+pushglob 0
+eval
+_44:
+update
+_43:
+pushglob 0
+eval
+_45:
+apply
+_41:
+apply
+_38:
+update
+_37:
+mark _46
+pushglob 1
+mkvec 1
+mkclos _47
+jump _48
+_47:
+pushglob 0
+getbasic
+loadc 1
+sub
+mkbasic
+update
+_48:
+pushglob 0
+eval
+_49:
+apply
+_46:
+apply
+_35:
+slide 1
+jump _23
+_34:
+_23:
+slide 1
+jump _18
+_22:
+_18:
+slide 2
+jump _13
+_16:
+pop
+_13:
+return 1
+_12:
+slide 2
+jump _6
+_9:
+pop
+_6:
+return 1
+_5:
+update
+_3:
+rewrite 1
+mark _50
+mkvec 0
+mkclos _51
+jump _52
+_51:
+loadc 2
+mkbasic
+update
+_52:
+mkvec 0
+mkclos _53
+jump _54
+_53:
+loadc 1
+mkbasic
+update
+_54:
+pushloc 5
+eval
+_55:
+apply
+_50:
+slide 1
+getbasic

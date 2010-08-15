@@ -1,116 +1,200 @@
 alloc 3
 pushloc 2
 mkvec 1
-mkfunval _76
-jump _77
-_76:
+mkclos _172
+jump _173
+_172:
+pushglob 0
+mkvec 1
+mkfunval _174
+jump _175
+_174:
 targ 1
 pushloc 0
+eval
+_178:
 alloc 1
 pushloc 2
+eval
+_180:
 rewrite 1
 loadc 1
-jumpz _79
+jumpz _179
 pushglob 0
 pushloc 1
 mkvec 2
-mkfunval _80
-jump _81
-_80:
+mkfunval _181
+jump _182
+_181:
 targ 1
 pushloc 0
+eval
+_185:
 alloc 1
 pushloc 2
+eval
+_187:
 rewrite 1
 loadc 1
-jumpz _83
+jumpz _186
 pushloc 0
 pushglob 0
 pushglob 1
 mkvec 3
-mkfunval _84
-jump _85
-_84:
+mkfunval _188
+jump _189
+_188:
 targ 1
 pushloc 0
+eval
+_192:
 alloc 1
 pushloc 2
+eval
+_194:
 rewrite 1
 loadc 1
-jumpz _87
+jumpz _193
 pushloc 0
-tlist _88
+eval
+_197:
+tlist _195
 pushglob 0
-jump _89
-_88:
-mark _90
+eval
+_198:
+jump _196
+_195:
+mark _199
 pushloc 3
-mark _91
-mark _92
-pushloc 11
-mark _93
+mkvec 1
+mkclos _200
+jump _201
+_200:
 pushglob 0
+eval
+_202:
+update
+_201:
+mark _203
 pushglob 2
-apply
-_93:
-apply
-_92:
-mark _94
+pushglob 0
+pushloc 10
+mkvec 3
+mkclos _204
+jump _205
+_204:
+mark _206
 pushglob 2
+mkvec 1
+mkclos _207
+jump _208
+_207:
+pushglob 0
+eval
+_209:
+update
+_208:
+mark _210
 pushglob 1
+mkvec 1
+mkclos _211
+jump _212
+_211:
+pushglob 0
+eval
+_213:
+update
+_212:
+pushglob 0
+eval
+_214:
 apply
-_94:
+_210:
 apply
-_91:
+_206:
+update
+_205:
+mark _215
+pushglob 2
+mkvec 1
+mkclos _216
+jump _217
+_216:
+pushglob 0
+eval
+_218:
+update
+_217:
+pushglob 1
+eval
+_219:
 apply
-_90:
+_215:
+apply
+_203:
+apply
+_199:
 slide 2
-_89:
+_196:
 slide 2
-jump _86
-_87:
-slide 2
-_86:
+jump _190
+_193:
+pop
+_190:
 return 1
-_85:
+_189:
 slide 2
-jump _82
-_83:
-slide 2
-_82:
+jump _183
+_186:
+pop
+_183:
 return 1
-_81:
+_182:
 slide 2
-jump _78
-_79:
-slide 2
-_78:
+jump _176
+_179:
+pop
+_176:
 return 1
-_77:
+_175:
+update
+_173:
 rewrite 3
 mkvec 0
-mkfunval _95
-jump _96
-_95:
+mkclos _220
+jump _221
+_220:
+mkvec 0
+mkfunval _222
+jump _223
+_222:
 targ 1
 pushloc 0
+eval
+_226:
 alloc 1
 pushloc 2
+eval
+_228:
 rewrite 1
 loadc 1
-jumpz _98
+jumpz _227
 pushloc 0
 mkvec 1
-mkfunval _99
-jump _100
-_99:
+mkfunval _229
+jump _230
+_229:
 targ 1
 pushloc 0
+eval
+_233:
 alloc 1
 pushloc 2
+eval
+_235:
 rewrite 1
 loadc 1
-jumpz _102
+jumpz _234
 pushglob 0
 getbasic
 pushloc 1
@@ -118,99 +202,190 @@ getbasic
 mul
 mkbasic
 slide 2
-jump _101
-_102:
-slide 2
-_101:
+jump _231
+_234:
+pop
+_231:
 return 1
-_100:
+_230:
 slide 2
-jump _97
-_98:
-slide 2
-_97:
+jump _224
+_227:
+pop
+_224:
 return 1
-_96:
+_223:
+update
+_221:
 rewrite 2
 pushloc 0
 mkvec 1
-mkfunval _103
-jump _104
-_103:
+mkclos _236
+jump _237
+_236:
+pushglob 0
+mkvec 1
+mkfunval _238
+jump _239
+_238:
 targ 1
 pushloc 0
+eval
+_242:
 alloc 1
 pushloc 2
+eval
+_244:
 rewrite 1
 loadc 1
-jumpz _106
+jumpz _243
 pushloc 0
 pushglob 0
 mkvec 2
-mkfunval _107
-jump _108
-_107:
+mkfunval _245
+jump _246
+_245:
 targ 1
 pushloc 0
+eval
+_249:
 alloc 1
 pushloc 2
+eval
+_251:
 rewrite 1
 loadc 1
-jumpz _110
+jumpz _250
 pushloc 0
 getbasic
 pushglob 0
 getbasic
 le
-jumpz _111
+jumpz _252
 nil
-jump _112
-_111:
+jump _253
+_252:
 pushloc 0
-mark _113
-pushloc 4
+mkvec 1
+mkclos _254
+jump _255
+_254:
+pushglob 0
+eval
+_256:
+update
+_255:
+pushglob 1
+pushglob 0
+pushloc 3
+mkvec 3
+mkclos _257
+jump _258
+_257:
+mark _259
+pushglob 2
+mkvec 1
+mkclos _260
+jump _261
+_260:
+pushglob 0
 getbasic
 loadc 1
 sub
 mkbasic
-mark _114
-pushglob 0
+update
+_261:
+mark _262
 pushglob 1
+mkvec 1
+mkclos _263
+jump _264
+_263:
+pushglob 0
+eval
+_265:
+update
+_264:
+pushglob 0
+eval
+_266:
 apply
-_114:
+_262:
 apply
-_113:
+_259:
+update
+_258:
 cons
-_112:
+_253:
 slide 2
-jump _109
-_110:
-slide 2
-_109:
+jump _247
+_250:
+pop
+_247:
 return 1
-_108:
+_246:
 slide 2
-jump _105
-_106:
-slide 2
-_105:
+jump _240
+_243:
+pop
+_240:
 return 1
-_104:
+_239:
+update
+_237:
 rewrite 1
-mark _115
-mark _116
+mark _267
+pushloc 3
+mkvec 1
+mkclos _268
+jump _269
+_268:
+mark _270
+mkvec 0
+mkclos _271
+jump _272
+_271:
 loadc 5
 mkbasic
+update
+_272:
+mkvec 0
+mkclos _273
+jump _274
+_273:
 loadc 3
 mkbasic
-pushloc 8
+update
+_274:
+pushglob 0
+eval
+_275:
 apply
-_116:
+_270:
+update
+_269:
+mkvec 0
+mkclos _276
+jump _277
+_276:
 loadc 1
 mkbasic
+update
+_277:
 pushloc 6
+mkvec 1
+mkclos _278
+jump _279
+_278:
+pushglob 0
+eval
+_280:
+update
+_279:
 pushloc 8
+eval
+_281:
 apply
-_115:
+_267:
 slide 3
 getbasic
