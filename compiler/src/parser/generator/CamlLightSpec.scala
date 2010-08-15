@@ -11,7 +11,7 @@ object CamlLightTerminals extends SymbolEnum {
 	val	IDENTIFIER,
 		INTCONST, BOOLCONST, STRINGCONST, CHARCONST,
 		LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
-		STAR, PLUS, MINUS, SLASH, CONS, SEMI, POINT, COMMA, // * + - / :: ; . ,
+		STAR, PLUS, MINUS, SLASH, CONS, SEMI, POINT, COMMA, TUPLEACC, // * + - / :: ; . , #
 		LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
 		FUN, FUNCTION, MATCH, PIPE, ARROW, UNDERSCORE, WITH, // fun function match | -> _ with
 		LETAND, AND, OR, NOT, // and, &, or, not
@@ -66,10 +66,11 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class typeexpr extends SymbolValue[TypeExpression]
 	class typedef extends SymbolValue[TypeDefinition]
 
-	precedences(left(POINT), left(APP_DUMMY), left(NEG_DUMMY), left(STAR), left(SLASH), left(PLUS), left(MINUS), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
+	var symCount = 0
+
+	precedences(left(POINT), left(APP_DUMMY), left(TUPLEACC), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(NEG_DUMMY), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
 
 	// TODO lambda
-	// TODO fix unary minus
 
 	grammar(
 		expr -> (
@@ -84,6 +85,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 				case List(l @ _*) => Tuple(l: _*)
 			} } |
 			LSQBRACKET ~ RSQBRACKET ^^ { () => expressions.Nil } |
+			expr ~ TUPLEACC ~ INTCONST ^^ { (expr: Expression, n: Int) => TupleElem(expr, n) } |
 			chain(CONS, Cons.apply) |
 			chain(SEMI, Sequence.apply) |
 			// bin ops
@@ -102,13 +104,18 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 				BinaryOperator.or -> OR
 			) flatMap { ops => chain(ops._2, BinOp(ops._1, _, _)) } toSeq) |
 			NOT ~ expr ^^ (UnOp(UnaryOperator.not, _: Expression)) |
-			//prec(rhs(MINUS, expr), NEG_DUMMY) ^^ (UnOp(UnaryOperator.neg, _: Expression)) |
-			MATCH ~ expr ~ WITH ~ caselist ^^ { (expr: Expression, cases: List[Definition]) => Match(expr, cases: _*) } |
+			prec(rhs(MINUS, expr), NEG_DUMMY) ^^ (UnOp(UnaryOperator.neg, _: Expression)) |
+			MATCH ~ expr ~ WITH ~ caselist ^^ { (expr: Expression, cases: List[Case]) => Match(expr, cases: _*) } |
 			expr ~ POINT ~ IDENTIFIER ^^ { (expr: Expression, id: String) => Field(expr, Id(id)) } |
 			IF ~ expr ~ THEN ~ expr ~ ELSE ~ expr ^^ (IfThenElse.apply _) |
 			LET ~ pattern ~ BIND ~ expr ~ IN ~ expr ^^ (Let.apply _) |
 			LET ~ REC ~ andbindings ~ IN ~ expr ^^ { (bindings: List[Definition], body: Expression) => LetRec(body, bindings: _*) } |
-			LBRACE ~ record ~ RBRACE ^^ { (entries: List[Entry]) => expressions.Record(entries: _*) }
+			LBRACE ~ record ~ RBRACE ^^ { (entries: List[Entry]) => expressions.Record(entries: _*) } |
+			FUNCTION ~ caselist ^^ { (cases: List[Case]) =>
+				val sym = "0" + symCount
+				symCount += 1
+				Lambda(Match(Id(sym), cases: _*), patterns.Id(sym))
+			}
 		),
 		binding -> (
 			IDENTIFIER ~ BIND ~ expr ^^ { (str: String, expr: Expression) => (patterns.Id(str), expr) }

@@ -1,0 +1,216 @@
+alloc 3
+pushloc 2
+mkvec 1
+mkfunval _57
+jump _58
+_57:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _60
+pushglob 0
+pushloc 1
+mkvec 2
+mkfunval _61
+jump _62
+_61:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _64
+pushloc 0
+pushglob 0
+pushglob 1
+mkvec 3
+mkfunval _65
+jump _66
+_65:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _68
+pushloc 0
+tlist _69
+pushglob 0
+jump _70
+_69:
+mark _71
+pushloc 3
+mark _72
+mark _73
+pushloc 11
+mark _74
+pushglob 0
+pushglob 2
+apply
+_74:
+apply
+_73:
+mark _75
+pushglob 2
+pushglob 1
+apply
+_75:
+apply
+_72:
+apply
+_71:
+slide 2
+_70:
+slide 2
+jump _67
+_68:
+slide 2
+_67:
+return 1
+_66:
+slide 2
+jump _63
+_64:
+slide 2
+_63:
+return 1
+_62:
+slide 2
+jump _59
+_60:
+slide 2
+_59:
+return 1
+_58:
+rewrite 3
+mkvec 0
+mkfunval _76
+jump _77
+_76:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _79
+pushloc 0
+mkvec 1
+mkfunval _80
+jump _81
+_80:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _83
+pushglob 0
+getbasic
+pushloc 1
+getbasic
+mul
+mkbasic
+slide 2
+jump _82
+_83:
+slide 2
+_82:
+return 1
+_81:
+slide 2
+jump _78
+_79:
+slide 2
+_78:
+return 1
+_77:
+rewrite 2
+pushloc 0
+mkvec 1
+mkfunval _84
+jump _85
+_84:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _87
+pushloc 0
+pushglob 0
+mkvec 2
+mkfunval _88
+jump _89
+_88:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _91
+pushloc 0
+getbasic
+pushglob 0
+getbasic
+le
+jumpz _92
+nil
+jump _93
+_92:
+pushloc 0
+mark _94
+pushloc 4
+getbasic
+loadc 1
+sub
+mkbasic
+mark _95
+pushglob 0
+pushglob 1
+apply
+_95:
+apply
+_94:
+cons
+_93:
+slide 2
+jump _90
+_91:
+slide 2
+_90:
+return 1
+_89:
+slide 2
+jump _86
+_87:
+slide 2
+_86:
+return 1
+_85:
+rewrite 1
+mark _96
+mark _97
+loadc 5
+mkbasic
+loadc 3
+mkbasic
+pushloc 8
+apply
+_97:
+loadc 1
+mkbasic
+pushloc 6
+pushloc 8
+apply
+_96:
+slide 3
+getbasic

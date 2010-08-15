@@ -1,0 +1,53 @@
+alloc 1
+pushloc 0
+mkvec 1
+mkfunval _49
+jump _50
+_49:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _52
+pushloc 0
+getbasic
+loadc 0
+eq
+jumpz _53
+loadc 1
+mkbasic
+jump _54
+_53:
+pushloc 0
+getbasic
+mark _55
+pushloc 4
+getbasic
+loadc 1
+sub
+mkbasic
+pushglob 0
+apply
+_55:
+getbasic
+mul
+mkbasic
+_54:
+slide 2
+jump _51
+_52:
+slide 2
+_51:
+return 1
+_50:
+rewrite 1
+mark _56
+loadc 5
+mkbasic
+pushloc 4
+apply
+_56:
+slide 1
+getbasic

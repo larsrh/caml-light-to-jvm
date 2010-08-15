@@ -134,6 +134,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   "}"		{ return token(RBRACE()); }
   "->"		{ return token(ARROW()); }
   "_"		{ return token(UNDERSCORE()); }
+  "@"		{ return token(TUPLEACC()); }
 
   {DecIntegerLiteral}	{ return token(INTCONST(), Integer.parseInt(yytext())); }
 

@@ -1,0 +1,185 @@
+alloc 1
+pushloc 0
+mkvec 1
+mkfunval _2
+jump _3
+_2:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _5
+pushloc 0
+alloc 0
+loadc 0
+pushloc 2
+getbasic
+eq
+jumpz _7
+nil
+slide 1
+jump _6
+_7:
+slide 1
+pushloc 0
+alloc 0
+loadc 1
+jumpz _8
+pushloc 1
+mark _9
+pushloc 5
+getbasic
+loadc 1
+sub
+mkbasic
+pushglob 0
+apply
+_9:
+cons
+slide 1
+jump _6
+_8:
+slide 1
+_6:
+slide 2
+jump _4
+_5:
+slide 2
+_4:
+return 1
+_3:
+rewrite 1
+mark _16
+loadc 5
+mkbasic
+pushloc 4
+apply
+_16:
+alloc 0
+pushloc 0
+tlist _14
+loadc 1
+mkbasic
+jump _15
+_14:
+loadc 0
+mkbasic
+slide 2
+_15:
+getbasic
+jumpz _11
+loadc 42
+mkbasic
+slide 1
+jump _10
+_11:
+slide 1
+mark _37
+loadc 5
+mkbasic
+pushloc 4
+apply
+_37:
+alloc 3
+pushloc 3
+tlist _21
+loadc 0
+mkbasic
+jump _22
+_21:
+pushloc 1
+slide 2
+_22:
+rewrite 5
+loadc 1
+pushloc 4
+tlist _26
+loadc 0
+mkbasic
+jump _27
+_26:
+pushloc 1
+slide 2
+_27:
+rewrite 5
+loadc 1
+pushloc 5
+tlist _31
+loadc 0
+mkbasic
+jump _32
+_31:
+pushloc 1
+slide 2
+_32:
+rewrite 5
+loadc 1
+pushloc 6
+tlist _35
+loadc 1
+mkbasic
+jump _36
+_35:
+loadc 0
+mkbasic
+slide 2
+_36:
+getbasic
+and
+and
+and
+jumpz _17
+pushloc 1
+slide 4
+jump _10
+_17:
+slide 4
+mark _46
+loadc 5
+mkbasic
+pushloc 4
+apply
+_46:
+alloc 2
+pushloc 2
+tlist _42
+loadc 0
+mkbasic
+jump _43
+_42:
+pushloc 1
+slide 2
+_43:
+rewrite 3
+loadc 1
+pushloc 3
+tlist _44
+loadc 0
+mkbasic
+jump _45
+_44:
+pushloc 0
+slide 2
+_45:
+rewrite 3
+loadc 1
+and
+jumpz _38
+pushloc 0
+tlist _47
+loadc 42
+mkbasic
+jump _48
+_47:
+pushloc 1
+slide 2
+_48:
+slide 3
+jump _10
+_38:
+slide 3
+_10:
+slide 1
+getbasic

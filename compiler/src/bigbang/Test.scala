@@ -32,11 +32,15 @@ def main(args:Array[String]):Unit = {
 		//TODO def genByteCode(l:List[Instruction]):Unit
 		
 		def output(l:List[Instruction],filename:String):Unit = {
-			val out = new java.io.FileWriter(filename.hashCode.toString + ".mama")
+			val out = new java.io.FileWriter("test/bigbang/" +	filename + ".mama")
 			l map ((i:Instruction) => out write (i.toString))
 			out close
 		}
 		
-		inputs foreach { x => val exp = parseExp(x); output(genMaMaCode(exp),exp.toString) }
+		inputs foreach { x => 
+			val exp = parseExp(Source.fromFile("test/bigbang/" + x + ".cl").mkString(""));
+			//Console println exp
+			output(genMaMaCode(exp),x)
+		}
 	}
 }
