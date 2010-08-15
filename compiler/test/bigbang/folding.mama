@@ -1,94 +1,6 @@
 alloc 3
 pushloc 2
 mkvec 1
-mkfunval _57
-jump _58
-_57:
-targ 1
-pushloc 0
-alloc 1
-pushloc 2
-rewrite 1
-loadc 1
-jumpz _60
-pushglob 0
-pushloc 1
-mkvec 2
-mkfunval _61
-jump _62
-_61:
-targ 1
-pushloc 0
-alloc 1
-pushloc 2
-rewrite 1
-loadc 1
-jumpz _64
-pushloc 0
-pushglob 0
-pushglob 1
-mkvec 3
-mkfunval _65
-jump _66
-_65:
-targ 1
-pushloc 0
-alloc 1
-pushloc 2
-rewrite 1
-loadc 1
-jumpz _68
-pushloc 0
-tlist _69
-pushglob 0
-jump _70
-_69:
-mark _71
-pushloc 3
-mark _72
-mark _73
-pushloc 11
-mark _74
-pushglob 0
-pushglob 2
-apply
-_74:
-apply
-_73:
-mark _75
-pushglob 2
-pushglob 1
-apply
-_75:
-apply
-_72:
-apply
-_71:
-slide 2
-_70:
-slide 2
-jump _67
-_68:
-slide 2
-_67:
-return 1
-_66:
-slide 2
-jump _63
-_64:
-slide 2
-_63:
-return 1
-_62:
-slide 2
-jump _59
-_60:
-slide 2
-_59:
-return 1
-_58:
-rewrite 3
-mkvec 0
 mkfunval _76
 jump _77
 _76:
@@ -99,8 +11,9 @@ pushloc 2
 rewrite 1
 loadc 1
 jumpz _79
-pushloc 0
-mkvec 1
+pushglob 0
+pushloc 1
+mkvec 2
 mkfunval _80
 jump _81
 _80:
@@ -111,12 +24,55 @@ pushloc 2
 rewrite 1
 loadc 1
 jumpz _83
+pushloc 0
 pushglob 0
-getbasic
-pushloc 1
-getbasic
-mul
-mkbasic
+pushglob 1
+mkvec 3
+mkfunval _84
+jump _85
+_84:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _87
+pushloc 0
+tlist _88
+pushglob 0
+jump _89
+_88:
+mark _90
+pushloc 3
+mark _91
+mark _92
+pushloc 11
+mark _93
+pushglob 0
+pushglob 2
+apply
+_93:
+apply
+_92:
+mark _94
+pushglob 2
+pushglob 1
+apply
+_94:
+apply
+_91:
+apply
+_90:
+slide 2
+_89:
+slide 2
+jump _86
+_87:
+slide 2
+_86:
+return 1
+_85:
 slide 2
 jump _82
 _83:
@@ -131,86 +87,130 @@ slide 2
 _78:
 return 1
 _77:
+rewrite 3
+mkvec 0
+mkfunval _95
+jump _96
+_95:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _98
+pushloc 0
+mkvec 1
+mkfunval _99
+jump _100
+_99:
+targ 1
+pushloc 0
+alloc 1
+pushloc 2
+rewrite 1
+loadc 1
+jumpz _102
+pushglob 0
+getbasic
+pushloc 1
+getbasic
+mul
+mkbasic
+slide 2
+jump _101
+_102:
+slide 2
+_101:
+return 1
+_100:
+slide 2
+jump _97
+_98:
+slide 2
+_97:
+return 1
+_96:
 rewrite 2
 pushloc 0
 mkvec 1
-mkfunval _84
-jump _85
-_84:
+mkfunval _103
+jump _104
+_103:
 targ 1
 pushloc 0
 alloc 1
 pushloc 2
 rewrite 1
 loadc 1
-jumpz _87
+jumpz _106
 pushloc 0
 pushglob 0
 mkvec 2
-mkfunval _88
-jump _89
-_88:
+mkfunval _107
+jump _108
+_107:
 targ 1
 pushloc 0
 alloc 1
 pushloc 2
 rewrite 1
 loadc 1
-jumpz _91
+jumpz _110
 pushloc 0
 getbasic
 pushglob 0
 getbasic
 le
-jumpz _92
+jumpz _111
 nil
-jump _93
-_92:
+jump _112
+_111:
 pushloc 0
-mark _94
+mark _113
 pushloc 4
 getbasic
 loadc 1
 sub
 mkbasic
-mark _95
+mark _114
 pushglob 0
 pushglob 1
 apply
-_95:
+_114:
 apply
-_94:
+_113:
 cons
-_93:
+_112:
 slide 2
-jump _90
-_91:
+jump _109
+_110:
 slide 2
-_90:
+_109:
 return 1
-_89:
+_108:
 slide 2
-jump _86
-_87:
+jump _105
+_106:
 slide 2
-_86:
+_105:
 return 1
-_85:
+_104:
 rewrite 1
-mark _96
-mark _97
+mark _115
+mark _116
 loadc 5
 mkbasic
 loadc 3
 mkbasic
 pushloc 8
 apply
-_97:
+_116:
 loadc 1
 mkbasic
 pushloc 6
 pushloc 8
 apply
-_96:
+_115:
 slide 3
 getbasic

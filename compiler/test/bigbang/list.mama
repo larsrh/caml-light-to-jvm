@@ -9,58 +9,142 @@ cons
 cons
 cons
 alloc 3
-pushloc 3
-tlist _103
+loadc 1
+mkbasic
+loadc 2
+mkbasic
+loadc 3
+mkbasic
+nil
+cons
+cons
+cons
+tlist _122
 loadc 0
 mkbasic
-jump _104
-_103:
+jump _123
+_122:
 pushloc 1
 slide 2
-_104:
-rewrite 5
+_123:
+rewrite 3
 loadc 1
-pushloc 4
-tlist _108
+loadc 1
+mkbasic
+loadc 2
+mkbasic
+loadc 3
+mkbasic
+nil
+cons
+cons
+cons
+tlist _129
 loadc 0
 mkbasic
-jump _109
-_108:
+jump _130
+_129:
+pushloc 0
+slide 2
+_130:
+tlist _127
+loadc 0
+mkbasic
+jump _128
+_127:
 pushloc 1
 slide 2
-_109:
-rewrite 5
+_128:
+rewrite 3
 loadc 1
-pushloc 5
-tlist _113
+loadc 1
+mkbasic
+loadc 2
+mkbasic
+loadc 3
+mkbasic
+nil
+cons
+cons
+cons
+tlist _138
 loadc 0
 mkbasic
-jump _114
-_113:
+jump _139
+_138:
+pushloc 0
+slide 2
+_139:
+tlist _136
+loadc 0
+mkbasic
+jump _137
+_136:
+pushloc 0
+slide 2
+_137:
+tlist _134
+loadc 0
+mkbasic
+jump _135
+_134:
 pushloc 1
 slide 2
-_114:
-rewrite 5
+_135:
+rewrite 3
 loadc 1
-pushloc 6
-tlist _117
 loadc 1
 mkbasic
-jump _118
-_117:
+loadc 2
+mkbasic
+loadc 3
+mkbasic
+nil
+cons
+cons
+cons
+tlist _148
+loadc 0
+mkbasic
+jump _149
+_148:
+pushloc 0
+slide 2
+_149:
+tlist _146
+loadc 0
+mkbasic
+jump _147
+_146:
+pushloc 0
+slide 2
+_147:
+tlist _144
+loadc 0
+mkbasic
+jump _145
+_144:
+pushloc 0
+slide 2
+_145:
+tlist _142
+loadc 1
+mkbasic
+jump _143
+_142:
 loadc 0
 mkbasic
 slide 2
-_118:
+_143:
 getbasic
 and
 and
 and
-jumpz _99
+jumpz _118
 pushloc 1
 slide 4
-jump _98
-_99:
+jump _117
+_118:
 slide 4
-_98:
+_117:
 getbasic

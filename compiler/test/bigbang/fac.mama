@@ -1,28 +1,28 @@
 alloc 1
 pushloc 0
 mkvec 1
-mkfunval _49
-jump _50
-_49:
+mkfunval _68
+jump _69
+_68:
 targ 1
 pushloc 0
 alloc 1
 pushloc 2
 rewrite 1
 loadc 1
-jumpz _52
+jumpz _71
 pushloc 0
 getbasic
 loadc 0
 eq
-jumpz _53
+jumpz _72
 loadc 1
 mkbasic
-jump _54
-_53:
+jump _73
+_72:
 pushloc 0
 getbasic
-mark _55
+mark _74
 pushloc 4
 getbasic
 loadc 1
@@ -30,24 +30,24 @@ sub
 mkbasic
 pushglob 0
 apply
-_55:
+_74:
 getbasic
 mul
 mkbasic
-_54:
+_73:
 slide 2
-jump _51
-_52:
+jump _70
+_71:
 slide 2
-_51:
+_70:
 return 1
-_50:
+_69:
 rewrite 1
-mark _56
+mark _75
 loadc 5
 mkbasic
 pushloc 4
 apply
-_56:
+_75:
 slide 1
 getbasic

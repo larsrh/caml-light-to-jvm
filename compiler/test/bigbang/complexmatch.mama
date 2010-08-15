@@ -51,14 +51,19 @@ _4:
 return 1
 _3:
 rewrite 1
-mark _16
+mark _17
 loadc 5
 mkbasic
 pushloc 4
 apply
-_16:
+_17:
 alloc 0
-pushloc 0
+mark _16
+loadc 5
+mkbasic
+pushloc 5
+apply
+_16:
 tlist _14
 loadc 1
 mkbasic
@@ -76,109 +81,187 @@ slide 1
 jump _10
 _11:
 slide 1
-mark _37
+mark _54
 loadc 5
 mkbasic
 pushloc 4
 apply
-_37:
+_54:
 alloc 3
-pushloc 3
-tlist _21
+mark _24
+loadc 5
+mkbasic
+pushloc 8
+apply
+_24:
+tlist _22
 loadc 0
 mkbasic
-jump _22
-_21:
-pushloc 1
-slide 2
+jump _23
 _22:
-rewrite 5
-loadc 1
-pushloc 4
-tlist _26
-loadc 0
-mkbasic
-jump _27
-_26:
 pushloc 1
 slide 2
-_27:
-rewrite 5
+_23:
+rewrite 3
 loadc 1
-pushloc 5
-tlist _31
-loadc 0
+mark _32
+loadc 5
 mkbasic
-jump _32
-_31:
-pushloc 1
-slide 2
+pushloc 9
+apply
 _32:
-rewrite 5
+tlist _30
+loadc 0
+mkbasic
+jump _31
+_30:
+pushloc 0
+slide 2
+_31:
+tlist _28
+loadc 0
+mkbasic
+jump _29
+_28:
+pushloc 1
+slide 2
+_29:
+rewrite 3
 loadc 1
-pushloc 6
-tlist _35
+mark _42
+loadc 5
+mkbasic
+pushloc 10
+apply
+_42:
+tlist _40
+loadc 0
+mkbasic
+jump _41
+_40:
+pushloc 0
+slide 2
+_41:
+tlist _38
+loadc 0
+mkbasic
+jump _39
+_38:
+pushloc 0
+slide 2
+_39:
+tlist _36
+loadc 0
+mkbasic
+jump _37
+_36:
+pushloc 1
+slide 2
+_37:
+rewrite 3
+loadc 1
+mark _53
+loadc 5
+mkbasic
+pushloc 11
+apply
+_53:
+tlist _51
+loadc 0
+mkbasic
+jump _52
+_51:
+pushloc 0
+slide 2
+_52:
+tlist _49
+loadc 0
+mkbasic
+jump _50
+_49:
+pushloc 0
+slide 2
+_50:
+tlist _47
+loadc 0
+mkbasic
+jump _48
+_47:
+pushloc 0
+slide 2
+_48:
+tlist _45
 loadc 1
 mkbasic
-jump _36
-_35:
+jump _46
+_45:
 loadc 0
 mkbasic
 slide 2
-_36:
+_46:
 getbasic
 and
 and
 and
-jumpz _17
+jumpz _18
 pushloc 1
 slide 4
 jump _10
-_17:
+_18:
 slide 4
-mark _46
+mark _65
 loadc 5
 mkbasic
 pushloc 4
 apply
-_46:
+_65:
 alloc 2
-pushloc 2
-tlist _42
+mark _61
+loadc 5
+mkbasic
+pushloc 7
+apply
+_61:
+tlist _59
 loadc 0
 mkbasic
-jump _43
-_42:
+jump _60
+_59:
 pushloc 1
 slide 2
-_43:
-rewrite 3
+_60:
+rewrite 2
 loadc 1
-pushloc 3
-tlist _44
+mark _64
+loadc 5
+mkbasic
+pushloc 8
+apply
+_64:
+tlist _62
 loadc 0
 mkbasic
-jump _45
-_44:
+jump _63
+_62:
 pushloc 0
 slide 2
-_45:
-rewrite 3
+_63:
+rewrite 2
 loadc 1
 and
-jumpz _38
+jumpz _55
 pushloc 0
-tlist _47
+tlist _66
 loadc 42
 mkbasic
-jump _48
-_47:
+jump _67
+_66:
 pushloc 1
 slide 2
-_48:
+_67:
 slide 3
 jump _10
-_38:
+_55:
 slide 3
 _10:
 slide 1
