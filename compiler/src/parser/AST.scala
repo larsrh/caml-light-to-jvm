@@ -5,7 +5,29 @@ package expressions {
 
 	import patterns.Pattern
 
-	sealed trait Expression
+	sealed trait Expression {
+		def subst(e:Expression,res:Expression):Expression = {
+			if(this == e) res else this match {
+				case Sequence(e1,e2) => Sequence(e1.subst(e,res),e2.subst(e,res))
+				case IfThenElse(c,e1,e2) => IfThenElse(c.subst(e,res),e1.subst(e,res),e2.subst(e,res))
+				case Let(p,e1,e2) => Let(p,e1.subst(e,res),e2.subst(e,res))
+				case LetRec(e1,pe2@_*) => 
+					LetRec(e1.subst(e,res),(pe2.toList map {case (p,e2) => (p,e2.subst(e,res))}):_*)
+				case BinOp(op,e1,e2) => BinOp(op,e1.subst(e,res),e2.subst(e,res))
+				case UnOp(op,e1) => UnOp(op,e1.subst(e,res))
+				case App(f,args@_*) => App(f.subst(e,res),(args.toList map { _.subst(e,res) }):_*)
+				case Cons(e1,e2) => Cons(e1.subst(e,res),e2.subst(e,res))
+				case Tuple(ts@_*) => Tuple((ts.toList map { _.subst(e,res) }):_*)
+				case TupleElem(t,x) => TupleElem(t.subst(e,res),x)
+				case Record(fs@_*) => Record((fs.toList map { case (id,exp) => (id,exp.subst(e,res)) }):_*)
+				case Field(r,x) => Field(r.subst(e,res),x)		
+				case Match(e1,pe2@_*) => 
+					Match(e1.subst(e,res),(pe2.toList map {case (p,e2) => (p,e2.subst(e,res))}):_*)
+				case Lambda(body,args) => Lambda(body.subst(e,res),args)
+				case x => x
+			}
+		}
+	}
 	final case class Id(name: String) extends Expression
 	sealed trait Const extends Expression
 	final case class Integer(value: Int) extends Const

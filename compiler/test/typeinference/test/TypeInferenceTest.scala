@@ -186,6 +186,7 @@ class TypeInferenceTest {
 						    patterns.Cons(patterns.Id("x"),patterns.Nil)))
   }
 
+<<<<<<< HEAD
   /**
    * More tests!
    */
@@ -320,6 +321,32 @@ class TypeInferenceTest {
 		 TypeInference.typeCheck(TypeInference.emptyEnv, e15))
   }
 
+  @Test
+  def test_BinOp_var1 = {
+    val test = BinOp(BinaryOperator.add, Integer(1), Integer(2))
 
+    assertEquals((List(), TypeInt()), TypeInference.typeCheck(List(), test))
+  }
+
+  @Test
+  def test_BinOp_var2 = {
+    val test = BinOp(BinaryOperator.and, Bool(true), Bool(false))
+
+    assertEquals((List(), TypeBool()), TypeInference.typeCheck(List(), test))
+  }
+
+  @Test (expected=classOf[TypeError])
+  def test_BinOp_var3 {
+    val test = BinOp(BinaryOperator.add, Integer(1), Bool(true))
+
+    TypeInference.typeCheck(List(), test)
+  }
+
+  @Test (expected=classOf[TypeError])
+  def test_BinOp_var4 {
+    val test = BinOp(BinaryOperator.and, Integer(1), Bool(true))
+
+    TypeInference.typeCheck(List(), test)
+  }
 }
 

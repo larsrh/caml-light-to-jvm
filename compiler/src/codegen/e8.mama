@@ -1,9 +1,0 @@
-loadc 97
-loadc 97
-eq
-jumpz _124
-loadc 42
-jump _125
-_124:
-loadc 0
-_125:

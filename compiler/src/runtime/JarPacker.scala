@@ -47,14 +47,33 @@ object JarPacker {
 		val bytesInput = BytesUtil.readWholeStream(bytecodeStream)
 
 		// don't ask why ClassReader cannot load the class without failing
-		//val cr = new ClassReader("runtime.Machine")
 		val cr = new ClassReader(bytesInput)
 		val cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS +
 														 ClassWriter.COMPUTE_FRAMES)
-		// TODO: this is currently hardcoded and contains only one instruction
+
+		/* begin TODO: this is currently hardcoded */
+		/*
 		val instr = List(LOADC(19), MKBASIC, PUSHLOC(0), GETBASIC, PUSHLOC(1),
 			GETBASIC, MUL, MKBASIC, PUSHLOC(1), GETBASIC, PUSHLOC(1), GETBASIC,
 			ADD, MKBASIC, SLIDE(1), SLIDE(1), GETBASIC)
+		*/
+
+		val l1 = LABEL(1)
+		val l2 = LABEL(2)
+		val instr = List(LOADC(97), LOADC(97), EQ, JUMPZ(l1), LOADC(42),
+			JUMP(l2), SETLABEL(l1), LOADC(0), SETLABEL(l2))
+
+		/*
+		val l118 = LABEL(118)
+		val l119 = LABEL(119)
+		val l120 = LABEL(120)
+		val instr = List(ALLOC(0), LOADC(3), LOADC(2), EQ, JUMPZ(l119), LOADC(1),
+			MKBASIC, SLIDE(0), JUMP(l118), SETLABEL(l119), ALLOC(0), LOADC(2),
+			LOADC(2), EQ, JUMPZ(l120), LOADC(0), MKBASIC, SLIDE(0), JUMP(l118),
+			SETLABEL(l120), SETLABEL(l118), GETBASIC)
+		*/
+
+		/* end of TODO */
 
 		val ca = new BytecodeAdapter(cw, instr)
 		cr.accept(ca, 0)

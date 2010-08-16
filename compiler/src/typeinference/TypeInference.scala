@@ -184,6 +184,37 @@ object TypeInference {
 	val (t3, fresh3, c3) = constraintGen(gamma, e3, fresh2)
 	(t2, fresh3, (t2,t3) :: (TypeBool(),t1) :: c1 ++ c2 ++ c3)
 
+      case expressions.BinOp(op, e1, e2) =>
+	val (t1, fresh1, c1) = constraintGen(gamma, e1, fresh)
+	val (t2, fresh2, c2) = constraintGen(gamma, e2, fresh)
+	if (t1 == t2) {
+	  t1 match {
+	    case _: TypeInt =>
+	      op match {
+		case expressions.BinaryOperator.add |
+		     expressions.BinaryOperator.sub |
+		     expressions.BinaryOperator.mul |
+		     expressions.BinaryOperator.div |
+		     expressions.BinaryOperator.eq |
+		     expressions.BinaryOperator.neq |
+		     expressions.BinaryOperator.geq |
+		     expressions.BinaryOperator.leq |
+		     expressions.BinaryOperator.gr |
+		     expressions.BinaryOperator.le => (t2, fresh2, c1 ++ c2)
+		case _ => throw new TypeError("Error: Binary operator <" + op + "> is not specified for arguments of type Integer.")
+	      }
+	    case _: TypeBool =>
+	      op match {
+		case expressions.BinaryOperator.and |
+		     expressions.BinaryOperator.or => (t2, fresh2, c1 ++ c2)
+		case _ => throw new TypeError("Error: Binary operator <" + op + "> is not specified for arguments of type Bool.")
+	      }
+	    case _ => throw new TypeError("Error: Binary operator only specified for type Integer and Bool.")
+	  }
+	} else {
+	  throw new TypeError("Error: Binary operator expects that both arguments are of the same type.")
+	}
+
       case expressions.Lambda(body,patterns.Id(id)) =>
 	println("1")
 	val gamma1 = update(gamma,id,(List(),TypeVariable(fresh)))

@@ -1,16 +1,13 @@
 
 package codegen.mama
 
-package mamaInstructions {
-	import parser.ast._
-	import parser.ast.expressions._
-	import scala.collection.immutable.HashMap
-	import scala.collection.immutable.ListSet
+import parser.ast._
+import parser.ast.expressions._
+import mamaInstructions._
+import scala.collection.immutable.HashMap
+import scala.collection.mutable.LinkedHashSet
 
-	object VarKind extends Enumeration {
-		type VarKind = Value
-		val Global, Local = Value
-	}
+package mamaInstructions {
 
 	/******************************************************************************/
 	/*														INSTRUCTION SET																	*/
@@ -22,7 +19,9 @@ package mamaInstructions {
 				case _ => "\n"
 			})
 	}
-	final case class LABEL(nr:Int) extends Instruction("_" + nr.toString)
+	final case class LABEL(nr:Int) extends Instruction("_" + nr.toString) with Ordered[LABEL] {
+		override def compare(that: LABEL) = nr compare that.nr
+	}
 	final case class SETLABEL(label:LABEL) extends Instruction(label + ":")
 
 	case object ADD extends Instruction("add") 
@@ -75,271 +74,335 @@ package mamaInstructions {
 	case object UPDATE extends Instruction("update")
 	case object WRAP extends Instruction("wrap")
 	case object XOR extends Instruction("xor")
+}
+
+object Translator {
 	
-	object Translator {
-		var counter = 0 // kind of ugly, because not functional
+	object VarKind extends Enumeration {
+		type VarKind = Value
+		val Global, Local = Value
+	}
+	
+	var counter = 1 // kind of ugly, because not functional
 		
-		val CBN = true // call-by-name / call-by-value switch
-		val cbfun = if(CBN) codec _ else codev _ 
+	val CBN = true // call-by-name / call-by-value switch
+	val cbfun = if(CBN) codec _ else codev _ 
 		
-		/******************************************************************************/
-		/*																	CODEGEN																		*/
-		/******************************************************************************/
-		// on-stack computations for mama
-		def codeb(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
-		:List[Instruction] = expr match {
-			case Integer(x) => List(LOADC(x))
-			case Bool(x) => List(LOADC(if(x) 1 else 0))
-			case Character(x) => List(LOADC(char2int(x)))
-			case Id(x) => getvar(x, rho, sd) :+ GETBASIC
-			case UnOp(op,e) => 
-				codeb(e,rho,sd) :+ instrOfOp(op)
-			case BinOp(op,e1,e2) => 
-				codeb(e1,rho,sd) ++ codeb(e2,rho,sd+1) :+ instrOfOp(op)
-			case IfThenElse(c,e1,e2) => {
-					val A = newLabel()
-					val B = newLabel()
-					(codeb(c, rho, sd) ++ List(JUMPZ(A)) 
-					 ++ codeb(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A))
-					 ++ codeb(e2, rho, sd) :+ SETLABEL(B))
+	/******************************************************************************/
+	/*																	CODEGEN																		*/
+	/******************************************************************************/
+	// on-stack computations for mama
+	def codeb(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
+	:List[Instruction] = expr match {
+		case Integer(x) => List(LOADC(x))
+		case Bool(x) => List(LOADC(if(x) 1 else 0))
+		case Character(x) => List(LOADC(char2int(x)))
+		case Id(x) => getvar(x, rho, sd) :+ GETBASIC
+		case UnOp(op,e) => 
+			codeb(e,rho,sd) :+ instrOfOp(op)
+		case BinOp(op,e1,e2) => 
+			codeb(e1,rho,sd) ++ codeb(e2,rho,sd+1) :+ instrOfOp(op)
+		case IfThenElse(c,e1,e2) => {
+				val A = newLabel()
+				val B = newLabel()
+				(codeb(c, rho, sd) ++ List(JUMPZ(A)) 
+				 ++ codeb(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A))
+				 ++ codeb(e2, rho, sd) :+ SETLABEL(B))
+			}
+		case _ => codev(expr, rho, sd) :+ GETBASIC
+	}
+			
+	def codec(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
+	:List[Instruction] = {
+		val zs = (free(expr,LinkedHashSet.empty)).toList
+		val globs = (0 to zs.size-1).toList
+			
+		val rhoNew = (globs foldLeft rho)(updateGlob(zs,_,_))
+			
+		val A = newLabel()
+		val B = newLabel()
+			
+		((globs foldLeft (List.empty:List[Instruction]))((l:List[Instruction],i:Int) => 
+				l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
+		List(MKVEC(globs.length),MKCLOS(A),JUMP(B),SETLABEL(A)) ++ codev(expr,rhoNew,0) ++ 
+		List(UPDATE,SETLABEL(B))
+	}
+			
+	def codev(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
+	:List[Instruction] = expr match {
+		case Integer(x) => List(LOADC(x),MKBASIC)
+		case Bool(x) => List(LOADC(if(x) 1 else 0),MKBASIC)
+		case Character(x) => List(LOADC(char2int(x)),MKBASIC)
+		case Id(x) => getvar(x, rho, sd) ++
+			(if(CBN) { val A = newLabel(); List(EVAL(A), SETLABEL(A))} else List.empty)
+		case UnOp(op,e) => 
+			codeb(e,rho,sd) ++ List(instrOfOp(op),MKBASIC)
+		case BinOp(op,e1,e2) => 
+			codeb(e1,rho,sd) ++ codeb(e2,rho,sd+1) ++ List(instrOfOp(op),MKBASIC)
+		case IfThenElse(c,e1,e2) => {
+				val A = newLabel()
+				val B = newLabel()
+				codeb(c, rho, sd) ++ List(JUMPZ(A)) ++ 
+				codev(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A)) ++ 
+				codev(e2, rho, sd) :+ SETLABEL(B)
+			}
+		case Let(x,definition,body) => x match {
+				case patterns.Id(x) => cbfun(definition, rho, sd) ++ 
+					codev(body, rho + (x -> (VarKind.Local,sd+1)), sd+1) :+ SLIDE(1)
+				case _ => codev(Match(definition,(x,body)), rho, sd)
+			}
+		case LetRec(body,patDef@_*) => {
+				val n = patDef.length
+				val list = (0 to n-1).toList
+				def varI(i:Int):String = patDef(i) _1 match { 
+					case patterns.Id(x) => x
 				}
-			case _ => codev(expr, rho, sd) ++ 
-				(if(CBN) { val A = newLabel(); List(EVAL(A), SETLABEL(A))} else List.empty) :+ GETBASIC
-		}
-			
-		def codec(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
-		:List[Instruction] = {
-			val zs = (free(expr,ListSet.empty)).toList
-			val globs = (0 to zs.size-1).toList
-			
-			val rhoNew = (globs foldLeft rho)(updateGlob(zs,_,_))
-			
-			val A = newLabel()
-			val B = newLabel()
-			
-			((globs foldLeft (List.empty:List[Instruction]))((l:List[Instruction],i:Int) => 
-					l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
-			List(MKVEC(globs.length),MKCLOS(A),JUMP(B),SETLABEL(A)) ++ codev(expr,rhoNew,0) ++ 
-			List(UPDATE,SETLABEL(B))
-		}
-			
-		def codev(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
-		:List[Instruction] = expr match {
-			case Integer(x) => List(LOADC(x),MKBASIC)
-			case Bool(x) => List(LOADC(if(x) 1 else 0),MKBASIC)
-			case Character(x) => List(LOADC(char2int(x)),MKBASIC)
-			case Id(x) => getvar(x, rho, sd)
-			case UnOp(op,e) => 
-				codeb(e,rho,sd) ++ List(instrOfOp(op),MKBASIC)
-			case BinOp(op,e1,e2) => 
-				codeb(e1,rho,sd) ++ codeb(e2,rho,sd+1) ++ List(instrOfOp(op),MKBASIC)
-			case IfThenElse(c,e1,e2) => {
-					val A = newLabel()
-					val B = newLabel()
-					codeb(c, rho, sd) ++ List(JUMPZ(A)) ++ 
-					codev(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A)) ++ 
-					codev(e2, rho, sd) :+ SETLABEL(B)
-				}
-			case Let(x,definition,body) => x match {
-					case patterns.Id(x) => cbfun(definition, rho, sd) ++ 
-						codev(body, rho + (x -> (VarKind.Local,sd+1)), sd+1) :+ SLIDE(1)
-					case _ => throw new Exception("TODO")
-				}
-			case LetRec(body,patDef@_*) => {
-					val n = patDef.length
-					val list = (0 to n-1).toList
-					def varI(i:Int):String = patDef(i) _1 match { 
-						case patterns.Id(x) => x
-						case _ => throw new Exception("TODO")
-					}
-					def update(r:HashMap[String,(VarKind.Value,Int)],i:Int)
-					:HashMap[String,(VarKind.Value,Int)] = r + (varI(i) -> (VarKind.Local,sd+i))
-					val rhoNew = (list foldLeft rho)(update _)
+				def update(r:HashMap[String,(VarKind.Value,Int)],i:Int)
+				:HashMap[String,(VarKind.Value,Int)] = r + (varI(i) -> (VarKind.Local,sd+i+1))
+				val rhoNew = (list foldLeft rho)(update _)
 					
-					ALLOC(n) +:
-					(list.flatMap((i:Int)=>cbfun(patDef(i) _2, rhoNew, sd+n) :+ REWRITE(n-i+1)) ++
-					 codev(body,rhoNew,sd+n) :+ SLIDE(n))
-				}
-			case Lambda(body,args@_*) => {
-					val zs = (free(expr,ListSet.empty)).toList
-					val locs = (0 to args.length-1).toList
-					val globs = (0 to zs.size-1).toList
+				ALLOC(n) +:
+				(list.flatMap((i:Int)=>cbfun(patDef(i) _2, rhoNew, sd+n) :+ REWRITE(n-i)) ++
+				 codev(body,rhoNew,sd+n) :+ SLIDE(n))
+			}
+		case Lambda(body,args@_*) => {
+				val zs = (free(expr,LinkedHashSet.empty)).toList
+				val locs = (0 to args.length-1).toList
+				val globs = (0 to zs.size-1).toList
 					
-					val rhoNew = 
-						(globs foldLeft ((locs foldLeft rho)(updateLoc(args.toList,_,_))))(updateGlob(zs,_,_))	
+				val rhoNew = 
+					(globs foldLeft ((locs foldLeft rho)(updateLoc(args.toList,_,_))))(updateGlob(zs,_,_))	
 						
-					val A = newLabel()
-					val B = newLabel()
+				val A = newLabel()
+				val B = newLabel()
 					
-					((globs foldLeft (List.empty:List[Instruction]))((l:List[Instruction],i:Int) => 
-							l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
-					List(MKVEC(globs.length),MKFUNVAL(A),JUMP(B),SETLABEL(A),TARG(locs.length,A)) ++ 
-					codev(body,rhoNew,0) ++ List(RETURN(locs.length), SETLABEL(B))
-				}
-			case App(fun,args@_*) => {
-					val A = newLabel()
-					val m = args.length
-					val is = (0 to m - 1).toList
+				((globs foldLeft (List.empty:List[Instruction]))((l:List[Instruction],i:Int) => 
+						l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
+				List(MKVEC(globs.length),MKFUNVAL(A),JUMP(B),SETLABEL(A),TARG(locs.length,A)) ++ 
+				codev(body,rhoNew,0) ++ List(RETURN(locs.length), SETLABEL(B))
+			}
+		case App(fun,args@_*) => {
+				val A = newLabel()
+				val m = args.length
+				val is = (0 to m - 1).toList
 					
-					(is foldLeft (List(MARK(A)):List[Instruction]))((l:List[Instruction],i:Int) => 
-						l ++ cbfun(args(m-1-i),rho,sd+3+i)) ++ codev(fun,rho,sd+3+m) ++ List(APPLY,SETLABEL(A))
-				}
-			case Tuple(elems@_*) => {
-					val ks = (0 to elems.length-1).toList
+				(is foldLeft (List(MARK(A)):List[Instruction]))((l:List[Instruction],i:Int) => 
+					l ++ cbfun(args(m-1-i),rho,sd+3+i)) ++ codev(fun,rho,sd+3+m) ++ List(APPLY,SETLABEL(A))
+			}
+		case Tuple(elems@_*) => {
+				val ks = (0 to elems.length-1).toList
 					
-					(ks foldLeft (List.empty:List[Instruction]))((l:List[Instruction],k:Int) => 
-						l ++ codec(elems(k),rho,sd+k)) :+ MKVEC(ks.length)
-				}
-			case TupleElem(t,i) => codev(t,rho,sd) :+ GET(i)
-			case Nil => List(NIL)
-			case Cons(head,tail) => cbfun(head,rho,sd) ++ cbfun(tail,rho,sd+1) :+ CONS
-				// FIXME For now ignore e1 - this will be changed when side effects are allowed
-			case Sequence(e1,e2) => codev(e2,rho,sd) 
-			case Record(idVals@_*) => {
-					val ks = (0 to idVals.length-1).toList
+				(ks foldLeft (List.empty:List[Instruction]))((l:List[Instruction],k:Int) => 
+					l ++ codec(elems(k),rho,sd+k)) :+ MKVEC(ks.length)
+			}
+		case TupleElem(t,i) => codev(t,rho,sd) :+ GET(i)
+		case Nil => List(NIL)
+		case Cons(head,tail) => cbfun(head,rho,sd) ++ cbfun(tail,rho,sd+1) :+ CONS
+			// FIXME For now ignore e1 - this will be changed when side effects are allowed
+		case Sequence(e1,e2) => codev(e2,rho,sd) 
+		case Record(idVals@_*) => {
+				val ks = (0 to idVals.length-1).toList
 					
-					(ks foldLeft (List.empty:List[Instruction]))((l:List[Instruction],k:Int) => 
-						l ++ codec(idVals(k) _2,rho,sd+k)) :+ MKVEC(ks.length)
-				}
-				// FIXME get position from type checking
-			case Field(rec,name) => codev(rec,rho,sd) :+ GET(0/*getPos(rec,name)*/) 
-			case Match(e0,patDefs@_*) => patDefs match {
-					case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
-						=> {
-							val A = newLabel()
-							val B = newLabel()
+				(ks foldLeft (List.empty:List[Instruction]))((l:List[Instruction],k:Int) => 
+					l ++ codec(idVals(k) _2,rho,sd+k)) :+ MKVEC(ks.length)
+			}
+			// FIXME get position from type checking
+		case Field(rec,name) => codev(rec,rho,sd) :+ GET(0/*getPos(rec,name)*/) 
+		case Match(e0,patDefs@_*) => patDefs match {
+				case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
+					=> {
+						val A = newLabel()
+						val B = newLabel()
 					 
-							(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
-							 codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++ 
-							 List(SLIDE(2),SETLABEL(B)))
-						}			
-					case _ => {
-							val DONE = newLabel()
+						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
+						 codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++ 
+						 List(SLIDE(2),SETLABEL(B)))
+					}			
+				case _ => {
+						val DONE = newLabel()
+						val E = "42" + (counter + 1)//not a valid identifier -> no conflicts
+						counter = counter + 1
+						val rhoNew = rho + {E -> (VarKind.Local,sd+1)} // store value of e0
 							
-							(patDefs.toList flatMap { case (p,e) => {
-											val NEXT = newLabel()
-											val (matchingCode,n) = matchCG(e0,p,e,NEXT,DONE,rho,sd)
+						codev(e0,rhoNew,sd) ++ (patDefs.toList flatMap { case (p,e) => {
+										val NEXT = newLabel()
+										val (matchingCode,n) = matchCG(e0,p,e,NEXT,DONE,E,rhoNew,sd+1)
 											
-											matchingCode ++ List(SETLABEL(NEXT),SLIDE(n)) 
-										}
-								}) :+ SETLABEL(DONE)
-						}
-				}
-		}
+										matchingCode ++ List(SETLABEL(NEXT)) ++ pop(n) 
+									}
+							}) :+ SETLABEL(DONE)
+					}
+			}
+	}
 		
-		/******************************************************************************/
-		/*																	MACROS																		*/
-		/******************************************************************************/
-		def matchCG(e:Expression, p:patterns.Pattern, res:Expression, NEXT:LABEL, DONE:LABEL,
-								rho:HashMap[String,(VarKind.Value,Int)],sd:Int):(List[Instruction],Int) = {
+	/******************************************************************************/
+	/*																	MACROS																		*/
+	/******************************************************************************/
+	def matchCG(e0:Expression, p:patterns.Pattern, res:Expression, NEXT:LABEL, DONE:LABEL, E:String,
+							rho:HashMap[String,(VarKind.Value,Int)],sd:Int):(List[Instruction],Int) = {
 			
-			val vars = bound(p)
-			val n = vars.size			
-			val E = "42" //not a valid identifier -> no conflicts
-			val rhoNew = (((1 to n).toList foldLeft rho)
-										{case (rhoTemp,i) => 
-						rhoTemp + {((Id unapply (vars.toList)(i-1)).get) -> (VarKind.Local,sd +i+1)}}) + 
-			{E -> (VarKind.Local,sd+1)} // store value of e
+		val vars = bound(p)
+		val n = vars.size
+		val rhoNew = ((1 to n).toList foldLeft rho)
+									{case (rhoTemp,i) => 
+					rhoTemp + {((Id unapply (vars.toList)(i-1)).get) -> (VarKind.Local,sd+i)}}
 			
-			// FIXME save e in a (global?) variable
-			def matching(e:Expression, p:patterns.Pattern, sdAct:Int, i:Int):(List[Instruction],Int,Int) =
-				p match {
-					case patterns.Integer(n) => (codeb(BinOp(BinaryOperator.eq,Integer(n),e),rhoNew,sdAct),sdAct+1,i)
-					case patterns.Character(a) => (codeb(BinOp(BinaryOperator.eq,Character(a),e),rhoNew,sdAct),sdAct+1,i)
-					case patterns.Bool(b) => (codeb(BinOp(BinaryOperator.eq,Bool(b),e),rhoNew,sdAct),sdAct+1,i)
-					case patterns.Underscore => (List(LOADC(1)),sdAct+1,i)
-					case patterns.Id(x) => (codev(e,rhoNew,sdAct) ++ List(REWRITE(i+(sdAct-(sd+n+1))),LOADC(1)),sdAct+1,i-1)
-					case patterns.Tuple(ts@_*) => 
-						((1 to ts.length - 1).toList foldLeft matching(TupleElem(Id(E),0),ts(0),sdAct,i)){
-							case ((l,sd,j),n) => {
-									val (lt,sdNew,jNew) = matching(TupleElem(Id(E),n),ts(n),sd,j)
+		// FIXME save e in a (global?) variable
+		def matching(e:Expression, p:patterns.Pattern, sdAct:Int, i:Int):(List[Instruction],Int,Int) =
+			p match {
+				case patterns.Integer(n) => (codeb(BinOp(BinaryOperator.eq,Integer(n),e),rhoNew,sdAct),sdAct+1,i)
+				case patterns.Character(a) => (codeb(BinOp(BinaryOperator.eq,Character(a),e),rhoNew,sdAct),sdAct+1,i)
+				case patterns.Bool(b) => (codeb(BinOp(BinaryOperator.eq,Bool(b),e),rhoNew,sdAct),sdAct+1,i)
+				case patterns.Underscore => (List(LOADC(1)),sdAct+1,i)
+				case patterns.Id(x) => (codev(e,rhoNew,sdAct) ++ List(REWRITE(i+(sdAct-(sd+n))),LOADC(1)),sdAct+1,i-1)
+				case patterns.Tuple(ts@_*) => 
+					((1 to ts.length - 1).toList foldLeft matching(TupleElem(Id(E),0),ts(0),sdAct,i)){
+						case ((l,sd,j),n) => {
+								val (lt,sdNew,jNew) = matching(TupleElem(Id(E),n),ts(n),sd,j)
 
-									(l ++ lt :+ AND,sdNew-1,jNew)
-								}
-						}
-				}
+								(l ++ lt :+ AND,sdNew-1,jNew)
+							}
+					}
+				case patterns.Record((patterns.Id(x),exp),ts@_*) => 
+					(ts.toList foldLeft matching(Field(Id(E),Id(x)),exp,sdAct,i)){
+						case ((l,sd,j),idExp) => {
+								val (lt,sdNew,jNew) = 
+									matching(Field(Id(E),Id((patterns.Id unapply(idExp _1)).get)),idExp _2,sd,j)
 
-			val (matchingCode,sdNew,_) = matching(e,p,sd+n+1,n)
+								(l ++ lt :+ AND,sdNew-1,jNew)
+							}
+					}
+					// TODO Reconsider this
+				case patterns.Alternative(p1,p2) => {
+						if (!(bound(p1) ++ bound(p2)).isEmpty) 
+							throw new Exception("A pattern with \"|\" must not bind variables.")
+							
+						val (l1,sdAct1,i1) = matching(e,p1,sdAct,i)
+						val (l2,sdAct2,i2) = matching(e,p2,sdAct1,i1)
+							
+						(l1 ++ l2 :+ OR,sdAct2-1,i2)
+					}
+			  // This is UGLY
+				case patterns.Nil => {
+						val x = (counter + 1).toString
+						val y = (counter + 2).toString
+						counter = counter + 2
+						
+						(codeb(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(true)),
+												(patterns.Cons(patterns.Id("42"+x),patterns.Id("42"+y)),Bool(false))),
+									rhoNew,sdAct),sdAct+1,i)
+					}
+				case patterns.Cons(head,tail) => {
+						val x = (counter + 1).toString
+						val y = (counter + 2).toString
+						val z = (counter + 3).toString
+						counter = counter + 3
+						
+						val (l1,sdAct1,i1) = 
+							matching(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(false)),
+														 (patterns.Cons(patterns.Id("42"+x),patterns.Id("42"+z)),Id("42"+x))),
+											 head,sdAct,i)
+						val (l2,sdAct2,i2) = 
+							matching(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(false)),
+														 (patterns.Cons(patterns.Id("42"+z),patterns.Id("42"+y)),Id("42"+y))),
+											 tail,sdAct1,i1)
+						
+							
+						(l1 ++ l2 :+ AND,sdAct2-1,i2)
+					}
+			}
+
+		val (matchingCode,sdNew,_) = matching(e0,p,sd+n,n)
 			
-			(codev(e,rhoNew,sd) ++ List(ALLOC(n)) ++ matchingCode ++ List(JUMPZ(NEXT)) ++
-			 codev(res,rhoNew,sd+n+1) ++ List(SLIDE(n+1),JUMP(DONE)),n+1)
+		(List(ALLOC(n)) ++ matchingCode ++ List(JUMPZ(NEXT)) ++
+		 codev(res,rhoNew,sd+n) ++ List(SLIDE(n+1),JUMP(DONE)),n)
+		
+	}
+	
+	def pop(n:Int):List[Instruction] = (1 to n).toList map { _ => POP }
+		
+	def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
+	:List[Instruction] = rho.get(x) match {
+			case Some((VarKind.Global,i)) => List(PUSHGLOB(i))
+			case Some((VarKind.Local,i)) => {/*Console println (x,rho,sd,sd-i);*/ List(PUSHLOC(sd-i)) }
+			case _ => throw new Exception("Undefined variable " + x + " in codegen-phase")
 		}
 		
-		def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
-		:List[Instruction] = (rho.get(x) match {
-				case Some((VarKind.Global,i)) => PUSHGLOB(i)
-				case Some((VarKind.Local,i)) => PUSHLOC(sd-i)
-				case _ => throw new Exception("Undefined variable " + x + " in codegen-phase")
-			}) +: (if(CBN) { val A = newLabel(); List(EVAL(A), SETLABEL(A))} else List.empty)
+	// Finds the instruction corresponding to the given operator
+	def instrOfOp(op:Operator#Value):Instruction = op match {
+		case BinaryOperator.add => ADD
+		case BinaryOperator.sub => SUB
+		case BinaryOperator.mul => MUL
+		case BinaryOperator.div => DIV
+		case BinaryOperator.eq => EQ
+		case BinaryOperator.neq => NEQ
+		case BinaryOperator.geq => GEQ
+		case BinaryOperator.leq => LEQ
+		case BinaryOperator.gr => GR
+		case BinaryOperator.le => LE
+		case BinaryOperator.and => AND
+		case BinaryOperator.or => OR
+		case UnaryOperator.neg => NEG
+		case UnaryOperator.not => NOT
+	}
 		
-		// Finds the instruction corresponding to the given operator
-		def instrOfOp(op:Operator#Value):Instruction = op match {
-			case BinaryOperator.add => ADD
-			case BinaryOperator.sub => SUB
-			case BinaryOperator.mul => MUL
-			case BinaryOperator.div => DIV
-			case BinaryOperator.eq => EQ
-			case BinaryOperator.neq => NEQ
-			case BinaryOperator.geq => GEQ
-			case BinaryOperator.leq => LEQ
-			case BinaryOperator.gr => GR
-			case BinaryOperator.le => LE
-			case UnaryOperator.neg => NEG
-			case UnaryOperator.not => NOT
-		}
+	def newLabel():LABEL = {
+		counter = counter + 1 
+		LABEL(counter)
+	}
 		
-		def newLabel():LABEL = {
-			counter = counter + 1 
-			LABEL(counter)
-		}
-		
-		def varTest(v:Any): String = v match { 
-			case patterns.Id(x) => x
-			case Id(x) => x
-			case _ => throw new Exception("TODO" + v.toString)
-		}
-		def updateLoc(l:List[Any],r:HashMap[String,(VarKind.Value,Int)],i:Int)
-		:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Local,-i))
-		def updateGlob(l:List[Any],r:HashMap[String,(VarKind.Value,Int)],i:Int)
-		:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Global,i))
+	def varTest(v:Any): String = v match { 
+		case patterns.Id(x) => x
+		case Id(x) => x
+		case _ => throw new Exception("TODO" + v.toString)
+	}
+	def updateLoc(l:List[Any],r:HashMap[String,(VarKind.Value,Int)],i:Int)
+	:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Local,-i))
+	def updateGlob(l:List[Any],r:HashMap[String,(VarKind.Value,Int)],i:Int)
+	:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Global,i))
 			
-		/******************************************************************************/
-		/*														FREE & BOUND VARIABLES													*/
-		/******************************************************************************/
-		def free(e:Expression,vs:ListSet[Id]):ListSet[Id] = e match {
-			case x@Id(_) => if (vs contains x) ListSet.empty else ListSet(x)
-			case UnOp(_,e) => free(e,vs)
-			case BinOp(_,e1,e2) => free(e1,vs) ++ free(e2,vs)
-			case IfThenElse(c,e1,e2) => free(c,vs) ++ free(e1,vs) ++ free(e2,vs)
-			case App(f,args@_*) => 
-				args.toList.foldLeft(free(f,vs))((s:ListSet[Id],arg:Expression) => s ++ free(arg,vs))
-			case Lambda(body,args@_*) => free(body, vs ++ (args.toSet flatMap bound))
-			case Let(pat,_,expr) => free(expr, vs ++ bound(pat))
-			case LetRec(body,patDef@_*) => {
-					val (pats,defs) = (ListSet.empty ++ patDef).unzip
-					val vsNew = vs ++ (pats flatMap bound)
-					(defs + body) flatMap ((e:Expression) => free(e,vsNew))
-				}
-			case _ => ListSet.empty
-		}
+	/******************************************************************************/
+	/*														FREE & BOUND VARIABLES													*/
+	/******************************************************************************/
+	def free(e:Expression,vs:LinkedHashSet[Id]):LinkedHashSet[Id] = e match {
+		case x@Id(_) => if (vs contains x) LinkedHashSet.empty else LinkedHashSet(x)
+		case UnOp(_,e) => free(e,vs)
+		case BinOp(_,e1,e2) => free(e1,vs) ++ free(e2,vs)
+		case IfThenElse(c,e1,e2) => free(c,vs) ++ free(e1,vs) ++ free(e2,vs)
+		case App(f,args@_*) => 
+			args.toList.foldLeft(free(f,vs))((s:LinkedHashSet[Id],arg:Expression) => s ++ free(arg,vs))
+		case Lambda(body,args@_*) => free(body, vs ++ ((LinkedHashSet.empty ++ args) flatMap bound))
+		case Let(pat,_,expr) => free(expr, vs ++ bound(pat))
+		case LetRec(body,patDef@_*) => {
+				val (pats,defs) = (LinkedHashSet.empty ++ patDef).unzip
+				val vsNew = vs ++ (pats flatMap bound)
+				(defs + body) flatMap ((e:Expression) => free(e,vsNew))
+			}
+		case Match(exp,patCase@_*) => {
+				val (pats,cases) = (LinkedHashSet.empty ++ patCase).unzip
+				val vsNew = vs ++ (pats flatMap bound)
+				(cases + exp) flatMap ((e:Expression) => free(e,vsNew))
+			}
+		case Tuple(es@_*) => LinkedHashSet.empty ++ es.toList flatMap (free(_:Expression,vs))
+		case TupleElem(t,_) => free(t,vs)
+		case Record(idExp@_*) => LinkedHashSet.empty ++ idExp.toList flatMap { case (_,exp) => free(exp,vs)}
+		case Field(rec,_) => free(rec,vs)
+		case Cons(h,t) => free(h,vs) ++ free(t,vs)
+		case _ => LinkedHashSet.empty
+	}
 		
-		def bound(pat:patterns.Pattern):ListSet[Id] = pat match {
-			case patterns.Id(x) => ListSet(Id(x))
-			case patterns.Record(pats@_*) => ListSet.empty ++
-				pats flatMap ((x:Tuple2[patterns.Id,patterns.Pattern]) => bound(x _1) ++ bound(x _2))
-			case patterns.Cons(x,xs) => bound(x) ++ bound(xs)
-			case patterns.Alternative(a,b) => bound(a) ++ bound(b)
-			case patterns.Tuple(ts@_*) => ListSet.empty ++ ts flatMap bound
-			case _ => ListSet.empty
-		}
+	def bound(pat:patterns.Pattern):LinkedHashSet[Id] = pat match {
+		case patterns.Id(x) => LinkedHashSet(Id(x))
+		case patterns.Record(pats@_*) => LinkedHashSet.empty ++
+			pats flatMap ((x:Tuple2[patterns.Id,patterns.Pattern]) => bound(x _1) ++ bound(x _2))
+		case patterns.Cons(x,xs) => bound(x) ++ bound(xs)
+		case patterns.Alternative(a,b) => bound(a) ++ bound(b)
+		case patterns.Tuple(ts@_*) => LinkedHashSet.empty ++ ts flatMap bound
+		case _ => LinkedHashSet.empty
 	}
 }
 
 object CodeGen {
-	import parser.ast._
-	import parser.ast.expressions._	
-	import codegen.mama.mamaInstructions._	
-	import scala.collection.immutable.HashMap
 		
 	def main(args:Array[String]):Unit = {
 		// let a = 19 in let b = a * a in a + b

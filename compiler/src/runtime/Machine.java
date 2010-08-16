@@ -332,6 +332,28 @@ public class Machine {
 		}
 	}
 
+	public void eq() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		if (r1.v == r2.v) {
+			// push true
+			stack.push(new Raw(1));
+		} else {
+			stack.push(new Raw(0));
+		}
+		sp--;
+	}
+
+	/*
+	 * additional deineMama instruction, needed to get a number from the machine
+	 * stack into the JVM stack
+	 */
+	public int popraw() {
+		Raw r = (Raw)stack.pop();
+		sp--;
+		return r.v;
+	}
+
 	public void _pstack() {
 		for (MachineData item: stack) {
 			System.out.println(item);
@@ -366,7 +388,7 @@ public class Machine {
 
 	/* version of a main that uses switch to simulate goto */
 	public static void main_switch(String[] args) {
-		final int END = Integer.MAX_VALUE;
+		Machine m = new Machine();
 
 		int _goto = 0;
 		boolean terminate = false;
@@ -375,22 +397,26 @@ public class Machine {
 			switch(_goto)
 			{
 				case 0:
+					System.out.println("Init");
 				case 1:
-					System.out.println("Foo");
+					m.loadc(97);
+					m.loadc(97);
+					m.eq();
+					if (m.popraw() == 0) {
+						_goto = 2;
+						continue;
+					}
+					m.loadc(97);
 					_goto = 3;
 					continue;
 				case 2:
-					System.out.println("Baz");
-					_goto = END;
-					continue;
+					m.loadc(0);
 				case 3:
-					System.out.println("Bar");
-					_goto = 2;
-					continue;
-				case END:
 					terminate = true;
 			}
 		}
+
+		m._pstack();
 	}
 }
 
