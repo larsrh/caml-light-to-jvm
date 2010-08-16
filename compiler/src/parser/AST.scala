@@ -90,7 +90,7 @@ package types {
       if (this == s._2) { s._1 } else { this }
   }
 
-  abstract case class TypeConstructor(name: String, params: TypeExpression*) extends TypeExpression {
+  abstract class TypeConstructor(val name: String, val params: TypeExpression*) extends TypeExpression {
 //    override def toString = name match {
 //      case "Function" => params(0) + " -> " + params(1)
 //      case "List" => "[" + params(0) + "]"
@@ -98,6 +98,12 @@ package types {
 //      case n => n
 //    }
   }
+
+	object TypeConstructor {
+
+		def unapplySeq(t: TypeConstructor): Option[(String, Seq[TypeExpression])] = Some((t.name, t.params))
+		
+	}
 
   case class TypeInt() extends TypeConstructor("Integer") {
     def subst_(t: (TypeExpression,TypeExpression)) = TypeInt()

@@ -126,7 +126,7 @@ object TypeInference {
 		    constraints: List[(TypeExpression,TypeExpression)]): TypeScheme = {
     val subst = unify(constraints)
     val typeExprNew = typeExpr.subst(subst)
-    val alphas = freeVars(typeExprNew) -- freeVars(gamma)
+    val alphas = freeVars(typeExprNew) filterNot (freeVars(gamma) contains)
     (alphas.distinct,typeExprNew)
   }
 
