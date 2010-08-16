@@ -383,5 +383,19 @@ class TypeInferenceTest {
 			    TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
 
+  @Test
+  def test_Oddeven = {
+    val test = LetRec(BinOp(BinaryOperator.and, App(Id("even"), Integer(4)), UnOp(UnaryOperator.not, App(Id("odd"), Integer(0)))),
+		      (patterns.Id("odd"), Lambda(Match(Id("x"),
+							(patterns.Integer(0), Bool(false)),
+							(patterns.Underscore, App(Id("even"), BinOp(BinaryOperator.sub, Id("x"), Integer(1))))),
+						  patterns.Id("x"))),
+		      (patterns.Id("even"), Lambda(Match(Id("y"),
+							  (patterns.Integer(0), Bool(true)),
+							  (patterns.Underscore, App(Id("odd"), BinOp(BinaryOperator.sub, Id("y"), Integer(1))))),
+						    patterns.Id("y"))))
+
+    assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
 }
 
