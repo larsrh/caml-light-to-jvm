@@ -439,5 +439,25 @@ class TypeInferenceTest {
 
     assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
+
+  @Test
+  def test_Record0 = {
+    // let {x = 0} = {x = 1} in 1
+    val test = Let(patterns.Record((patterns.Id("x"), patterns.Integer(0))),
+		   expressions.Record((Id("x"), Integer(1))),
+		   Integer(1))
+
+    assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
+
+  @Test (expected=classOf[TypeError])
+  def test_Record1 {
+    // let {x = 0} = {x = true} in 1
+    val test = Let(patterns.Record((patterns.Id("x"), patterns.Bool(true))),
+		   expressions.Record((Id("x"), Integer(1))),
+		   Integer(1))
+
+    TypeInference.typeCheck(TypeInference.emptyEnv, test)
+  }
 }
 
