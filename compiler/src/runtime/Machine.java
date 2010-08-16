@@ -30,6 +30,7 @@
  *    to
  *  - jump* is not implemented, because jumps are done by setting the _goto
  *    marker and calling continue in the outer code
+ *  - targ and eval return -1 if they are meant to do nothing
  */
 
 package runtime;
@@ -57,6 +58,15 @@ public class Machine {
 
 		private Raw(int constant) {
 			v = constant;
+		}
+		
+		private Raw(boolean constant) {
+			v = constant ? 1 : 0;
+		}
+		
+		/* maybe raise some exception if v != 0 and v != 1*/
+		private boolean asBool() {
+			 return v != 0;
 		}
 
 		public String toString() {
@@ -109,6 +119,28 @@ public class Machine {
 			return "C(" + cp + ", TODO)";
 		}
 	}
+	
+	private class List extends MachineData {
+		private boolean empty;
+		private MachineData head;
+		private MachineData tail;
+		
+		private List(boolean empty) {
+				this.empty = empty;
+		}
+		
+		private List(boolean empty, MachineData head, MachineData tail) {
+				this.empty = empty;
+				if(!empty) {
+						this.head = head;
+						this.tail = tail;
+				}
+		}
+			
+		public String toString() {
+			return "L(" + (empty ? "Nil" : "Cons") + "," + head + "," + tail+ ")";
+		}
+	}
 
 	private final Stack<MachineData> stack;
 
@@ -118,86 +150,28 @@ public class Machine {
 		this.fp = -1;
 		this.sp = -1;
 	}
-
-	public void loadc(int constant) {
-		this.stack.push(new Raw(constant));
-		this.sp++;
-	}
-
-	// thows a ClassCastException when the code is wrong, which is more
-	// or less what we want. Me wants pattern match in this Java!
-	public void getbasic() {
-		Base b = (Base)stack.pop();
-		stack.push(new Raw(b.v));
-	}
-
-	public void mkbasic() {
-		Raw r = (Raw)stack.pop();
-		stack.push(new Base(r.v));
-	}
-
-	public void pushloc(int depth) {
-		stack.push(stack.get(sp - depth));
-		sp++;
-	}
-
-	public void pushglob(int j) {
-		stack.push(gp.v[j]);
-		sp++;
-	}
-
+	
 	public void add() {
 		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
 		stack.push(new Raw(r1.v + r2.v));
 		sp--;
 	}
-
-	public void mul() {
+	
+	public void alloc(int n) {
+		for (int i = 0; i < n; i++) {
+			stack.push(new Closure(-1, null));
+			sp++;
+		}
+	}
+	
+	public void and() {
 		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
-		stack.push(new Raw(r1.v * r2.v));
+		stack.push(new Raw(r1.asBool() && r2.asBool()));
 		sp--;
 	}
-
-	/* delete k elements under the topmost element */
-	public void slide(int k) {
-		MachineData save = stack.pop();
-		for (int i = 0; i < k; i++) {
-			stack.pop();
-			sp--;
-		}
-		stack.push(save);
-	}
-
-	public void mkvec(int g) {
-		MachineData[] v = new MachineData[g];
-		for (int i = 0; i < g; i++) {
-			v[i] = stack.pop();
-			sp--;
-		}
-		Vector V = new Vector(v);
-		stack.push(V);
-		sp++;
-	}
-
-	public void mkfunval(int label) {
-		MachineData[] av = new MachineData[0];
-		Vector ap = new Vector(av);
-		Vector gp = (Vector)stack.pop();
-
-		Function fun = new Function(label, ap, gp);
-		stack.push(fun);
-	}
-
-	public void mark(int label) {
-		stack.push(gp);
-		stack.push(new Raw(fp));
-		stack.push(new Raw(label));
-		sp += 3;
-		fp = sp;
-	}
-
+	
 	/* apply returns the label to which to jump */
 	public int apply() {
 		Function h = (Function)stack.pop();
@@ -211,72 +185,45 @@ public class Machine {
 		gp = h.gp;
 		return h.cp;
 	}
-
-	/* contrary to what MaMa did, targ takes a label to jump to, in case
-	 * that the function had to few arguments.
-	 */
-	public int targ(int k, int label) {
-		if (sp - fp < k) {
-			mkvec0();
-			wrap(label);
-			return popenv();
-		}
-		else {
-			// TODO: find a better 'invalid' value
-			return -1;
-		}
+	
+	public int apply0() {
+		Closure top = (Closure)stack.pop();
+		gp = top.gp;
+		sp--;
+		return top.cp;
 	}
-
-	/* pops elements until FP and creates a Vector */
-	public void mkvec0() {
-		int n = sp - fp;
-		MachineData[] a = new MachineData[n];
-		sp = fp + 1;
-		// put them into the array in *reverse* order
-		for (int i = n - 1; i >= 0; i--) {
-			a[i] = stack.pop();
-		}
-		stack.push(new Vector(a));
+	
+	public void cons() {
+			MachineData tail = stack.pop();
+			MachineData head = stack.pop();
+			stack.push(new List(false,head,tail));
+			sp--;
+	}		
+	
+	public void copyglob() {
+		stack.push(gp);
+		sp++;
 	}
-
-	public void wrap(int label) {
-		stack.push(new Function(label, (Vector)stack.pop(), gp));
-	}
-
-	/* returns the label to which to jump */
-	public int popenv() {
-		gp = (Vector)stack.get(fp - 2);
-		int label = ((Base)stack.get(fp)).v;
-		stack.set(fp - 2, stack.pop());
-		stack.pop();
-		sp -= 2;
-		fp--;
-		return label;
-	}
-
-	/* yeah, return is taken and Java does not support `return` syntax */
-	public int return_(int k) {
-		if (sp - fp - 1 <= k) {
-			return popenv();
-		} else {
-			slide(k);
-			return apply();
-		}
-	}
-
-	public void alloc(int n) {
-		for (int i = 0; i < n; i++) {
-			stack.push(new Closure(-1, null));
-			sp++;
-		}
-	}
-
-	public void rewrite(int j) {
-		MachineData value = stack.pop();
-		stack.set(sp - j, value);
+	
+	public void div() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		stack.push(new Raw(r1.v / r2.v));
 		sp--;
 	}
-
+	
+	public void eq() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		if (r1.v == r2.v) {
+			// push true
+			stack.push(new Raw(1));
+		} else {
+			stack.push(new Raw(0));
+		}
+		sp--;
+	}	
+	
 	/* eval needs to supply a label that is right *after* the call of eval */
 	public int eval(int label) {
 		try {
@@ -289,38 +236,31 @@ public class Machine {
 			return -1;
 		}
 	}
-
-	public void mark0(int label) {
-		stack.push(gp);
-		stack.push(new Base(fp));
-		stack.push(new Base(label));
-		sp += 3;
-		fp = sp;
-	}
-
-	public int apply0() {
-		Closure top = (Closure)stack.pop();
-		gp = top.gp;
+	
+	public void geq() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		if (r1.v >= r2.v) {
+			// push true
+			stack.push(new Raw(1));
+		} else {
+			stack.push(new Raw(0));
+		}
 		sp--;
-		return top.cp;
+	}	
+	
+	public void get(int j) {
+		Vector h = (Vector)stack.pop();
+		stack.push(h.v[j]);
 	}
-
-	public void mkclos(int label) {
-		Vector gp = (Vector)stack.pop();
-		stack.push(new Closure(label, gp));
+	
+	// thows a ClassCastException when the code is wrong, which is more
+	// or less what we want. Me wants pattern match in this Java!
+	public void getbasic() {
+		Base b = (Base)stack.pop();
+		stack.push(new Raw(b.v));
 	}
-
-	public int update() {
-		int ret = popenv();
-		rewrite(1);
-		return ret;
-	}
-
-	public void copyglob() {
-		stack.push(gp);
-		sp++;
-	}
-
+	
 	public void getvec(int k) {
 		Vector h = (Vector)stack.pop();
 		sp--;
@@ -331,11 +271,11 @@ public class Machine {
 			sp++;
 		}
 	}
-
-	public void eq() {
+	
+	public void gr() {
 		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
-		if (r1.v == r2.v) {
+		if (r1.v > r2.v) {
 			// push true
 			stack.push(new Raw(1));
 		} else {
@@ -343,7 +283,155 @@ public class Machine {
 		}
 		sp--;
 	}
+	
+	//TODO halt -> pattern match failure
+	
+	public void le() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		if (r1.v < r2.v) {
+			// push true
+			stack.push(new Raw(1));
+		} else {
+			stack.push(new Raw(0));
+		}
+		sp--;
+	}	
+	
+	public void leq() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		if (r1.v <= r2.v) {
+			// push true
+			stack.push(new Raw(1));
+		} else {
+			stack.push(new Raw(0));
+		}
+		sp--;
+	}	
 
+	public void loadc(int constant) {
+		this.stack.push(new Raw(constant));
+		this.sp++;
+	}
+	
+	public void mark(int label) {
+		stack.push(gp);
+		stack.push(new Raw(fp));
+		stack.push(new Raw(label));
+		sp += 3;
+		fp = sp;
+	}
+	
+	public void mark0(int label) {
+		stack.push(gp);
+		stack.push(new Base(fp));
+		stack.push(new Base(label));
+		sp += 3;
+		fp = sp;
+	}
+
+	public void mkbasic() {
+		Raw r = (Raw)stack.pop();
+		stack.push(new Base(r.v));
+	}
+	
+	public void mkclos(int label) {
+		Vector gp = (Vector)stack.pop();
+		stack.push(new Closure(label, gp));
+	}
+
+	public void mkfunval(int label) {
+		MachineData[] av = new MachineData[0];
+		Vector ap = new Vector(av);
+		Vector gp = (Vector)stack.pop();
+
+		Function fun = new Function(label, ap, gp);
+		stack.push(fun);
+	}
+	
+	public void mkvec(int g) {
+		MachineData[] v = new MachineData[g];
+		for (int i = 0; i < g; i++) {
+			v[i] = stack.pop();
+			sp--;
+		}
+		Vector V = new Vector(v);
+		stack.push(V);
+		sp++;
+	}
+	
+	/* pops elements until FP and creates a Vector */
+	public void mkvec0() {
+		int n = sp - fp;
+		MachineData[] a = new MachineData[n];
+		sp = fp + 1;
+		// put them into the array in *reverse* order
+		for (int i = n - 1; i >= 0; i--) {
+			a[i] = stack.pop();
+		}
+		stack.push(new Vector(a));
+	}
+
+	public void mul() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		stack.push(new Raw(r1.v * r2.v));
+		sp--;
+	}
+	
+	public void neg() {
+		Raw r = (Raw)stack.pop();
+		stack.push(new Raw(-r.v));
+		sp--;
+	}
+	
+	public void neq() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		if (r1.v != r2.v) {
+			// push true
+			stack.push(new Raw(1));
+		} else {
+			stack.push(new Raw(0));
+		}
+		sp--;
+	}	
+	
+	public void nil() {
+			stack.push(new List(true));
+			sp++;
+	}
+	
+	public void not() {
+		Raw r = (Raw)stack.pop();
+		stack.push(new Raw(!r.asBool()));
+		sp--;
+	}
+	
+	public void or() {
+		Raw r1 = (Raw)stack.pop();
+		Raw r2 = (Raw)stack.pop();
+		stack.push(new Raw(r1.asBool() || r2.asBool()));
+		sp--;
+	}
+	
+	public void pop() {
+		stack.pop();
+		sp--;
+	}
+	
+	/* returns the label to which to jump */
+	public int popenv() {
+		gp = (Vector)stack.get(fp - 2);
+		int label = ((Base)stack.get(fp)).v;
+		stack.set(fp - 2, stack.pop());
+		stack.pop();
+		sp = fp - 2;
+		fp = ((Base)stack.get(fp - 1)).v;
+		return label;
+	}
+	
 	/*
 	 * additional deineMama instruction, needed to get a number from the machine
 	 * stack into the JVM stack
@@ -354,6 +442,80 @@ public class Machine {
 		return r.v;
 	}
 
+
+	public void pushglob(int j) {
+		stack.push(gp.v[j]);
+		sp++;
+	}
+	
+	public void pushloc(int depth) {
+		stack.push(stack.get(sp - depth));
+		sp++;
+	}
+	
+	/* yeah, return is taken and Java does not support `return` syntax */
+	public int return_(int k) {
+		if (sp - fp - 1 <= k) {
+			return popenv();
+		} else {
+			slide(k);
+			return apply();
+		}
+	}
+
+	public void rewrite(int j) {
+		MachineData value = stack.pop();
+		stack.set(sp - j, value);
+		sp--;
+	}
+
+	/* delete k elements under the topmost element */
+	public void slide(int k) {
+		MachineData save = stack.pop();
+		for (int i = 0; i < k; i++) {
+			stack.pop();
+			sp--;
+		}
+		stack.push(save);
+	}
+
+	/* contrary to what MaMa did, targ takes a label to jump to, in case
+	 * that the function had to few arguments.
+	 */
+	public int targ(int k, int label) {
+		if (sp - fp < k) {
+			mkvec0();
+			wrap(label);
+			return popenv();/* returns the label to which to jump */
+		}
+		else {
+			return -1;
+		}
+	}
+	
+	public int tlist(int label) {
+			List l = (List)stack.pop();
+			if(l.empty) {
+					sp--;
+					return -1;
+			} else {
+					stack.push(l.head);
+					stack.push(l.tail);
+					sp++;
+					return label;
+			}
+	}
+
+	public int update() {
+		int ret = popenv();
+		rewrite(1);
+		return ret;
+	}
+
+	public void wrap(int label) {
+		stack.push(new Function(label, (Vector)stack.pop(), gp));
+	}
+	
 	public void _pstack() {
 		for (MachineData item: stack) {
 			System.out.println(item);

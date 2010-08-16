@@ -252,8 +252,7 @@ object Translator {
 		val rhoNew = ((1 to n).toList foldLeft rho)
 		{case (rhoTemp,i) => 
 				rhoTemp + {((Id unapply (vars.toList)(i-1)).get) -> (VarKind.Local,sd+i)}}
-			
-		// FIXME save e in a (global?) variable
+		
 		def matching(e:Expression, p:patterns.Pattern, sdAct:Int, i:Int):(List[Instruction],Int,Int) =
 			p match {
 				case patterns.Integer(n) => (codeb(BinOp(BinaryOperator.eq,Integer(n),e),rhoNew,sdAct),sdAct+1,i)
