@@ -117,6 +117,7 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 			case UPDATE => aload invokevirtual("update", "()I") jumpto
 			case PUSHGLOB(n) => aload bipush(n) invokevirtual("pushglob", "(I)V")
 			case EVAL(LABEL(l)) => aload bipush(l) invokevirtual("eval", "(I)I") handleEvalReturn
+			case MARK(LABEL(l)) => aload bipush(l) invokevirtual("mark", "(I)V")
 		}
 	}
 }

@@ -79,6 +79,10 @@ object JarPacker {
 			)
 		)
 
+		// (\a.a) 42
+		// EXPECTED RESULT 42
+		val e1 = App(Lambda(Id("a"),patterns.Id("a")),Integer(42))
+
 		// if 97 = 'a' then 42 else false
 		// EXPECTED RESULT 42
 		val e8 = IfThenElse(BinOp(BinaryOperator.eq,Integer(97),Character('a')),Integer(42),Bool(false))
@@ -87,7 +91,7 @@ object JarPacker {
 		// EXPECTED RESULT 0
 		val e9 = Match(Integer(2),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
 
-		val instr = Translator.codeb(e0, HashMap.empty, 0)
+		val instr = Translator.codeb(e1, HashMap.empty, 0)
 
 		/*
 		val l118 = LABEL(118)
