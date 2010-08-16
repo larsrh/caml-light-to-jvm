@@ -152,5 +152,14 @@ package patterns {
 	final case class Alternative(pat1: Pattern, pat2: Pattern) extends Pattern
 	final case class Tuple(patterns: Pattern*) extends Pattern
 
+	object ListPattern {
+
+		def fromSeq(list: List[Pattern]): ListPattern = list match {
+			case List() => Nil
+			case head :: tail => Cons(head, fromSeq(tail))
+		}
+
+	}
+
 }
 

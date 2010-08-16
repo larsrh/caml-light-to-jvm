@@ -142,6 +142,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			INTCONST ^^ (patterns.Integer.apply _) |
 			BOOLCONST ^^ (patterns.Bool.apply _) |
 			CHARCONST ^^ (patterns.Character.apply _) |
+			STRINGCONST ^^ { (str: String) => patterns.ListPattern.fromSeq(str.map(patterns.Character.apply _).toList) } |
 			LSQBRACKET ~ RSQBRACKET ^^ { () => patterns.Nil } |
 			pattern ~ CONS ~ pattern ^^ { (pat1: Pattern, pat2: Pattern) => patterns.Cons(pat1, pat2) } |
 			LBRACKET ~ pattuple ~ RBRACKET ^^ { (pats: List[Pattern]) => pats match {
