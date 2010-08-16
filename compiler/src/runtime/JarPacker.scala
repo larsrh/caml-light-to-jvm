@@ -71,6 +71,14 @@ object JarPacker {
 		import codegen.mama.Translator
 		import scala.collection.immutable.HashMap
 
+		// let a = 19 in let b = a * a in a + b
+		// EXPECTED RESULT 380
+		val e0 = Let(patterns.Id("a"),Integer(19),
+								 Let(patterns.Id("b"),BinOp(BinaryOperator.mul,Id("a"),Id("a")),
+										 BinOp(BinaryOperator.add,Id("a"),Id("b"))
+			)
+		)
+
 		// if 97 = 'a' then 42 else false
 		// EXPECTED RESULT 42
 		val e8 = IfThenElse(BinOp(BinaryOperator.eq,Integer(97),Character('a')),Integer(42),Bool(false))
@@ -79,7 +87,7 @@ object JarPacker {
 		// EXPECTED RESULT 0
 		val e9 = Match(Integer(2),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
 
-		val instr = Translator.codeb(e8, HashMap.empty, 0)
+		val instr = Translator.codeb(e0, HashMap.empty, 0)
 
 		/*
 		val l118 = LABEL(118)

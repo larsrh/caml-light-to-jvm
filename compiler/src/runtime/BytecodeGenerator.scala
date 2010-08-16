@@ -57,6 +57,14 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		// nonzero
 		this
 	}
+
+	def jumpto() = {
+		// store the value that is on the stack in _goto
+		mv.visitVarInsn(ISTORE, 2)
+		// and jump
+		jumpGoto
+		this
+	}
 	
 	def enterLabel(label: LABEL) = {
 		labels get label match {
@@ -79,6 +87,10 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 			case JUMPZ(label) => aload invokevirtual("popraw", "()I") jumpz(label)
 			case JUMP(label) => jump(label)
 			case ALLOC(value) => aload bipush value invokevirtual("alloc", "(I)V")
+			case MKVEC(length) => bipush(length).aload invokevirtual("mkvec", "(I)V")
+			case MKCLOS(LABEL(l)) => bipush(l).aload invokevirtual("mkclos", "(I)V")
+			case UPDATE => aload invokevirtual("update", "()I") jumpto
+			case PUSHGLOB(n) => bipush(n) invokevirtual("pushglob", "(I)V")
 		}
 	}
 }
