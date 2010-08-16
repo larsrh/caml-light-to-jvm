@@ -84,8 +84,10 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		mv.visitInsn(DUP)
 		mv.visitMethodInsn(INVOKESPECIAL, "runtime/Machine", "<init>", "()V")
 		mv.visitVarInsn(ASTORE, 1)
+		// store _goto = 0
 		mv.visitInsn(ICONST_0)
 		mv.visitVarInsn(ISTORE, 2)
+		// store _terminate = 0
 		mv.visitInsn(ICONST_0)
 		mv.visitVarInsn(ISTORE, 3)
 
@@ -93,26 +95,52 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 
 		mv.visitLabel(continueLabel)
 		mv.visitVarInsn(ILOAD, 3)
-		val l1 = new Label()
+		val terminateCheckLabel = new Label()
 
-		mv.visitJumpInsn(IFNE, l1)
+		mv.visitJumpInsn(IFNE, terminateCheckLabel)
 		mv.visitVarInsn(ILOAD, 2)
 
 		val switchEntry = new Label()
+
+		val knownLabels = discoverLabels(instr)
 
 		val l3 = new Label()
 
 		val l4 = new Label()
 
-		val l5 = new Label()
+		val doTerminateLabel = new Label()
 
-		val l6 = new Label()
+		val defaultLabel = new Label()
 
-		mv.visitLookupSwitchInsn(l6, Array[Int](0, 1, 2, 3),
-			Array[Label](switchEntry, l3, l4, l5))
+		val orderedLabels = knownLabels.toList.sortBy(_._1)
+		val compilerLabels = orderedLabels.collect({case a => a._1.nr})
+		val jvmLabels = orderedLabels.collect({case a => a._2})
+
+		println(compilerLabels)
+		println(jvmLabels)
+		println(compilerLabels.last + 1)
+
+		println((Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1)).toList)
+		println((Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel)).toList)
+
+		/*
+		mv.visitLookupSwitchInsn(defaultLabel,
+			Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1),
+			Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel))
+		*/
+
+		//println((Array[Label](switchEntry, l3, l4, doTerminateLabel)).toList)
+		mv.visitLookupSwitchInsn(defaultLabel, Array[Int](0, 1, 2, 3),
+			Array[Label](switchEntry, l3, l4, doTerminateLabel))
 
 		// case 0
 		mv.visitLabel(switchEntry)
+
+		// from here starts the actual code generation
+		// we need to discover the labels first
+		//val gen = new BytecodeGenerator(mv, discoverLabels(instr))
+		// generate the instructions
+		//instr map gen.generateInstruction
 
 		// case 1
 		mv.visitLabel(l3)
@@ -148,20 +176,18 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
 
 		// case 3
-		mv.visitLabel(l5)
+		mv.visitLabel(doTerminateLabel)
 		mv.visitInsn(ICONST_1)
 		mv.visitVarInsn(ISTORE, 3)
-		mv.visitLabel(l6)
+
+		// case default
+		mv.visitLabel(defaultLabel)
 		mv.visitJumpInsn(GOTO, continueLabel)
 
-		// from here starts the actual code generation
-		// we need to discover the labels first
-		//val gen = new BytecodeGenerator(mv, discoverLabels(instr))
-		// generate the instructions
-		//instr map gen.generateInstruction
+		
 
 		// end of generated code
-		mv.visitLabel(l1)
+		mv.visitLabel(terminateCheckLabel)
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "_pstack", "()V")
 		mv.visitInsn(RETURN)
