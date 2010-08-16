@@ -158,11 +158,12 @@ object TypeInference {
 	(typeExpr2,freshNew,List())
 
       case expressions.TupleElem(tup, nr) =>
-	tup match {
-	  case expressions.Tuple(expr@_*) =>
-	    val (tupleTypes,freshNew,constraints) = determineTupleTypes(expr.toList, List(), gamma, fresh, List())
+	val (typeTup, freshNew, constraints) = constraintGen(gamma, tup, fresh)
+	typeTup match {
+	  case TypeTuple(tupleTypes@_*) =>
 	    // tuple indexing start at 1
 	    (tupleTypes(nr-1),freshNew,constraints)
+	  case _ => throw new TypeError("Couldn't match expected tuple tuple type against type " + typeTup + ".")
 	}
 
 	// TODO: ?
