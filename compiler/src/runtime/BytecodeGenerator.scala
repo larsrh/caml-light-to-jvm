@@ -89,15 +89,16 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		mv.visitInsn(ICONST_0)
 		mv.visitVarInsn(ISTORE, 3)
 
-		val l0 = new Label()
+		val continueLabel = new Label()
 
-		mv.visitLabel(l0)
+		mv.visitLabel(continueLabel)
 		mv.visitVarInsn(ILOAD, 3)
 		val l1 = new Label()
 
 		mv.visitJumpInsn(IFNE, l1)
 		mv.visitVarInsn(ILOAD, 2)
-		val l2 = new Label()
+
+		val switchEntry = new Label()
 
 		val l3 = new Label()
 
@@ -108,9 +109,12 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		val l6 = new Label()
 
 		mv.visitLookupSwitchInsn(l6, Array[Int](0, 1, 2, 3),
-			Array[Label](l2, l3, l4, l5))
+			Array[Label](switchEntry, l3, l4, l5))
 
-		mv.visitLabel(l2)
+		// case 0
+		mv.visitLabel(switchEntry)
+
+		// case 1
 		mv.visitLabel(l3)
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitIntInsn(BIPUSH, 97)
@@ -122,28 +126,33 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "eq", "()V")
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "popraw", "()I")
-		val l7 = new Label()
 
+		val l7 = new Label()
 		mv.visitJumpInsn(IFNE, l7)
 		mv.visitInsn(ICONST_2)
 		mv.visitVarInsn(ISTORE, 2)
-		mv.visitJumpInsn(GOTO, l0)
+		mv.visitJumpInsn(GOTO, continueLabel)
+
 		mv.visitLabel(l7)
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitIntInsn(BIPUSH, 97)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
 		mv.visitInsn(ICONST_3)
 		mv.visitVarInsn(ISTORE, 2)
-		mv.visitJumpInsn(GOTO, l0)
+		mv.visitJumpInsn(GOTO, continueLabel)
+
+		// case 2
 		mv.visitLabel(l4)
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitInsn(ICONST_0)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
+
+		// case 3
 		mv.visitLabel(l5)
 		mv.visitInsn(ICONST_1)
 		mv.visitVarInsn(ISTORE, 3)
 		mv.visitLabel(l6)
-		mv.visitJumpInsn(GOTO, l0)
+		mv.visitJumpInsn(GOTO, continueLabel)
 
 		// from here starts the actual code generation
 		// we need to discover the labels first
@@ -152,12 +161,12 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		//instr map gen.generateInstruction
 
 		// end of generated code
-		mv.visitLabel(l1);
+		mv.visitLabel(l1)
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "_pstack", "()V")
 		mv.visitInsn(RETURN)
 		// (0, 0) might be a better idea
-		mv.visitMaxs(2, 2)
+		mv.visitMaxs(2, 4)
 		mv.visitEnd
 	}
 	override def visitEnd() = {
