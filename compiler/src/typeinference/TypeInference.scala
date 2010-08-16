@@ -173,11 +173,6 @@ object TypeInference {
 	  case _ => throw new TypeError("error 2")
 	}
 
-      case expressions.BinOp(op, e1, e2) =>
-	val (t1, fresh1, c1) = constraintGen(gamma, e1, fresh)
-	val (t2, fresh2, c2) = constraintGen(gamma, e2, fresh1)
-	(t2, fresh2, (t1,t2)::c1 ++ c2)
-
       case expressions.IfThenElse(e1, e2, e3) =>
 	val (t1, fresh1, c1) = constraintGen(gamma, e1, fresh)
 	val (t2, fresh2, c2) = constraintGen(gamma, e2, fresh1)
