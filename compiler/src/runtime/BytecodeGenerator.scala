@@ -124,10 +124,6 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 
 		val knownLabels = discoverLabels(instr)
 
-		val l3 = new Label()
-
-		val l4 = new Label()
-
 		val doTerminateLabel = new Label()
 
 		val defaultLabel = new Label()
@@ -136,18 +132,15 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		val compilerLabels = orderedLabels.collect({case a => a._1.nr})
 		val jvmLabels = orderedLabels.collect({case a => a._2})
 
-		println((Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1)).toList)
-		println((Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel)).toList)
+		//println((Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1)).toList)
+		//println((Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel)).toList)
 
+		// generate a switch statement with defaultLabel as default case
 		mv.visitLookupSwitchInsn(defaultLabel,
 			Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1),
 			Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel))
 
-		//println((Array[Label](switchEntry, l3, l4, doTerminateLabel)).toList)
-		//mv.visitLookupSwitchInsn(defaultLabel, Array[Int](0, 1, 2, 3),
-		//	Array[Label](switchEntry, l3, l4, doTerminateLabel))
-
-		// case 0
+		// entry case
 		mv.visitLabel(switchEntry)
 
 		// from here starts the actual code generation
@@ -156,19 +149,18 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		// generate the instructions
 		instr map gen.generateInstruction
 
-		// case 3
+		// termination case
 		mv.visitLabel(doTerminateLabel)
 		mv.visitInsn(ICONST_1)
 		mv.visitVarInsn(ISTORE, 3)
 
-		// case default
+		// default case
 		mv.visitLabel(defaultLabel)
 		mv.visitJumpInsn(GOTO, continueLabel)
 
-		
-
-		// end of generated code
+		// outside of while loop
 		mv.visitLabel(terminateCheckLabel)
+
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "_pstack", "()V")
 		mv.visitInsn(RETURN)

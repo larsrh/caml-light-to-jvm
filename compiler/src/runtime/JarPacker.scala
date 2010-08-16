@@ -58,10 +58,28 @@ object JarPacker {
 			ADD, MKBASIC, SLIDE(1), SLIDE(1), GETBASIC)
 		*/
 
+		/*
+		// e8
 		val l1 = LABEL(1)
 		val l2 = LABEL(2)
 		val instr = List(LOADC(97), LOADC(97), EQ, JUMPZ(l1), LOADC(42),
 			JUMP(l2), SETLABEL(l1), LOADC(0), SETLABEL(l2))
+		*/
+
+		import parser.ast.expressions._
+		import parser.ast.patterns
+		import codegen.mama.Translator
+		import scala.collection.immutable.HashMap
+
+		// if 97 = 'a' then 42 else false
+		// EXPECTED RESULT 42
+		val e8 = IfThenElse(BinOp(BinaryOperator.eq,Integer(97),Character('a')),Integer(42),Bool(false))
+
+		// match 2 with 3 -> true | 2 -> false
+		// EXPECTED RESULT 0
+		val e9 = Match(Integer(2),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
+
+		val instr = Translator.codeb(e8, HashMap.empty, 0)
 
 		/*
 		val l118 = LABEL(118)
