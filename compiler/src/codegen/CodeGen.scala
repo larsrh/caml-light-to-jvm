@@ -37,7 +37,6 @@ package mamaInstructions {
 	case object GEQ extends Instruction("geq")
 	final case class GET(offset:Int) extends Instruction("get " + offset)
 	case object GETBASIC extends Instruction("getbasic")
-	// case object GETREF extends Instruction("getref") TODO necessary?
 	final case class GETVEC(locvars:Int) extends Instruction("getvec" + locvars)
 	case object GR extends Instruction("gr")
 	case object HALT extends Instruction("halt")
@@ -51,7 +50,6 @@ package mamaInstructions {
 	case object MKBASIC extends Instruction("mkbasic")
 	final case class MKCLOS(target:LABEL) extends Instruction("mkclos " + target)
 	final case class MKFUNVAL(target:LABEL) extends Instruction("mkfunval " + target)
-	// case object MKREF extends Instruction("mkref") TODO necessary?
 	final case class MKVEC(length:Int) extends Instruction("mkvec " + length)
 	// case object MKVEC0 extends Instruction("mkvec0") TODO necessary?
 	case object MUL extends Instruction("mul")
@@ -67,13 +65,11 @@ package mamaInstructions {
 	final case class RETURN(drop:Int) extends Instruction("return " + drop)
 	final case class REWRITE(depth:Int) extends Instruction("rewrite " + depth)
 	final case class SLIDE(drop:Int) extends Instruction("slide " + drop)
-	case object STORE extends Instruction("store")
 	case object SUB extends Instruction("sub")
 	final case class TARG(drop:Int, label:LABEL) extends Instruction("targ " + drop)
 	final case class TLIST(target:LABEL) extends Instruction("tlist " + target)
 	case object UPDATE extends Instruction("update")
 	case object WRAP extends Instruction("wrap")
-	case object XOR extends Instruction("xor")
 }
 
 object Translator {
@@ -97,7 +93,8 @@ object Translator {
 		case Integer(x) => List(LOADC(x))
 		case Bool(x) => List(LOADC(if(x) 1 else 0))
 		case Character(x) => List(LOADC(char2int(x)))
-		case Id(x) => getvar(x, rho, sd) :+ GETBASIC
+		case Id(x) => getvar(x, rho, sd) ++
+			(if(CBN) { val A = newLabel(); List(EVAL(A), SETLABEL(A))} else List.empty) :+ GETBASIC
 		case UnOp(op,e) => 
 			codeb(e,rho,sd) :+ instrOfOp(op)
 		case BinOp(op,e1,e2) => 
