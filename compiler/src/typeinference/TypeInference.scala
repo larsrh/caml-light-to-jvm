@@ -177,37 +177,21 @@ object TypeInference {
 	val (t1, fresh1, c1) = constraintGen(gamma, e1, fresh)
 	val (t2, fresh2, c2) = constraintGen(gamma, e2, fresh1)
 	val (t3, fresh3, c3) = constraintGen(gamma, e3, fresh2)
+	println("t2: " + t2)
+	println("t3: " + t3)
 	(t2, fresh3, (t2,t3) :: (TypeBool(),t1) :: c1 ++ c2 ++ c3)
 
       case expressions.BinOp(op, e1, e2) =>
 	val (t1, fresh1, c1) = constraintGen(gamma, e1, fresh)
 	val (t2, fresh2, c2) = constraintGen(gamma, e2, fresh)
-	if (t1 == t2) {
-	  t1 match {
-	    case _: TypeInt =>
-	      op match {
-		case expressions.BinaryOperator.add |
-		     expressions.BinaryOperator.sub |
-		     expressions.BinaryOperator.mul |
-		     expressions.BinaryOperator.div |
-		     expressions.BinaryOperator.eq |
-		     expressions.BinaryOperator.neq |
-		     expressions.BinaryOperator.geq |
-		     expressions.BinaryOperator.leq |
-		     expressions.BinaryOperator.gr |
-		     expressions.BinaryOperator.le => (t2, fresh2, c1 ++ c2)
-		case _ => throw new TypeError("Error: Binary operator <" + op + "> is not specified for arguments of type Integer.")
-	      }
-	    case _: TypeBool =>
-	      op match {
-		case expressions.BinaryOperator.and |
-		     expressions.BinaryOperator.or => (t2, fresh2, c1 ++ c2)
-		case _ => throw new TypeError("Error: Binary operator <" + op + "> is not specified for arguments of type Bool.")
-	      }
-	    case _ => throw new TypeError("Error: Binary operator only specified for type Integer and Bool.")
-	  }
-	} else {
-	  throw new TypeError("Error: Binary operator expects that both arguments are of the same type.")
+	op match {
+	  case expressions.BinaryOperator.and | expressions.BinaryOperator.or =>
+	    (TypeBool(),fresh2,(t1,TypeBool())::(t2,TypeBool())::(t1,t2)::c1 ++ c2)
+	  case expressions.BinaryOperator.eq | expressions.BinaryOperator.neq
+	    | expressions.BinaryOperator.geq | expressions.BinaryOperator.leq
+	    | expressions.BinaryOperator.gr | expressions.BinaryOperator.le =>
+	    (TypeBool(), fresh2, (t1,t2)::c1 ++ c2)
+	  case _ => (t1,fresh2,(t1,t2)::c1 ++ c2)
 	}
 
       case expressions.Lambda(body,patterns.Id(id)) =>
@@ -238,8 +222,6 @@ object TypeInference {
       case expressions.Lambda(body,p@patterns.Nil) =>
         val (typeBody,fresh1,constraints) = constraintGen(gamma, body, fresh)
 	((TypeFn(TypeList(TypeVariable(fresh)), typeBody),fresh1,constraints))
-
-
 
         // anonymous record definition like in e.g.
         // let x = { one=Integer(1), id=Lamda(Id("x"),patterns.Id("x")) }
@@ -359,17 +341,38 @@ object TypeInference {
 	val (fresh2, scrutType1, typeExpr) = checkClauses(clauses.toList, gamma, scrut, fresh1)
 	(typeExpr, fresh2, List((scrutType,scrutType1)))
 
-      case expressions.LetRec(body, patterns) =>
+      case expressions.LetRec(body, funs@_*) =>
 	// put function names into type environment
-
-	constraintGen(gammaNew, body, freshNew)
+	val (gamma1, fresh1) = putRecFunctionsIntoScope(gamma, fresh, funs.toList)
+	println("gamma1: " + gamma1)
+	constraintGen(gamma1, body, fresh1)
     }
   }
 
-  def putRecFunctionsIntoScope(gamma: Env, fresh: Int, funs: List[(patterns.Id, expressions.Expression)]) = {
+  def putRecFunctionsIntoScope(gamma: Env, fresh: Int, 
+			       funs: List[(patterns.Id, expressions.Expression)]): (Env,Int)= {
+    var currFresh = fresh
+    var currGamma = gamma
+    println("funs: " + funs)
     for (f <- funs) {
-      
+      val funName = f._1.name
+      currGamma = currGamma + (funName -> (List(TypeVariable(currFresh)), TypeVariable(currFresh)))
+      currFresh = currFresh + 1
     }
+        println("currGamma: " + currGamma)
+
+
+    for (f <- funs) {
+      val funName = f._1.name
+      val funBody = f._2
+      val (funType, freshNew,constraints)  = constraintGen(currGamma, funBody, currFresh)
+      // now update type
+      val scheme = generalise(currGamma, funType, (currGamma(funName)._2,funType)::constraints)
+      currGamma  = currGamma + (funName -> scheme)
+      currFresh = freshNew
+    }
+    println("currGamma 2: " + currGamma)
+    (currGamma, currFresh)
   }
 
   /**
