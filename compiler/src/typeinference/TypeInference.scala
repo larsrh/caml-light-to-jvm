@@ -358,6 +358,17 @@ object TypeInference {
 	val (scrutType, fresh1, constraints) = constraintGen(gamma, scrut, fresh)
 	val (fresh2, scrutType1, typeExpr) = checkClauses(clauses.toList, gamma, scrut, fresh1)
 	(typeExpr, fresh2, List((scrutType,scrutType1)))
+
+      case expressions.LetRec(body, patterns) =>
+	// put function names into type environment
+
+	constraintGen(gammaNew, body, freshNew)
+    }
+  }
+
+  def putRecFunctionsIntoScope(gamma: Env, fresh: Int, funs: List[(patterns.Id, expressions.Expression)]) = {
+    for (f <- funs) {
+      
     }
   }
 
