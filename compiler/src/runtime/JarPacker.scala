@@ -83,6 +83,36 @@ object JarPacker {
 		// EXPECTED RESULT 42
 		val e1 = App(Lambda(Id("a"),patterns.Id("a")),Integer(42))
 
+		// (\a.a + 3) 42
+		// EXPECTED RESULT 45
+		val e2 = App(Lambda(BinOp(BinaryOperator.add,Id("a"),Integer(3)),patterns.Id("a")),Integer(42))
+
+		// let a = \a.a in a a
+		// EXPECTED RESULT NOT BASIC ERROR
+		val e3 = Let(patterns.Id("a"), Lambda(Id("a"), patterns.Id("a")),
+								 App(Id("a"),Id("a")))
+
+		// (let a = \a.a in a a) 42
+		// EXPECTED RESULT 42
+		val e4 = App(e3,Integer(42))
+
+		// \a.(\b.(\c.(a b) (b c)))
+		// EXPECTED RESULT NOT BASIC ERROR
+		val e5 = Lambda(Lambda(Lambda(
+					App(App(Id("a"),Id("b")), App(Id("b"), Id("c"))), patterns.Id("c")), patterns.Id("b")), patterns.Id("a"))
+
+		// let a = \b.b in let b = \a.a in \a.a
+		// EXPECTED RESULT NOT BASIC ERROR
+		val e6 = Let(patterns.Id("a"),
+								 Lambda(Id("b"), patterns.Id("b")),
+								 Let(patterns.Id("b"),
+										 App(Id("a"), Id("a")),
+										 App(Id("a"), Id("a"))))
+
+		// (let a = \b.b in let b = \a.a in \a.a) 'a'
+		// EXPECTED RESULT 97
+		val e7 = App(e6,Character('a'));
+
 		// if 97 = 'a' then 42 else false
 		// EXPECTED RESULT 42
 		val e8 = IfThenElse(BinOp(BinaryOperator.eq,Integer(97),Character('a')),Integer(42),Bool(false))
@@ -91,7 +121,15 @@ object JarPacker {
 		// EXPECTED RESULT 0
 		val e9 = Match(Integer(2),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
 
-		val instr = Translator.codeb(e1, HashMap.empty, 0)
+		// match 4 with 3 -> true | 2 -> false
+		// EXPECTED RESULT SOME ERROR
+		val e10 = Match(Integer(4),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
+
+		// match 42 with x -> x
+		// EXPECTED RESULT 42
+		val e11 = Match(Integer(42),(patterns.Id("x"),Id("x")))
+
+		val instr = Translator.codeb(e11, HashMap.empty, 0)
 
 		/*
 		val l118 = LABEL(118)
