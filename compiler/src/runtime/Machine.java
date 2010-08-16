@@ -161,7 +161,6 @@ public class Machine {
 	}
 	
 	public void add() {
-		_pstack();
 		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
 		stack.push(new Raw(r1.v + r2.v));
@@ -435,10 +434,16 @@ public class Machine {
 	public int popenv() {
 		gp = (Vector)stack.get(fp - 2);
 		int label = ((Base)stack.get(fp)).v;
-		stack.set(fp - 2, stack.pop());
-		stack.pop();
+		stack.set(fp - 2, stack.peek());
+
+		int prevfp = ((Base)stack.get(fp - 1)).v;
+
+		for (int i = sp; i > fp - 2; i--) {
+			stack.pop();
+		}
+
 		sp = fp - 2;
-		fp = ((Base)stack.get(fp - 1)).v;
+		fp = prevfp;
 		return label;
 	}
 	
@@ -527,9 +532,11 @@ public class Machine {
 	}
 	
 	public void _pstack() {
+		System.out.println("---- TOP OF STACK ----");
 		for (int i = stack.size(); i > 0; i--) {
 			System.out.println(stack.get(i-1));
 		}
+		System.out.println("---- BTM OF STACK ----");
 	}
 
 	/* this method is only for demonstration purposes, the proper code
