@@ -366,5 +366,22 @@ class TypeInferenceTest {
     assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, fac))
   }
 
+  @Test
+  def test_Ackermann = {
+    val test = LetRec(App(Id("a"), Integer(1), Integer(2)),
+		      (patterns.Id("a"),
+		       Lambda(Lambda(Match(Id("m"),
+					   (patterns.Integer(0), BinOp(BinaryOperator.add, Id("n"), Integer(1))),
+					   (patterns.Underscore, Match(Id("n"),
+								       (patterns.Integer(0), App(Id("a"), BinOp(BinaryOperator.sub, Id("m"), Integer(1)), Integer(1))),
+								       (patterns.Underscore, App(Id("a"), BinOp(BinaryOperator.sub, Id("m"), Integer(1)),
+												 App(Id("a"), Id("m"), BinOp(BinaryOperator.sub, Id("n"), Integer(1)))))))),
+				      patterns.Id("m")),
+			      patterns.Id("n"))))
+
+    assertEquals((List(), TypeInt()),
+			    TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
+
 }
 
