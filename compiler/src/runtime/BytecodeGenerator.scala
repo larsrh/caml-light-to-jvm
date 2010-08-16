@@ -47,12 +47,14 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 	}
 
 	def jumpz(label: LABEL) = {
-		val l7 = new Label()
+		val nonZero = new Label()
 
-		mv.visitJumpInsn(IFNE, l7)
+		mv.visitJumpInsn(IFNE, nonZero)
+		// zero
 		jump(label)
 
-		mv.visitLabel(l7)
+		mv.visitLabel(nonZero)
+		// nonzero
 		this
 	}
 	
@@ -153,41 +155,6 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		val gen = new BytecodeGenerator(mv, knownLabels, continueLabel)
 		// generate the instructions
 		instr map gen.generateInstruction
-
-		// case 1
-		/*
-		mv.visitLabel(l3)
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitIntInsn(BIPUSH, 97)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitIntInsn(BIPUSH, 97)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "eq", "()V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "popraw", "()I")
-
-		val l7 = new Label()
-		mv.visitJumpInsn(IFNE, l7)
-		mv.visitInsn(ICONST_2)
-		mv.visitVarInsn(ISTORE, 2)
-		mv.visitJumpInsn(GOTO, continueLabel)
-
-		mv.visitLabel(l7)
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitIntInsn(BIPUSH, 97)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
-		mv.visitInsn(ICONST_3)
-		mv.visitVarInsn(ISTORE, 2)
-		mv.visitJumpInsn(GOTO, continueLabel)
-
-		// case 2
-		mv.visitLabel(l4)
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitInsn(ICONST_0)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
-		*/
 
 		// case 3
 		mv.visitLabel(doTerminateLabel)
