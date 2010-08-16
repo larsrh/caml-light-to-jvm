@@ -234,9 +234,10 @@ object Translator {
 										val NEXT = newLabel()
 										val (matchingCode,n) = matchCG(e0,p,e,NEXT,DONE,E,rhoNew,sd+1)
 											
-										matchingCode ++ List(SETLABEL(NEXT)) ++ pop(n) 
+										matchingCode ++ List(SETLABEL(NEXT),SLIDE(n-1),POP) 
 									}
-							}) :+ SETLABEL(DONE)
+							/* HALT is misused for runtime pattern match errors */
+							}) ++ List(HALT,SETLABEL(DONE))
 					}
 			}
 	}
@@ -324,7 +325,7 @@ object Translator {
 		
 	}
 	
-	def pop(n:Int):List[Instruction] = (1 to n).toList map { _ => POP }
+	//def pop(n:Int):List[Instruction] = (1 to n).toList map { _ => POP }
 		
 	def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
 	:List[Instruction] = rho.get(x) match {

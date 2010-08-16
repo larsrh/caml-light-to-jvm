@@ -246,6 +246,10 @@ public class Machine {
 		}
 	}
 	
+	public void HALT() {
+			throw new RuntimeException("Pattern match failure... unlucky you!");
+	}
+	
 	public void geq() {
 		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();

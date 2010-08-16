@@ -2,8 +2,10 @@ package bigbang
 
 import parser.ast.expressions.Expression
 import parser.generator._
-import codegen.mama._
+import typeinference.TypeInference
+import codegen.mama.Translator
 import codegen.mama.mamaInstructions.Instruction
+import runtime.JarPacker._
 
 import edu.tum.cup2.generator.LR1Generator
 import edu.tum.cup2.parser.LRParser
@@ -24,12 +26,18 @@ def main(args:Array[String]):Unit = {
 		def parseExp(input:String):Expression = 
 			Normalizer.normalize(parser.parse(new CamlLightScanner(new StringReader(input))).asInstanceOf[Expression])
 		
-		//TODO def typeCheck(e:Expression):?
+		def typeCheck(e:Expression):Unit = TypeInference.typeCheck(TypeInference.emptyEnv, e)
 		
 		def genMaMaCode(e:Expression):List[Instruction] =
 			Translator.codeb(e,HashMap.empty,0)
 		
-		//TODO def genByteCode(l:List[Instruction]):Unit
+		def genByteCode(l:List[Instruction],filename:String):Unit = {
+			val jar = createJar(filename)
+			addManifest(jar)
+			copyClasses(jar)
+			injectCode(jar)
+			jar close
+		}
 		
 		def output(l:List[Instruction],filename:String):Unit = {
 			val out = new java.io.FileWriter("test/bigbang/" +	filename + ".mama")
@@ -39,8 +47,11 @@ def main(args:Array[String]):Unit = {
 		
 		inputs foreach { x => 
 			val exp = parseExp(Source.fromFile("test/bigbang/" + x + ".cl").mkString(""));
+			//Console println "***************************"
 			//Console println exp
+			typeCheck(exp)
 			output(genMaMaCode(exp),x)
+			//genByteCode(genMaMaCode(exp),"test/bigbang/" + x + ".jar")
 		}
 	}
 }
