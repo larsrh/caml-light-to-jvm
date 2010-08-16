@@ -187,5 +187,6 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 		  --nested_comment_counter;
 		}
   <<EOF>>	{ throw new IllegalArgumentException("Error: Wrong count of opening comments."); }
+  {WhiteSpace}	{ /* ignore */ }
   .		{ /* ignore */ }
 }
