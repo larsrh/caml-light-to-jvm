@@ -109,6 +109,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   "true"	{ return token(BOOLCONST(), true); }
   "type"	{ return token(TYPE()); }
 
+  ";;"		{ return token(SEMISEMI()); }
   "&"		{ return token(AND()); }
   "("		{ return token(LBRACKET()); }
   ")"		{ return token(RBRACKET()); }

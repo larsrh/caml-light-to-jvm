@@ -44,3 +44,6 @@ function _ -> 0 | (x,y) -> a#Lambda(Match(Id(00),List((Underscore,Integer(0)), (
 let rec f = function _ -> 0 in f 6#LetRec(App(Id(f),List(Integer(6))),List((Id(f),Lambda(Match(Id(00),List((Underscore,Integer(0)))),List(Id(00))))))
 fun x y z -> x | a b _ -> b#Lambda(Match(Tuple(List(Id(00), Id(01), Id(02))),List((Tuple(List(Id(x), Id(y), Id(z))),Id(x)), (Tuple(List(Id(a), Id(b), Underscore)),Id(b)))),List(Id(00), Id(01), Id(02)))
 fun a::b (c,d) -> a#Lambda(Match(Tuple(List(Id(00), Id(01))),List((Tuple(List(Cons(Id(a),Id(b)), Tuple(List(Id(c), Id(d))))),Id(a)))),List(Id(00), Id(01)))
+let a = 3;; a#Let(Id(a),Integer(3),Id(a))
+let a = 3;; let rec b = 4 and c = 5;; a + b + c#Let(Id(a),Integer(3),LetRec(BinOp(add,BinOp(add,Id(a),Id(b)),Id(c)),List((Id(b),Integer(4)), (Id(c),Integer(5)))))
+3;; 4#!

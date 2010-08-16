@@ -4,21 +4,11 @@ package parser.generator
 import parser.ast.expressions.Expression
 import Normalizer.normalize
 
-import edu.tum.cup2.generator.LR1Generator
-import edu.tum.cup2.io.LRParsingTableDump
-import edu.tum.cup2.parser.LRParser
 import java.io.StringReader
 import scala.io.Source
 import scala.collection.mutable.ListBuffer
 
 object Test extends Application {
-
-	// example code from <http://www2.in.tum.de/~petter/cup2/#3.3.1.>
-	val generator = new LR1Generator(CamlLightSpec)
-	val table = generator.getParsingTable()
-	val parser = new LRParser(table)
-
-	LRParsingTableDump.dumpToHTML(table, new java.io.File("build/dump.htm"))
 
 	var i = 0
 	val failed = ListBuffer[Int]()
@@ -35,8 +25,7 @@ object Test extends Application {
 
 			val result =
 				try {
-					CamlLightSpec.resetCounter()
-					Left(normalize(parser.parse(new CamlLightScanner(new StringReader(input))).asInstanceOf[Expression]).toString);
+					Left(normalize(CamlLightSpec.parse(new StringReader(input))._1).toString);
 				}
 				catch {
 					case ex => Right(ex)

@@ -4,6 +4,8 @@ package parser.generator
 import edu.tum.cup2.semantics.{SymbolValue}
 import edu.tum.cup2.spec.CUP2Specification
 import edu.tum.cup2.spec.scala.{ScalaCUPSpecification, SymbolEnum}
+import edu.tum.cup2.generator.LR1Generator
+import edu.tum.cup2.parser.LRParser
 import edu.tum.cup2.grammar.Symbol
 
 // exported for usage in JFlex
@@ -11,7 +13,7 @@ object CamlLightTerminals extends SymbolEnum {
 	val	IDENTIFIER,
 		INTCONST, BOOLCONST, STRINGCONST, CHARCONST,
 		LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
-		STAR, PLUS, MINUS, SLASH, CONS, SEMI, POINT, COMMA, TUPLEACC, // * + - / :: ; . , #
+		STAR, PLUS, MINUS, SLASH, CONS, SEMI, SEMISEMI, POINT, COMMA, TUPLEACC, // * + - / :: ; ;; . , #
 		LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
 		FUN, FUNCTION, MATCH, PIPE, ARROW, UNDERSCORE, WITH, // fun function match | -> _ with
 		LETAND, AND, OR, NOT, // and, &, or, not
@@ -25,6 +27,7 @@ object CamlLightTerminals extends SymbolEnum {
 object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object NonTerminals extends SymbolEnum {
+		val toplevel, statement = NonTerminalEnum
 		val expr, simpleexpr, simpleexprlist, list, binding, andbindings, commaseq, entry, record = NonTerminalEnum
 		val pattern, caselist, `case`, funcase, funcaselist, patentry, patrecord, pattuple = NonTerminalEnum
 		val typeexpr, typedef, param, cdecl = NonTerminalEnum
@@ -46,12 +49,16 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	type Entry = (Id, Expression)
 	type PatEntry = (patterns.Id, Pattern)
 	type FunCase = (List[Pattern], Expression)
+	type Statement = Either[Expression => Expression, TypeDefinition]
+	type Program = (Expression, List[TypeDefinition])
 
 	class INTCONST extends SymbolValue[Int]
 	class BOOLCONST extends SymbolValue[Boolean]
 	class STRINGCONST extends SymbolValue[String]
 	class CHARCONST extends SymbolValue[Char]
 	class IDENTIFIER extends SymbolValue[String]
+	class toplevel extends SymbolValue[Program]
+	class statement extends SymbolValue[Statement]
 	class expr extends SymbolValue[Expression]
 	class simpleexpr extends SymbolValue[Expression]
 	class simpleexprlist extends SymbolValue[List[Expression]]
@@ -79,8 +86,15 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		symCount += 1
 		sym
 	}
-		
-	protected[generator] def resetCounter() = symCount = 0
+
+	private lazy val lrparser = new LRParser(new LR1Generator(this).getParsingTable())
+
+	def parse(reader: java.io.Reader) = {
+		symCount = 0
+		val result = lrparser.parse(new CamlLightScanner(reader))
+		assert(classOf[Program].isAssignableFrom(result.getClass))
+		result.asInstanceOf[Program]
+	}
 
 	precedences(
 		left(POINT), left(APP_DUMMY), left(TUPLEACC),
@@ -95,10 +109,24 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		left(SEMI),
 		left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN),
 		left(FUN), left(FUNCTION),
-		left(MATCH), left(WITH)
+		left(MATCH), left(WITH),
+		left(SEMISEMI)
 	)
 
 	grammar(
+		toplevel -> (
+			expr ^^ { (expr: Expression) => (expr, List[TypeDefinition]()) } |
+			expr ~ SEMISEMI ^^ { (expr: Expression) => (expr, List[TypeDefinition]()) } |
+			statement ~ SEMISEMI ~ toplevel ^^ { (stmt: Statement, prog: Program) => stmt match {
+				case Left(func) => (func(prog._1), prog._2)
+				case Right(typedef) => (prog._1, typedef :: prog._2)
+			} }
+		),
+		statement -> (
+			LET ~ pattern ~ BIND ~ expr ^^ { (pat: Pattern, definition: Expression) => Left((expr: Expression) => Let(pat, definition, expr)) } |
+			LET ~ REC ~ andbindings ^^ { (bindings: List[Definition]) => Left((expr: Expression) => LetRec(expr, bindings: _*)) } |
+			typedef ^^ { (typedef: TypeDefinition) => Right(typedef) }
+		),
 		expr -> (
 			simpleexpr ^^ (Predef.identity[Expression] _) |
 			prec(rhs(simpleexpr, simpleexprlist), APP_DUMMY) ^^ { (head: Expression, tail: List[Expression]) => App(head, tail: _*) } |
