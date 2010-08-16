@@ -49,6 +49,10 @@ public class Machine {
 		private Base(int constant) {
 			v = constant;
 		}
+
+		public String toString() {
+			return "B(" + v + ")";
+		}
 	}
 
 	/* when stuff is not basic - we still need a wrapper type for that */
@@ -85,7 +89,12 @@ public class Machine {
 		}
 
 		public String toString() {
-			return "V(" + n + ", TODO)";
+			String pre = "V(" + n + ", [";
+			for (int i = 0; i < v.length; i++) {
+				pre += ", " + v[i];
+			}
+			pre += "])";
+			return pre;
 		}
 	}
 
@@ -102,7 +111,7 @@ public class Machine {
 		}
 
 		public String toString() {
-			return "F(" + cp + ", TODO, TODO)";
+			return "F(" + cp + ", " + ap + ", " + gp + ")";
 		}
 	}
 
@@ -116,7 +125,7 @@ public class Machine {
 		}
 
 		public String toString() {
-			return "C(" + cp + ", TODO)";
+			return "C(" + cp + ", " + gp + ")";
 		}
 	}
 	
@@ -152,6 +161,7 @@ public class Machine {
 	}
 	
 	public void add() {
+		_pstack();
 		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
 		stack.push(new Raw(r1.v + r2.v));
@@ -517,8 +527,8 @@ public class Machine {
 	}
 	
 	public void _pstack() {
-		for (MachineData item: stack) {
-			System.out.println(item);
+		for (int i = stack.size(); i > 0; i--) {
+			System.out.println(stack.get(i-1));
 		}
 	}
 
@@ -579,6 +589,18 @@ public class Machine {
 		}
 
 		m._pstack();
+	}
+
+	public static int minus1() {
+		return -1;
+	}
+
+	public static void main_comp(String[] args) {
+		int candidate = minus1();
+		if (candidate != -1) {
+			System.out.println("Jumping to candidate");
+		}
+		System.out.println("Ending");
 	}
 }
 

@@ -3,12 +3,13 @@ import scala.collection.immutable.HashMap
 import org.objectweb.asm._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type._
-import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, _}
+import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, POP => MAMAPOP, _}
+//import codegen.mama.{mamaInstructions => mama}
 
 // TODO inherit from some better suited exception
 class CompilerAssertion(msg: String) extends Exception
 
-class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
+class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continueLabel:Label) {
 
 	/* loads value 1 from the frame. this value holds a Machine instance */
 	def aload = {
@@ -24,6 +25,17 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 		mv.visitIntInsn(BIPUSH, constant)
 		this
 	}
+	def storeGoto(constant: Int) = {
+		bipush(constant)
+		mv.visitVarInsn(ISTORE, 2)
+		this
+	}
+
+	def jumpGoto() = {
+		mv.visitJumpInsn(GOTO, continueLabel)
+		this
+	}
+
 	// TODO: implement iconst_<i> ? Not much use probably
 
 	def invokevirtual(name: String, sig: String) = {
@@ -31,13 +43,54 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 		this
 	}
 
-	def condjump(comp: Int, label: LABEL) = {
-		labels get label match {
-			case Some(l) => mv.visitJumpInsn(comp, l)
-			case None => throw new CompilerAssertion("jump target unknown")
-		}
+	def jump(label: LABEL) = {
+		storeGoto(label.nr) jumpGoto
 	}
 
+	def jumpz(label: LABEL) = {
+		val nonZero = new Label()
+
+		mv.visitJumpInsn(IFNE, nonZero)
+		// zero
+		jump(label)
+
+		mv.visitLabel(nonZero)
+		// nonzero
+		this
+	}
+
+	def jumpto() = {
+		// store the value that is on the stack in _goto
+		mv.visitVarInsn(ISTORE, 2)
+		// and jump
+		jumpGoto
+		this
+	}
+
+	/*
+	 * eval either returns a label (we have to jump to that) or -1, which
+	 * we have to ignore. handleEval generates the code that compares the result
+	 * to -1 and jumps
+	 */
+	def handleEvalReturn() = {
+		val noJump = new Label()
+
+		// duplicate the return value of eval
+		mv.visitInsn(DUP)
+		// push -1 to compare it with
+		bipush(-1)
+		// if it was equal to -1, jump to noAct
+		mv.visitJumpInsn(IF_ICMPEQ, noJump)
+		// otherwise, jump to that value
+		jumpto
+
+		// eval return value was -1
+		mv.visitLabel(noJump)
+		// just pop the return value
+		mv.visitInsn(POP)
+		this
+	}
+	
 	def enterLabel(label: LABEL) = {
 		labels get label match {
 			case Some(l) => mv.visitLabel(l)
@@ -56,9 +109,14 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 			case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
 			case SETLABEL(label) => enterLabel(label)
 			case EQ => aload invokevirtual("eq", "()V")
-			case JUMPZ(label) => aload invokevirtual("popraw", "()I") condjump(IFEQ, label)
-			case JUMP(label) => condjump(GOTO, label)
+			case JUMPZ(label) => aload invokevirtual("popraw", "()I") jumpz(label)
+			case JUMP(label) => jump(label)
 			case ALLOC(value) => aload bipush value invokevirtual("alloc", "(I)V")
+			case MKVEC(length) => aload bipush(length) invokevirtual("mkvec", "(I)V")
+			case MKCLOS(LABEL(l)) => aload bipush(l) invokevirtual("mkclos", "(I)V")
+			case UPDATE => aload invokevirtual("update", "()I") jumpto
+			case PUSHGLOB(n) => aload bipush(n) invokevirtual("pushglob", "(I)V")
+			case EVAL(LABEL(l)) => aload bipush(l) invokevirtual("eval", "(I)I") handleEvalReturn
 		}
 	}
 }
@@ -84,80 +142,68 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		mv.visitInsn(DUP)
 		mv.visitMethodInsn(INVOKESPECIAL, "runtime/Machine", "<init>", "()V")
 		mv.visitVarInsn(ASTORE, 1)
+		// store _goto = 0
 		mv.visitInsn(ICONST_0)
 		mv.visitVarInsn(ISTORE, 2)
+		// store _terminate = 0
 		mv.visitInsn(ICONST_0)
 		mv.visitVarInsn(ISTORE, 3)
 
-		val l0 = new Label()
+		val continueLabel = new Label()
 
-		mv.visitLabel(l0)
+		mv.visitLabel(continueLabel)
 		mv.visitVarInsn(ILOAD, 3)
-		val l1 = new Label()
+		val terminateCheckLabel = new Label()
 
-		mv.visitJumpInsn(IFNE, l1)
+		mv.visitJumpInsn(IFNE, terminateCheckLabel)
 		mv.visitVarInsn(ILOAD, 2)
-		val l2 = new Label()
 
-		val l3 = new Label()
+		val switchEntry = new Label()
 
-		val l4 = new Label()
+		val knownLabels = discoverLabels(instr)
 
-		val l5 = new Label()
+		val doTerminateLabel = new Label()
 
-		val l6 = new Label()
+		val defaultLabel = new Label()
 
-		mv.visitLookupSwitchInsn(l6, Array[Int](0, 1, 2, 3),
-			Array[Label](l2, l3, l4, l5))
+		val orderedLabels = knownLabels.toList.sortBy(_._1)
+		val compilerLabels = orderedLabels.collect({case a => a._1.nr})
+		val jvmLabels = orderedLabels.collect({case a => a._2})
 
-		mv.visitLabel(l2)
-		mv.visitLabel(l3)
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitIntInsn(BIPUSH, 97)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitIntInsn(BIPUSH, 97)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "eq", "()V")
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "popraw", "()I")
-		val l7 = new Label()
+		//println((Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1)).toList)
+		//println((Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel)).toList)
 
-		mv.visitJumpInsn(IFNE, l7)
-		mv.visitInsn(ICONST_2)
-		mv.visitVarInsn(ISTORE, 2)
-		mv.visitJumpInsn(GOTO, l0)
-		mv.visitLabel(l7)
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitIntInsn(BIPUSH, 97)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
-		mv.visitInsn(ICONST_3)
-		mv.visitVarInsn(ISTORE, 2)
-		mv.visitJumpInsn(GOTO, l0)
-		mv.visitLabel(l4)
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitInsn(ICONST_0)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
-		mv.visitLabel(l5)
-		mv.visitInsn(ICONST_1)
-		mv.visitVarInsn(ISTORE, 3)
-		mv.visitLabel(l6)
-		mv.visitJumpInsn(GOTO, l0)
+		// generate a switch statement with defaultLabel as default case
+		mv.visitLookupSwitchInsn(defaultLabel,
+			Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1),
+			Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel))
+
+		// entry case
+		mv.visitLabel(switchEntry)
 
 		// from here starts the actual code generation
 		// we need to discover the labels first
-		//val gen = new BytecodeGenerator(mv, discoverLabels(instr))
+		val gen = new BytecodeGenerator(mv, knownLabels, continueLabel)
 		// generate the instructions
-		//instr map gen.generateInstruction
+		instr map gen.generateInstruction
 
-		// end of generated code
-		mv.visitLabel(l1);
+		// termination case
+		mv.visitLabel(doTerminateLabel)
+		mv.visitInsn(ICONST_1)
+		mv.visitVarInsn(ISTORE, 3)
+
+		// default case
+		mv.visitLabel(defaultLabel)
+		mv.visitJumpInsn(GOTO, continueLabel)
+
+		// outside of while loop
+		mv.visitLabel(terminateCheckLabel)
+
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "_pstack", "()V")
 		mv.visitInsn(RETURN)
 		// (0, 0) might be a better idea
-		mv.visitMaxs(2, 2)
+		mv.visitMaxs(2, 4)
 		mv.visitEnd
 	}
 	override def visitEnd() = {
