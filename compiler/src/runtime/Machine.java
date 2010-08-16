@@ -334,8 +334,8 @@ public class Machine {
 	
 	public void mark0(int label) {
 		stack.push(gp);
-		stack.push(new Base(fp));
-		stack.push(new Base(label));
+		stack.push(new Raw(fp));
+		stack.push(new Raw(label));
 		sp += 3;
 		fp = sp;
 	}
@@ -433,10 +433,10 @@ public class Machine {
 	/* returns the label to which to jump */
 	public int popenv() {
 		gp = (Vector)stack.get(fp - 2);
-		int label = ((Base)stack.get(fp)).v;
+		int label = ((Raw)stack.get(fp)).v;
 		stack.set(fp - 2, stack.peek());
 
-		int prevfp = ((Base)stack.get(fp - 1)).v;
+		int prevfp = ((Raw)stack.get(fp - 1)).v;
 
 		for (int i = sp; i > fp - 2; i--) {
 			stack.pop();
