@@ -72,7 +72,7 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 	 * we have to ignore. handleEval generates the code that compares the result
 	 * to -1 and jumps
 	 */
-	def handleEvalReturn() = {
+	def handleOptionalJump() = {
 		val noJump = new Label()
 
 		// duplicate the return value of eval
@@ -116,8 +116,15 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 			case MKCLOS(LABEL(l)) => aload bipush(l) invokevirtual("mkclos", "(I)V")
 			case UPDATE => aload invokevirtual("update", "()I") jumpto
 			case PUSHGLOB(n) => aload bipush(n) invokevirtual("pushglob", "(I)V")
-			case EVAL(LABEL(l)) => aload bipush(l) invokevirtual("eval", "(I)I") handleEvalReturn
+			case EVAL(LABEL(l)) => aload bipush(l) invokevirtual("eval", "(I)I")
+				handleOptionalJump
 			case MARK(LABEL(l)) => aload bipush(l) invokevirtual("mark", "(I)V")
+			case MKFUNVAL(LABEL(l)) => aload bipush(l) invokevirtual("mkfunval", "(I)V")
+			case TARG(drop, LABEL(l)) => aload bipush(drop) bipush(l)
+				invokevirtual("targ", "(II)I") handleOptionalJump
+			case MAMARETURN(n) => aload bipush(n) invokevirtual("return_", "(I)I")
+				handleOptionalJump
+			case APPLY => aload invokevirtual("apply", "()I") jumpto
 		}
 	}
 }
