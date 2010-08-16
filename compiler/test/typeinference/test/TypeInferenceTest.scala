@@ -185,7 +185,7 @@ class TypeInferenceTest {
     val todo = Lambda(Id("x"), patterns.Alternative(patterns.Cons(patterns.Id("x"),patterns.Id("xs")),
 						    patterns.Cons(patterns.Id("x"),patterns.Nil)))
   }
-
+  
   /**
    * More tests!
    */
@@ -203,10 +203,10 @@ class TypeInferenceTest {
 		 TypeInference.typeCheck(TypeInference.emptyEnv, e2))
   }
 
-    @Test
+  @Test
   def test_e4 = {
     val e3 = Let(patterns.Id("a"), Lambda(Id("a"), patterns.Id("a")),
-	       App(Id("a"),Id("a")))
+		 App(Id("a"),Id("a")))
     val e4 = App(e3,Integer(42))
     assertEquals((List(),TypeInt()),
 		 TypeInference.typeCheck(TypeInference.emptyEnv, e4))
@@ -231,7 +231,7 @@ class TypeInferenceTest {
 		     App(Id("a"), Id("a")),
 		     App(Id("a"), Id("a"))))
     assertEquals((List(TypeVariable(7)),TypeFn(TypeVariable(7),TypeVariable(7))),
-		  TypeInference.typeCheck(TypeInference.emptyEnv, e6))
+		 TypeInference.typeCheck(TypeInference.emptyEnv, e6))
   }
 
   @Test
@@ -280,7 +280,7 @@ class TypeInferenceTest {
     val e12 = Match(Tuple(Integer(1),Integer(2),Integer(3)),
 		    (patterns.Tuple(patterns.Id("x"),patterns.Underscore,patterns.Id("y")),
 		     BinOp(BinaryOperator.add,Id("x"),Id("y"))))
-      assertEquals((List(),TypeInt()),
+    assertEquals((List(),TypeInt()),
 		 TypeInference.typeCheck(TypeInference.emptyEnv, e12))
   }
 
@@ -346,6 +346,17 @@ class TypeInferenceTest {
     val test = BinOp(BinaryOperator.and, Integer(1), Bool(true))
 
     TypeInference.typeCheck(TypeInference.emptyEnv, test)
+  }
+
+  @Test
+  def test_Fac = {
+    val fac = LetRec(App(Id("fac"), Integer(5)),
+		     (patterns.Id("fac"),
+		      Lambda(IfThenElse(BinOp(BinaryOperator.eq, Id("n"), Integer(0)),
+					Integer(1),
+					BinOp(BinaryOperator.mul, Id("n"), App(Id("fac"), BinOp(BinaryOperator.sub, Id("n"), Integer(1))))),
+					patterns.Id("n"))))
+	       
   }
 }
 
