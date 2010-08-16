@@ -376,20 +376,20 @@ class TypeInferenceTest {
 								       (patterns.Integer(0), App(Id("a"), BinOp(BinaryOperator.sub, Id("m"), Integer(1)), Integer(1))),
 								       (patterns.Underscore, App(Id("a"), BinOp(BinaryOperator.sub, Id("m"), Integer(1)),
 												 App(Id("a"), Id("m"), BinOp(BinaryOperator.sub, Id("n"), Integer(1)))))))),
-				      patterns.Id("m")),
+				     patterns.Id("m")),
 			      patterns.Id("n"))))
 
     assertEquals((List(), TypeInt()),
-			    TypeInference.typeCheck(TypeInference.emptyEnv, test))
+		 TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
 
   @Test
   def test_Lambda_Match_Record = {
     val e = Let(patterns.Record((patterns.Id("field1"), patterns.Cons(patterns.Id("x"),patterns.Id("xs")))),
-				expressions.Record((Id("field1"), Cons(Integer(1), Cons(Integer(2), Nil)))),
-				Id("x"))
+		expressions.Record((Id("field1"), Cons(Integer(1), Cons(Integer(2), Nil)))),
+		Id("x"))
     assertEquals((List(), TypeInt()),
-			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
+		 TypeInference.typeCheck(TypeInference.emptyEnv, e))
   }
 
   @Test
@@ -397,7 +397,7 @@ class TypeInferenceTest {
     // should type check; would throw an pattern match
     val e = Let(patterns.Integer(1), Integer(2), Integer(3))
     assertEquals((List(), TypeInt()),
-			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
+		 TypeInference.typeCheck(TypeInference.emptyEnv, e))
   }
 
 
@@ -406,7 +406,7 @@ class TypeInferenceTest {
     // should type check; would throw an pattern match
     val e = Lambda(Integer(2), patterns.Integer(1))
     assertEquals((List(), TypeFn(TypeInt(), TypeInt())),
-			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
+		 TypeInference.typeCheck(TypeInference.emptyEnv, e))
   }
 
   def test_Oddeven = {
@@ -416,9 +416,9 @@ class TypeInferenceTest {
 							(patterns.Underscore, App(Id("even"), BinOp(BinaryOperator.sub, Id("x"), Integer(1))))),
 						  patterns.Id("x"))),
 		      (patterns.Id("even"), Lambda(Match(Id("y"),
-							  (patterns.Integer(0), Bool(true)),
-							  (patterns.Underscore, App(Id("odd"), BinOp(BinaryOperator.sub, Id("y"), Integer(1))))),
-						    patterns.Id("y"))))
+							 (patterns.Integer(0), Bool(true)),
+							 (patterns.Underscore, App(Id("odd"), BinOp(BinaryOperator.sub, Id("y"), Integer(1))))),
+						   patterns.Id("y"))))
 
     assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
@@ -426,16 +426,16 @@ class TypeInferenceTest {
   @Test
   def test_Complexmatch = {
     val test = LetRec(Match(App(Id("list"), Integer(5)),
-			  (patterns.Nil, Integer(42)),
-			  (patterns.Cons(patterns.Id("n1"), patterns.Cons(patterns.Id("n2"), patterns.Cons(patterns.Id("n3"), patterns.Nil))), Id("n2")),
-			  (patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Match(Id("n2"),
-										(patterns.Nil, Integer(42)),
-										(patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Id("n1"))))
-			  ),
-			(patterns.Id("list"), Lambda(Match(Id("n"),
-							   (patterns.Integer(0), Nil),
-							   (patterns.Underscore, Cons(Id("n"), App(Id("list"), BinOp(BinaryOperator.sub, Id("n"), Integer(1)))))),
-						      patterns.Id("n"))))
+			    (patterns.Nil, Integer(42)),
+			    (patterns.Cons(patterns.Id("n1"), patterns.Cons(patterns.Id("n2"), patterns.Cons(patterns.Id("n3"), patterns.Nil))), Id("n2")),
+			    (patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Match(Id("n2"),
+											(patterns.Nil, Integer(42)),
+											(patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Id("n1"))))
+      ),
+		      (patterns.Id("list"), Lambda(Match(Id("n"),
+							 (patterns.Integer(0), Nil),
+							 (patterns.Underscore, Cons(Id("n"), App(Id("list"), BinOp(BinaryOperator.sub, Id("n"), Integer(1)))))),
+						   patterns.Id("n"))))
 
     assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
@@ -458,6 +458,21 @@ class TypeInferenceTest {
 		   Integer(1))
 
     TypeInference.typeCheck(TypeInference.emptyEnv, test)
+  }
+
+  @Test
+  def test_parseInt = {
+    val parseminus = Lambda(IfThenElse(BinOp(BinaryOperator.eq,Id("x"),Character('-')),
+				       Tuple(Lambda(UnOp(UnaryOperator.neg,Id("z")),patterns.Id("z")), Id("xs")),
+				       Tuple(Lambda(Id("z"),patterns.Id("z")), Cons(Id("x"), Id("xs")))),
+			    patterns.Cons(patterns.Id("x"),patterns.Id("xs")))
+    val parsepositive = Lambda(Match(Id("list"), (patterns.Nil, Id("acc")),
+				     (patterns.Cons(patterns.Id("x"),patterns.Id("xs")),
+				      App(Id("parsepositive"),Id("xs"),
+					  BinOp(BinaryOperator.add,
+						BinOp(BinaryOperator.mul,Integer(10), Id("acc")),
+						(App(Id("intofchar"), Id("x"))))))),
+				     patterns.Id("list"),patterns.Id("acc"))
   }
 }
 
