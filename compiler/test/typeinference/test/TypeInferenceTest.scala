@@ -349,14 +349,22 @@ class TypeInferenceTest {
   }
 
   @Test
+  def test_TupleElem = {
+    val tuple = Tuple(Integer(1), Character('a'))
+    assertEquals((List(),TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, TupleElem(tuple, 1)))
+    assertEquals((List(),TypeChar()), TypeInference.typeCheck(TypeInference.emptyEnv, TupleElem(tuple, 2)))
+  }
+
+  @Test
   def test_Fac = {
     val fac = LetRec(App(Id("fac"), Integer(5)),
 		     (patterns.Id("fac"),
 		      Lambda(IfThenElse(BinOp(BinaryOperator.eq, Id("n"), Integer(0)),
 					Integer(1),
 					BinOp(BinaryOperator.mul, Id("n"), App(Id("fac"), BinOp(BinaryOperator.sub, Id("n"), Integer(1))))),
-					patterns.Id("n"))))
-	       
+			     patterns.Id("n"))))
+    assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, fac))
   }
+
 }
 

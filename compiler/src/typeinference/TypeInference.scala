@@ -151,6 +151,24 @@ object TypeInference {
       case expressions.Bool(_) => (TypeBool(), fresh, List())
       case expressions.Character(_) => (TypeChar(), fresh, List())
 
+      case expressions.Sequence(_,expr2) =>
+	// TODO: we might test here whether expr1 is of type Unit and if so
+	// print a warning
+	val (typeExpr2, freshNew, constraints) = constraintGen(gamma,expr2, fresh)
+	(typeExpr2,freshNew,List())
+
+      case expressions.TupleElem(tup, nr) =>
+	tup match {
+	  case expressions.Tuple(expr@_*) =>
+	    val (tupleTypes,freshNew,constraints) = determineTupleTypes(expr.toList, List(), gamma, fresh, List())
+	    // tuple indexing start at 1
+	    (tupleTypes(nr-1),freshNew,constraints)
+	}
+
+	// TODO: ?
+//      case expressions.TupleElem(tuple, nr) =>
+//	putExpressionIntoEnv(gamma,tuple,tpe,fresh)
+
       case expressions.Id(x) =>
         lookup(gamma, x) match {
           case Left(err) => throw new TypeError(err)
@@ -710,8 +728,7 @@ object TypeInference {
 	    }
 	    (currGamma,currFresh)
 	}
-      case expressions.TupleElem(tuple, nr) =>
-	putExpressionIntoEnv(gamma,tuple,tpe,fresh)
+
       case expressions.Record(defs) =>
 	// can't infer any type information
 	(gamma,fresh)
