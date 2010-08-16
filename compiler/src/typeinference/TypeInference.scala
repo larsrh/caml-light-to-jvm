@@ -181,8 +181,12 @@ object TypeInference {
 
       case expressions.UnOp(op, e) =>
 	val (t, f, c) = constraintGen(gamma, e, fresh)
-	(t, f, (TypeBool(), t) :: c)
-
+	op match {
+	  case expressions.UnaryOperator.neg => (t, f, (TypeInt(), t) :: c)
+	  case expressions.UnaryOperator.not => (t, f, (TypeBool(), t) :: c)
+	  case _ => throw new TypeError("Unknown unary operator.")
+	}
+	
       case expressions.IfThenElse(e1, e2, e3) =>
 	val (t1, fresh1, c1) = constraintGen(gamma, e1, fresh)
 	val (t2, fresh2, c2) = constraintGen(gamma, e2, fresh1)
@@ -198,13 +202,12 @@ object TypeInference {
 	  case expressions.BinaryOperator.eq | expressions.BinaryOperator.neq
 	    | expressions.BinaryOperator.geq | expressions.BinaryOperator.leq
 	    | expressions.BinaryOperator.gr | expressions.BinaryOperator.le =>
+	    println("e1: " + e1)
+	     println("e2: " + e2)
 	    (TypeBool(), fresh2, (t1,t2)::c1 ++ c2)
 	  case _ => (t1,fresh2,(t1,t2)::c1 ++ c2)
 	}
 
-	/******************************************************************************/
-	/******************************** LAMBDA CASES ********************************/
-	/******************************************************************************/
 	
       case expressions.Lambda(body, p) =>
 	val (patternType,fresh1) = getPatternType(p,fresh)
