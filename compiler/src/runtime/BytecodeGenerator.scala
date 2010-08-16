@@ -8,7 +8,7 @@ import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, _}
 // TODO inherit from some better suited exception
 class CompilerAssertion(msg: String) extends Exception
 
-class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
+class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continueLabel:Label) {
 
 	/* loads value 1 from the frame. this value holds a Machine instance */
 	def aload = {
@@ -24,6 +24,17 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 		mv.visitIntInsn(BIPUSH, constant)
 		this
 	}
+	def storeGoto(constant: Int) = {
+		bipush(constant)
+		mv.visitVarInsn(ISTORE, 2)
+		this
+	}
+
+	def jumpGoto() = {
+		mv.visitJumpInsn(GOTO, continueLabel)
+		this
+	}
+
 	// TODO: implement iconst_<i> ? Not much use probably
 
 	def invokevirtual(name: String, sig: String) = {
@@ -31,13 +42,20 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 		this
 	}
 
-	def condjump(comp: Int, label: LABEL) = {
-		labels get label match {
-			case Some(l) => mv.visitJumpInsn(comp, l)
-			case None => throw new CompilerAssertion("jump target unknown")
-		}
+	def jump(label: LABEL) = {
+		storeGoto(label.nr) jumpGoto
 	}
 
+	def jumpz(label: LABEL) = {
+		val l7 = new Label()
+
+		mv.visitJumpInsn(IFNE, l7)
+		jump(label)
+
+		mv.visitLabel(l7)
+		this
+	}
+	
 	def enterLabel(label: LABEL) = {
 		labels get label match {
 			case Some(l) => mv.visitLabel(l)
@@ -56,8 +74,8 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label]) {
 			case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
 			case SETLABEL(label) => enterLabel(label)
 			case EQ => aload invokevirtual("eq", "()V")
-			case JUMPZ(label) => aload invokevirtual("popraw", "()I") condjump(IFEQ, label)
-			case JUMP(label) => condjump(GOTO, label)
+			case JUMPZ(label) => aload invokevirtual("popraw", "()I") jumpz(label)
+			case JUMP(label) => jump(label)
 			case ALLOC(value) => aload bipush value invokevirtual("alloc", "(I)V")
 		}
 	}
@@ -116,33 +134,28 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		val compilerLabels = orderedLabels.collect({case a => a._1.nr})
 		val jvmLabels = orderedLabels.collect({case a => a._2})
 
-		println(compilerLabels)
-		println(jvmLabels)
-		println(compilerLabels.last + 1)
-
 		println((Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1)).toList)
 		println((Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel)).toList)
 
-		/*
 		mv.visitLookupSwitchInsn(defaultLabel,
 			Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1),
 			Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel))
-		*/
 
 		//println((Array[Label](switchEntry, l3, l4, doTerminateLabel)).toList)
-		mv.visitLookupSwitchInsn(defaultLabel, Array[Int](0, 1, 2, 3),
-			Array[Label](switchEntry, l3, l4, doTerminateLabel))
+		//mv.visitLookupSwitchInsn(defaultLabel, Array[Int](0, 1, 2, 3),
+		//	Array[Label](switchEntry, l3, l4, doTerminateLabel))
 
 		// case 0
 		mv.visitLabel(switchEntry)
 
 		// from here starts the actual code generation
 		// we need to discover the labels first
-		//val gen = new BytecodeGenerator(mv, discoverLabels(instr))
+		val gen = new BytecodeGenerator(mv, knownLabels, continueLabel)
 		// generate the instructions
-		//instr map gen.generateInstruction
+		instr map gen.generateInstruction
 
 		// case 1
+		/*
 		mv.visitLabel(l3)
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitIntInsn(BIPUSH, 97)
@@ -174,6 +187,7 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		mv.visitVarInsn(ALOAD, 1)
 		mv.visitInsn(ICONST_0)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "loadc", "(I)V")
+		*/
 
 		// case 3
 		mv.visitLabel(doTerminateLabel)
