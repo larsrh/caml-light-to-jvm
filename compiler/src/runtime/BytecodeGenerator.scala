@@ -3,7 +3,8 @@ import scala.collection.immutable.HashMap
 import org.objectweb.asm._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.Type._
-import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, _}
+import codegen.mama.mamaInstructions.{RETURN => MAMARETURN, POP => MAMAPOP, _}
+//import codegen.mama.{mamaInstructions => mama}
 
 // TODO inherit from some better suited exception
 class CompilerAssertion(msg: String) extends Exception
@@ -65,6 +66,30 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		jumpGoto
 		this
 	}
+
+	/*
+	 * eval either returns a label (we have to jump to that) or -1, which
+	 * we have to ignore. handleEval generates the code that compares the result
+	 * to -1 and jumps
+	 */
+	def handleEvalReturn() = {
+		val noJump = new Label()
+
+		// duplicate the return value of eval
+		mv.visitInsn(DUP)
+		// push -1 to compare it with
+		bipush(-1)
+		// if it was equal to -1, jump to noAct
+		mv.visitJumpInsn(IF_ICMPEQ, noJump)
+		// otherwise, jump to that value
+		jumpto
+
+		// eval return value was -1
+		mv.visitLabel(noJump)
+		// just pop the return value
+		mv.visitInsn(POP)
+		this
+	}
 	
 	def enterLabel(label: LABEL) = {
 		labels get label match {
@@ -91,6 +116,7 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 			case MKCLOS(LABEL(l)) => aload bipush(l) invokevirtual("mkclos", "(I)V")
 			case UPDATE => aload invokevirtual("update", "()I") jumpto
 			case PUSHGLOB(n) => aload bipush(n) invokevirtual("pushglob", "(I)V")
+			case EVAL(LABEL(l)) => aload bipush(l) invokevirtual("eval", "(I)I") handleEvalReturn
 		}
 	}
 }

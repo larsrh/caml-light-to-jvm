@@ -580,6 +580,18 @@ public class Machine {
 
 		m._pstack();
 	}
+
+	public static int minus1() {
+		return -1;
+	}
+
+	public static void main_comp(String[] args) {
+		int candidate = minus1();
+		if (candidate != -1) {
+			System.out.println("Jumping to candidate");
+		}
+		System.out.println("Ending");
+	}
 }
 
 /*
