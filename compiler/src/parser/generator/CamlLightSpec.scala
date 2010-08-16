@@ -25,7 +25,7 @@ object CamlLightTerminals extends SymbolEnum {
 object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object NonTerminals extends SymbolEnum {
-		val expr, binding, andbindings, commaseq, entry, record = NonTerminalEnum
+		val expr, simpleexpr, simpleexprlist, list, binding, andbindings, commaseq, entry, record = NonTerminalEnum
 		val pattern, caselist, `case`, funcase, funcaselist, patentry, patrecord, pattuple = NonTerminalEnum
 		val typeexpr, typedef, param, cdecl = NonTerminalEnum
 	}
@@ -53,6 +53,9 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class CHARCONST extends SymbolValue[Char]
 	class IDENTIFIER extends SymbolValue[String]
 	class expr extends SymbolValue[Expression]
+	class simpleexpr extends SymbolValue[Expression]
+	class simpleexprlist extends SymbolValue[List[Expression]]
+	class list extends SymbolValue[List[Expression]]
 	class pattern extends SymbolValue[Pattern]
 	class pattuple extends SymbolValue[List[Pattern]]
 	class `case` extends SymbolValue[Case]
@@ -69,34 +72,39 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class typeexpr extends SymbolValue[TypeExpression]
 	class typedef extends SymbolValue[TypeDefinition]
 
-	val freshSym = new (() => String) {
-		private var symCount = 0
+	private var symCount = 0
 
-		def apply() = {
-			val sym = "0" + symCount
-			symCount += 1
-			sym
-		}
+	def freshSym() = {
+		val sym = "0" + symCount
+		symCount += 1
+		sym
 	}
+		
+	protected[generator] def resetCounter() = symCount = 0
 
-	precedences(left(POINT), left(APP_DUMMY), left(TUPLEACC), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(NEG_DUMMY), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
+	precedences(
+		left(POINT), left(APP_DUMMY), left(TUPLEACC),
+		left(STAR, SLASH), left(PLUS, MINUS),
+		left(NEG_DUMMY),
+		right(CONS),
+		left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS),
+		left(NOT), left(AND), left(OR),
+		left(BIND),
+		left(COMMA),
+		left(IF), left(THEN), left(ELSE),
+		left(SEMI),
+		left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN),
+		left(FUN), left(FUNCTION),
+		left(MATCH), left(WITH)
+	)
 
 	grammar(
 		expr -> (
-			prec(rhs(expr, expr), APP_DUMMY) ^^ { (head: Expression, tail: Expression) => App(head, tail) } |
-			IDENTIFIER ^^ (Id.apply _) |
-			INTCONST ^^ (Integer.apply _) |
-			BOOLCONST ^^ (Bool.apply _) |
-			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str.map(Character.apply _).toList) } |
-			CHARCONST ^^ (Character.apply _) |
-			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
-				case List(expr) => expr
-				case List(l @ _*) => Tuple(l: _*)
-			} } |
-			LSQBRACKET ~ RSQBRACKET ^^ { () => expressions.Nil } |
+			simpleexpr ^^ (Predef.identity[Expression] _) |
+			prec(rhs(simpleexpr, simpleexprlist), APP_DUMMY) ^^ { (head: Expression, tail: List[Expression]) => App(head, tail: _*) } |
 			expr ~ TUPLEACC ~ INTCONST ^^ { (expr: Expression, n: Int) => TupleElem(expr, n) } |
 			chain(CONS, Cons.apply) |
-			chain(SEMI, Sequence.apply) |
+			//chain(SEMI, Sequence.apply) |
 			// bin ops
 			(Map(
 				BinaryOperator.add -> PLUS,
@@ -122,7 +130,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			LBRACE ~ record ~ RBRACE ^^ { (entries: List[Entry]) => expressions.Record(entries: _*) } |
 			FUNCTION ~ caselist ^^ { (cases: List[Case]) =>
 				val sym = freshSym()
-				Lambda(Match(Id(sym), cases: _*), patterns.Id(sym))
+				Lambda(Match(Id(sym), cases: _*), List(patterns.Id(sym)): _*)
 			} |
 			FUN ~ funcaselist ^^ { (cases: List[FunCase]) =>
 				val lengths = cases map (_._1.length) toSet;
@@ -144,6 +152,27 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 					syms.map(patterns.Id.apply): _*
 				)
 			}
+		),
+		simpleexpr -> (
+			IDENTIFIER ^^ (Id.apply _) |
+			INTCONST ^^ (Integer.apply _) |
+			BOOLCONST ^^ (Bool.apply _) |
+			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str.map(Character.apply _).toList) } |
+			CHARCONST ^^ (Character.apply _) |
+			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
+				case List(expr) => expr
+				case List(l @ _*) => Tuple(l: _*)
+			} } |
+			LSQBRACKET ~ RSQBRACKET ^^ { () => expressions.Nil } |
+			LSQBRACKET ~ list ~ RSQBRACKET ^^ { (seq: List[Expression]) => ListExpression.fromSeq(seq) }
+		),
+		simpleexprlist -> (
+			simpleexpr ^^ { (expr: Expression) => List(expr) } |
+			simpleexpr ~ simpleexprlist ^^ { (head: Expression, tail: List[Expression]) => head :: tail }
+		),
+		list -> (
+			expr ^^ { (expr: Expression) => List(expr) } |
+			expr ~ SEMI ~ list ^^ { (head: Expression, tail: List[Expression]) => head :: tail }
 		),
 		binding -> (
 			IDENTIFIER ~ BIND ~ expr ^^ { (str: String, expr: Expression) => (patterns.Id(str), expr) }

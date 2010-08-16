@@ -35,6 +35,7 @@ object Test extends Application {
 
 			val result =
 				try {
+					CamlLightSpec.resetCounter()
 					Left(normalize(parser.parse(new CamlLightScanner(new StringReader(input))).asInstanceOf[Expression]).toString);
 				}
 				catch {
