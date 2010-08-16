@@ -459,5 +459,12 @@ class TypeInferenceTest {
 
     TypeInference.typeCheck(TypeInference.emptyEnv, test)
   }
+
+  @Test
+  def test_Record2 {
+    val test = Let(patterns.Id("x"), expressions.Record((Id("y"), Lambda(Integer(1), patterns.Integer(2)))), Integer(0))
+
+    assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
 }
 
