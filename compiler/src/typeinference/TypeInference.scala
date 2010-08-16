@@ -187,8 +187,6 @@ object TypeInference {
 	val (t1, fresh1, c1) = constraintGen(gamma, e1, fresh)
 	val (t2, fresh2, c2) = constraintGen(gamma, e2, fresh1)
 	val (t3, fresh3, c3) = constraintGen(gamma, e3, fresh2)
-	println("t2: " + t2)
-	println("t3: " + t3)
 	(t2, fresh3, (t2,t3) :: (TypeBool(),t1) :: c1 ++ c2 ++ c3)
 
       case expressions.BinOp(op, e1, e2) =>
