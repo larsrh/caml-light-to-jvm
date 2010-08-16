@@ -1,5 +1,4 @@
 (* complex list match test *)
-(* NOT WORKING YET *)
 
 let rec
 		list = function n ->
