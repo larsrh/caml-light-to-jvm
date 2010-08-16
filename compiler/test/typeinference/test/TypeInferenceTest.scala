@@ -397,5 +397,22 @@ class TypeInferenceTest {
 
     assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
+
+  @Test
+  def test_Complexmatch = {
+    val test = LetRec(Match(App(Id("list"), Integer(5)),
+			  (patterns.Nil, Integer(42)),
+			  (patterns.Cons(patterns.Id("n1"), patterns.Cons(patterns.Id("n2"), patterns.Cons(patterns.Id("n3"), patterns.Nil))), Id("n2")),
+			  (patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Match(Id("n2"),
+										(patterns.Nil, Integer(42)),
+										(patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Id("n1"))))
+			  ),
+			(patterns.Id("list"), Lambda(Match(Id("n"),
+							   (patterns.Integer(0), Nil),
+							   (patterns.Underscore, Cons(Id("n"), App(Id("list"), BinOp(BinaryOperator.sub, Id("n"), Integer(1)))))),
+						      patterns.Id("n"))))
+
+    assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
 }
 
