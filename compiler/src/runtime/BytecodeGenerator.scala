@@ -87,10 +87,10 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 			case JUMPZ(label) => aload invokevirtual("popraw", "()I") jumpz(label)
 			case JUMP(label) => jump(label)
 			case ALLOC(value) => aload bipush value invokevirtual("alloc", "(I)V")
-			case MKVEC(length) => bipush(length).aload invokevirtual("mkvec", "(I)V")
-			case MKCLOS(LABEL(l)) => bipush(l).aload invokevirtual("mkclos", "(I)V")
+			case MKVEC(length) => aload bipush(length) invokevirtual("mkvec", "(I)V")
+			case MKCLOS(LABEL(l)) => aload bipush(l) invokevirtual("mkclos", "(I)V")
 			case UPDATE => aload invokevirtual("update", "()I") jumpto
-			case PUSHGLOB(n) => bipush(n) invokevirtual("pushglob", "(I)V")
+			case PUSHGLOB(n) => aload bipush(n) invokevirtual("pushglob", "(I)V")
 		}
 	}
 }
