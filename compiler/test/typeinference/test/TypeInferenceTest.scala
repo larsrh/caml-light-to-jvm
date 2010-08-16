@@ -383,5 +383,30 @@ class TypeInferenceTest {
 			    TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
 
+  @Test
+  def test_Lambda_Match_Record = {
+    val e = Let(patterns.Record((patterns.Id("field1"), patterns.Cons(patterns.Id("x"),patterns.Id("xs")))),
+				expressions.Record((Id("field1"), Cons(Integer(1), Cons(Integer(2), Nil)))),
+				Id("x"))
+    assertEquals((List(), TypeInt()),
+			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
+  }
+
+  @Test
+  def test_Let_Match_Literal = {
+    // should type check; would throw an pattern match
+    val e = Let(patterns.Integer(1), Integer(2), Integer(3))
+    assertEquals((List(), TypeInt()),
+			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
+  }
+
+
+  @Test
+  def test_Lambda_Match_Literal = {
+    // should type check; would throw an pattern match
+    val e = Lambda(Integer(2), patterns.Integer(1))
+    assertEquals((List(), TypeFn(TypeInt(), TypeInt())),
+			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
+  }
 }
 
