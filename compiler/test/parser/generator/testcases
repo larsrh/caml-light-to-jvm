@@ -39,3 +39,5 @@ f (x@1) (x@2)#App(Id(f),List(TupleElem(Id(x),1), TupleElem(Id(x),2)))
 f (-x)#App(Id(f),List(UnOp(neg,Id(x))))
 function _ -> 0 | (x,y) -> a#Lambda(Match(Id(00),List((Underscore,Integer(0)), (Tuple(List(Id(x), Id(y))),Id(a)))),List(Id(00)))
 #let rec f = function _ -> 0 in f 6#TODO
+fun x y z -> x | a b _ -> b#Lambda(Match(Tuple(List(Id(01), Id(02), Id(03))),List((Tuple(List(Id(x), Id(y), Id(z))),Id(x)), (Tuple(List(Id(a), Id(b), Underscore)),Id(b)))),List(Id(01), Id(02), Id(03)))
+fun a::b (c,d) -> a#Lambda(Match(Tuple(List(Id(04), Id(05))),List((Tuple(List(Cons(Id(a),Id(b)), Tuple(List(Id(c), Id(d))))),Id(a)))),List(Id(04), Id(05)))

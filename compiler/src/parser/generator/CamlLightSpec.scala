@@ -26,7 +26,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 
 	object NonTerminals extends SymbolEnum {
 		val expr, binding, andbindings, commaseq, entry, record = NonTerminalEnum
-		val pattern, caselist, `case`, patentry, patrecord, pattuple = NonTerminalEnum
+		val pattern, caselist, `case`, funcase, funcaselist, patentry, patrecord, pattuple = NonTerminalEnum
 		val typeexpr, typedef, param, cdecl = NonTerminalEnum
 	}
 
@@ -45,6 +45,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	type Definition = (patterns.Id, Expression)
 	type Entry = (Id, Expression)
 	type PatEntry = (patterns.Id, Pattern)
+	type FunCase = (List[Pattern], Expression)
 
 	class INTCONST extends SymbolValue[Int]
 	class BOOLCONST extends SymbolValue[Boolean]
@@ -56,6 +57,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class pattuple extends SymbolValue[List[Pattern]]
 	class `case` extends SymbolValue[Case]
 	class caselist extends SymbolValue[List[Case]]
+	class funcase extends SymbolValue[FunCase]
+	class funcaselist extends SymbolValue[List[FunCase]]
 	class patentry extends SymbolValue[PatEntry]
 	class patrecord extends SymbolValue[List[PatEntry]]
 	class binding extends SymbolValue[Definition]
@@ -66,11 +69,17 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class typeexpr extends SymbolValue[TypeExpression]
 	class typedef extends SymbolValue[TypeDefinition]
 
-	var symCount = 0
+	val freshSym = new (() => String) {
+		private var symCount = 0
+
+		def apply() = {
+			val sym = "0" + symCount
+			symCount += 1
+			sym
+		}
+	}
 
 	precedences(left(POINT), left(APP_DUMMY), left(TUPLEACC), left(STAR), left(SLASH), left(PLUS), left(MINUS), left(NEG_DUMMY), right(CONS), left(EQ), left(LEQ), left(NEQ), left(GEQ), left(GREATER), left(LESS), left(NOT), left(AND), left(OR), left(BIND), left(COMMA), left(IF), left(THEN), left(ELSE), left(SEMI), left(PIPE), left(ARROW), left(LET), left(REC), left(LETAND), left(IN), left(FUN), left(FUNCTION), left(MATCH), left(WITH))
-
-	// TODO lambda
 
 	grammar(
 		expr -> (
@@ -112,9 +121,28 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			LET ~ REC ~ andbindings ~ IN ~ expr ^^ { (bindings: List[Definition], body: Expression) => LetRec(body, bindings: _*) } |
 			LBRACE ~ record ~ RBRACE ^^ { (entries: List[Entry]) => expressions.Record(entries: _*) } |
 			FUNCTION ~ caselist ^^ { (cases: List[Case]) =>
-				val sym = "0" + symCount
-				symCount += 1
+				val sym = freshSym()
 				Lambda(Match(Id(sym), cases: _*), patterns.Id(sym))
+			} |
+			FUN ~ funcaselist ^^ { (cases: List[FunCase]) =>
+				val lengths = cases map (_._1.length) toSet;
+				if (lengths.size != 1) throw new IllegalArgumentException("funcaselist")
+
+				// we read input of form
+				//   fun
+				//     p11 p12 ... p1i -> e1
+				//   | p21 p22 ... p2i -> e2
+				//   | ...
+				// and transform it to
+				//   lambda x1 ... xi => match (x1, ..., xi) with
+				//     (p11, p12, ..., p1i) -> e1
+				//   | ...
+				val syms = (1 to lengths.head) map { _ => freshSym() } toList
+				val tupledCases = cases map { case (pats, expr) => (patterns.Tuple(pats: _*), expr) }
+				Lambda(
+					Match(Tuple(syms.map(Id.apply): _*), tupledCases: _*),
+					syms.map(patterns.Id.apply): _*
+				)
 			}
 		),
 		binding -> (
@@ -169,6 +197,14 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		caselist -> (
 			`case` ^^ { (c: Case) => List(c) } |
 			`case` ~ PIPE ~ caselist ^^ { (head: Case, tail: List[Case]) => head :: tail }
+		),
+		funcase -> (
+			pattern ~ ARROW ~ expr ^^ { (pattern: Pattern, expr: Expression) => (List(pattern), expr) } |
+			pattern ~ funcase ^^ { (pattern: Pattern, funcase: FunCase) => (pattern :: funcase._1, funcase._2) }
+		),
+		funcaselist -> (
+			funcase ^^ { (c: FunCase) => List(c) } |
+			funcase ~ PIPE ~ funcaselist ^^ { (head: FunCase, tail: List[FunCase]) => head :: tail }
 		)
 
 		/*,

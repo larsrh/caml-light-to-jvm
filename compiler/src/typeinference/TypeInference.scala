@@ -180,17 +180,8 @@ object TypeInference {
         }
 
       case expressions.UnOp(op, e) =>
-	op match {
-	  case expressions.UnaryOperator.neg => constraintGen(gamma, e, fresh) match {
-	      case (t: TypeInt, fresh1, c) => (t, fresh1, c)
-	      case _ => throw new TypeError("error 42")
-	    }
-	  case expressions.UnaryOperator.not => constraintGen(gamma, e, fresh) match {
-	      case (t: TypeBool, fresh1, c) => (t, fresh1, c)
-	      case _ => throw new TypeError("error 23")
-	    }
-	  case _ => throw new TypeError("error 2")
-	}
+	val (t, f, c) = constraintGen(gamma, e, fresh)
+	(t, f, (TypeBool(), t) :: c)
 
       case expressions.IfThenElse(e1, e2, e3) =>
 	val (t1, fresh1, c1) = constraintGen(gamma, e1, fresh)

@@ -408,5 +408,36 @@ class TypeInferenceTest {
     assertEquals((List(), TypeFn(TypeInt(), TypeInt())),
 			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
   }
+
+  def test_Oddeven = {
+    val test = LetRec(BinOp(BinaryOperator.and, App(Id("even"), Integer(4)), UnOp(UnaryOperator.not, App(Id("odd"), Integer(0)))),
+		      (patterns.Id("odd"), Lambda(Match(Id("x"),
+							(patterns.Integer(0), Bool(false)),
+							(patterns.Underscore, App(Id("even"), BinOp(BinaryOperator.sub, Id("x"), Integer(1))))),
+						  patterns.Id("x"))),
+		      (patterns.Id("even"), Lambda(Match(Id("y"),
+							  (patterns.Integer(0), Bool(true)),
+							  (patterns.Underscore, App(Id("odd"), BinOp(BinaryOperator.sub, Id("y"), Integer(1))))),
+						    patterns.Id("y"))))
+
+    assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
+
+  @Test
+  def test_Complexmatch = {
+    val test = LetRec(Match(App(Id("list"), Integer(5)),
+			  (patterns.Nil, Integer(42)),
+			  (patterns.Cons(patterns.Id("n1"), patterns.Cons(patterns.Id("n2"), patterns.Cons(patterns.Id("n3"), patterns.Nil))), Id("n2")),
+			  (patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Match(Id("n2"),
+										(patterns.Nil, Integer(42)),
+										(patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Id("n1"))))
+			  ),
+			(patterns.Id("list"), Lambda(Match(Id("n"),
+							   (patterns.Integer(0), Nil),
+							   (patterns.Underscore, Cons(Id("n"), App(Id("list"), BinOp(BinaryOperator.sub, Id("n"), Integer(1)))))),
+						      patterns.Id("n"))))
+
+    assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
 }
 
