@@ -461,6 +461,13 @@ class TypeInferenceTest {
   }
 
   @Test
+  def test_Record2 {
+    val test = Let(patterns.Id("x"), expressions.Record((Id("y"), Lambda(Integer(1), patterns.Integer(2)))), Integer(0))
+
+    assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
+
+  @Test
   def test_parseInt = {
     val parseminus = Lambda(IfThenElse(BinOp(BinaryOperator.eq,Id("x"),Character('-')),
 				       Tuple(Lambda(UnOp(UnaryOperator.neg,Id("z")),patterns.Id("z")), Id("xs")),
@@ -473,11 +480,31 @@ class TypeInferenceTest {
 						BinOp(BinaryOperator.mul,Integer(10), Id("acc")),
 						(App(Id("intofchar"), Id("x"))))))),
 				     patterns.Id("list"),patterns.Id("acc"))
-  }
 
-  @Test
-  def test_Record2 {
-    val test = Let(patterns.Id("x"), expressions.Record((Id("y"), Lambda(Integer(1), patterns.Integer(2)))), Integer(0))
+    val intofchar = (patterns.Id("intofchar"), Lambda(Match(Id("x"),
+						(patterns.Character('1'), Integer(1)),
+						(patterns.Character('2'), Integer(2)),
+						(patterns.Character('3'), Integer(3)),
+						(patterns.Character('4'), Integer(4)),
+						(patterns.Character('5'), Integer(5)),
+						(patterns.Character('6'), Integer(6)),
+						(patterns.Character('7'), Integer(7)),
+						(patterns.Character('8'), Integer(8)),
+						(patterns.Character('9'), Integer(9))
+    ), patterns.Id("x")))
+
+    val body = Let(patterns.Id("parsepos"), Lambda(App(Id("sign"), App(Id("parsepositive"), Id("list"), Integer(0))), patterns.Id("sign"), patterns.Id("list")),
+		    Let(patterns.Id("o"),
+			Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("f"), patterns.Id("g"), patterns.Id("x")),
+//			Lambda(Lambda(Lambda(App(Id("f"), App(Id("g"), App(Id("x")))), patterns.Id("x"), patterns.Id("g"))), patterns.Id("f")),
+			BinOp(BinaryOperator.add,
+			      App(Id("o"), App(Id("parsepos"), App(Id("parseminus"), Cons(Character('-'), Cons(Character('4'), Cons(Character('2'), Nil)))))),
+			      App(Id("o"), App(Id("parsepos"), App(Id("parseminus"), Cons(Character('4'), Cons(Character('2'), Nil))))))
+	))
+
+    val test = LetRec(body, (patterns.Id("parseminus"), parseminus),
+			    (patterns.Id("parsepositive"), parsepositive),
+			    intofchar)
 
     assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
