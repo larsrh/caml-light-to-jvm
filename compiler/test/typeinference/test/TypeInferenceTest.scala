@@ -384,6 +384,31 @@ class TypeInferenceTest {
   }
 
   @Test
+  def test_Lambda_Match_Record = {
+    val e = Let(patterns.Record((patterns.Id("field1"), patterns.Cons(patterns.Id("x"),patterns.Id("xs")))),
+				expressions.Record((Id("field1"), Cons(Integer(1), Cons(Integer(2), Nil)))),
+				Id("x"))
+    assertEquals((List(), TypeInt()),
+			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
+  }
+
+  @Test
+  def test_Let_Match_Literal = {
+    // should type check; would throw an pattern match
+    val e = Let(patterns.Integer(1), Integer(2), Integer(3))
+    assertEquals((List(), TypeInt()),
+			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
+  }
+
+
+  @Test
+  def test_Lambda_Match_Literal = {
+    // should type check; would throw an pattern match
+    val e = Lambda(Integer(2), patterns.Integer(1))
+    assertEquals((List(), TypeFn(TypeInt(), TypeInt())),
+			    TypeInference.typeCheck(TypeInference.emptyEnv, e))
+  }
+
   def test_Oddeven = {
     val test = LetRec(BinOp(BinaryOperator.and, App(Id("even"), Integer(4)), UnOp(UnaryOperator.not, App(Id("odd"), Integer(0)))),
 		      (patterns.Id("odd"), Lambda(Match(Id("x"),
@@ -396,6 +421,43 @@ class TypeInferenceTest {
 						    patterns.Id("y"))))
 
     assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
+
+  @Test
+  def test_Complexmatch = {
+    val test = LetRec(Match(App(Id("list"), Integer(5)),
+			  (patterns.Nil, Integer(42)),
+			  (patterns.Cons(patterns.Id("n1"), patterns.Cons(patterns.Id("n2"), patterns.Cons(patterns.Id("n3"), patterns.Nil))), Id("n2")),
+			  (patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Match(Id("n2"),
+										(patterns.Nil, Integer(42)),
+										(patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Id("n1"))))
+			  ),
+			(patterns.Id("list"), Lambda(Match(Id("n"),
+							   (patterns.Integer(0), Nil),
+							   (patterns.Underscore, Cons(Id("n"), App(Id("list"), BinOp(BinaryOperator.sub, Id("n"), Integer(1)))))),
+						      patterns.Id("n"))))
+
+    assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
+
+  @Test
+  def test_Record0 = {
+    // let {x = 0} = {x = 1} in 1
+    val test = Let(patterns.Record((patterns.Id("x"), patterns.Integer(0))),
+		   expressions.Record((Id("x"), Integer(1))),
+		   Integer(1))
+
+    assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
+
+  @Test (expected=classOf[TypeError])
+  def test_Record1 {
+    // let {x = 0} = {x = true} in 1
+    val test = Let(patterns.Record((patterns.Id("x"), patterns.Bool(true))),
+		   expressions.Record((Id("x"), Integer(1))),
+		   Integer(1))
+
+    TypeInference.typeCheck(TypeInference.emptyEnv, test)
   }
 }
 
