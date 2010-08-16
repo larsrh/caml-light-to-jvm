@@ -149,6 +149,7 @@ object Translator {
 		case Let(x,definition,body) => x match {
 				case patterns.Id(x) => cbfun(definition, rho, sd) ++ 
 					codev(body, rho + (x -> (VarKind.Local,sd+1)), sd+1) :+ SLIDE(1)
+					// let complex_pat = def in body = match def with complex_pat -> body
 				case _ => codev(Match(definition,(x,body)), rho, sd)
 			}
 		case LetRec(body,patDef@_*) => {
@@ -165,7 +166,7 @@ object Translator {
 				(list.flatMap((i:Int)=>cbfun(patDef(i) _2, rhoNew, sd+n) :+ REWRITE(n-i)) ++
 				 codev(body,rhoNew,sd+n) :+ SLIDE(n))
 			}
-		case Lambda(body,args@_*) => {
+		case Lambda(body,args@_*) => if(args forall { case patterns.Id(_) => true case _ => false }) {
 				val zs = (free(expr,LinkedHashSet.empty)).toList
 				val locs = (0 to args.length-1).toList
 				val globs = (0 to zs.size-1).toList
@@ -180,6 +181,14 @@ object Translator {
 						l ++ getvar((Id unapply zs(i)).get,rho,sd+i))) ++
 				List(MKVEC(globs.length),MKFUNVAL(A),JUMP(B),SETLABEL(A),TARG(locs.length,A)) ++ 
 				codev(body,rhoNew,0) ++ List(RETURN(locs.length), SETLABEL(B))
+			} else { // \complex_pat.body = \x.match x with complex_pat -> body
+				counter = counter + args.size
+				val list = (1 to args.size).toList
+				val matchExpr = (list foldLeft body)
+				{ case (e,i) => Match(Id("42"+(counter + i)),(args(i-1),e)) }
+				val newExpr = Lambda(matchExpr,(list map { (i:Int) => patterns.Id("42"+(counter + i)) }):_*)
+				
+				codev(newExpr,rho,sd)
 			}
 		case App(fun,args@_*) => {
 				val A = newLabel()
@@ -244,8 +253,8 @@ object Translator {
 		val vars = bound(p)
 		val n = vars.size
 		val rhoNew = ((1 to n).toList foldLeft rho)
-									{case (rhoTemp,i) => 
-					rhoTemp + {((Id unapply (vars.toList)(i-1)).get) -> (VarKind.Local,sd+i)}}
+		{case (rhoTemp,i) => 
+				rhoTemp + {((Id unapply (vars.toList)(i-1)).get) -> (VarKind.Local,sd+i)}}
 			
 		// FIXME save e in a (global?) variable
 		def matching(e:Expression, p:patterns.Pattern, sdAct:Int, i:Int):(List[Instruction],Int,Int) =
@@ -282,15 +291,15 @@ object Translator {
 							
 						(l1 ++ l2 :+ OR,sdAct2-1,i2)
 					}
-			  // This is UGLY
+					// This is UGLY
 				case patterns.Nil => {
 						val x = (counter + 1).toString
 						val y = (counter + 2).toString
 						counter = counter + 2
 						
 						(codeb(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(true)),
-												(patterns.Cons(patterns.Id("42"+x),patterns.Id("42"+y)),Bool(false))),
-									rhoNew,sdAct),sdAct+1,i)
+												 (patterns.Cons(patterns.Id("42"+x),patterns.Id("42"+y)),Bool(false))),
+									 rhoNew,sdAct),sdAct+1,i)
 					}
 				case patterns.Cons(head,tail) => {
 						val x = (counter + 1).toString
@@ -323,10 +332,10 @@ object Translator {
 		
 	def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
 	:List[Instruction] = rho.get(x) match {
-			case Some((VarKind.Global,i)) => List(PUSHGLOB(i))
-			case Some((VarKind.Local,i)) => {/*Console println (x,rho,sd,sd-i);*/ List(PUSHLOC(sd-i)) }
-			case _ => throw new Exception("Undefined variable " + x + " in codegen-phase")
-		}
+		case Some((VarKind.Global,i)) => List(PUSHGLOB(i))
+		case Some((VarKind.Local,i)) => {/*Console println (x,rho,sd,sd-i);*/ List(PUSHLOC(sd-i)) }
+		case _ => throw new Exception("Undefined variable " + x + " in codegen-phase")
+	}
 		
 	// Finds the instruction corresponding to the given operator
 	def instrOfOp(op:Operator#Value):Instruction = op match {
