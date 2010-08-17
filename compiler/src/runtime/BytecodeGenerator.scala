@@ -127,6 +127,7 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 			case APPLY => aload invokevirtual("apply", "()I") jumpto
 			case REWRITE(n) => aload invokevirtual("rewrite", "(I)V")
 			case MAMAPOP => aload invokevirtual("pop", "()V")
+			case HALT => aload invokevirtual("halt", "()V")
 		}
 	}
 }
