@@ -237,8 +237,8 @@ public class Machine {
 	}
 	
 	public void div() {
-		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
+		Raw r1 = (Raw)stack.pop();
 		stack.push(new Raw(r1.v / r2.v));
 		sp--;
 	}
@@ -269,8 +269,8 @@ public class Machine {
 	}
 	
 	public void geq() {
-		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
+		Raw r1 = (Raw)stack.pop();
 		if (r1.v >= r2.v) {
 			// push true
 			stack.push(new Raw(1));
@@ -304,8 +304,8 @@ public class Machine {
 	}
 	
 	public void gr() {
-		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
+		Raw r1 = (Raw)stack.pop();
 		if (r1.v > r2.v) {
 			// push true
 			stack.push(new Raw(1));
@@ -320,8 +320,8 @@ public class Machine {
 	}
 	
 	public void le() {
-		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
+		Raw r1 = (Raw)stack.pop();
 		if (r1.v < r2.v) {
 			// push true
 			stack.push(new Raw(1));
@@ -332,8 +332,8 @@ public class Machine {
 	}	
 	
 	public void leq() {
-		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
+		Raw r1 = (Raw)stack.pop();
 		if (r1.v <= r2.v) {
 			// push true
 			stack.push(new Raw(1));
