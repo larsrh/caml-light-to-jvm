@@ -24,7 +24,7 @@ def main(args:Array[String]):Unit = {
 		val inputs = Source.fromFile("test/bigbang/test").getLines()
 		
 		def parseExp(input:String):Expression = 
-			Normalizer.normalize(parser.parse(new CamlLightScanner(new StringReader(input))).asInstanceOf[Expression])
+			Normalizer.normalize(CamlLightSpec.parse(new StringReader(input))._1)
 		
 		def typeCheck(e:Expression):Unit = TypeInference.typeCheck(TypeInference.emptyEnv, e)
 		
