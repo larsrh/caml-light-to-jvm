@@ -66,6 +66,44 @@ import static parser.generator.CamlLightTerminals.*;
 
     return (char)(a * 100 + b * 10 + c);
   }
+
+  private char lexCharacter1(String str)
+  {
+    Pattern p = Pattern.compile("'([a-zA-Z0-9])'");
+    Matcher m = p.matcher(str);
+    m.matches();
+
+    return m.group(1).charAt(0);
+  }
+
+  private char lexCharacter2(String str)
+  {
+    Pattern p = Pattern.compile("'\\\\([0-9])([0-9])([0-9])'");
+    Matcher m = p.matcher(str);
+    m.matches();
+
+    int a = Integer.parseInt(m.group(1));
+    int b = Integer.parseInt(m.group(2));
+    int c = Integer.parseInt(m.group(3));
+
+    return (char)(a * 100 + b * 10 + c);
+  }
+
+  private char lexCharacter3(String str)
+  {
+    Pattern p = Pattern.compile("'\\([tnrb\\])'");
+    Matcher m = p.matcher(str);
+    m.matches();
+
+    switch (m.group(1).charAt(0)) {
+      case 't': return '\t';
+      case 'n': return '\n';
+      case 'r': return '\r';
+      case 'b': return '\b';
+      case '\\': return '\\';
+      default: throw new IllegalArgumentException("Error: Should not happen, but keeps Java quiet.");
+    }
+  }
 %}
 
 LineTerminator = \r | \n | \r\n
@@ -104,7 +142,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   "of"		{ return token(OF()); }
   "or"		{ return token(OR()); }
   "rec"		{ return token(REC()); }
-  "with"    { return token(WITH()); }
+  "with"	{ return token(WITH()); }
   "then"	{ return token(THEN()); }
   "true"	{ return token(BOOLCONST(), true); }
   "type"	{ return token(TYPE()); }
@@ -145,28 +183,27 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   {BinIntegerLiteral}	{ return token(INTCONST(), parseBinInt(yytext())); }
 
-  {Identifier}	{ return token(IDENTIFIER(), new String(yytext())); }
+  {Identifier}	{ return token(IDENTIFIER(), yytext()); }
 
-  \'		{ string.setLength(0); yybegin(CHARACTER); }
+  \'{Identifier}	{ return token(SQIDENTIFIER(), yytext()); }
+
+  \'[a-zA-Z0-9]\'	{ return token(CHARCONST(), lexCharacter1(yytext())); }
+
+  \'\\[0-9]{3}\'	{ return token(CHARCONST(), lexCharacter2(yytext())); }
+
+  \'\\t\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
+
+  \'\\n\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
+
+  \'\\r\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
+
+  \'\\b\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
+
+  \'\\\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
 
   \"		{ string.setLength(0); yybegin(STRING); }
 
   .		{ throw new IllegalArgumentException("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn); }
-}
-
-<CHARACTER> {
-  \'		{ yybegin(YYINITIAL);
-		  if (string.length() != 1) throw new IllegalArgumentException("Error: More or less than one character found.");
-		  return token(CHARCONST(), string.toString().charAt(0));
-		}
-  \\[0-9]{3}	{ string.append(charFrom3Ints(yytext())); }
-  [^\n\r\"\\]	{ string.append( yytext() ); }
-  \\t		{ string.append('\t'); }
-  \\n		{ string.append('\n'); }
-  \\r		{ string.append('\r'); }
-  \\b		{ string.append('\b'); }
-  \\\"		{ string.append('\"'); }
-  \\		{ string.append('\\'); }
 }
 
 <STRING> {
