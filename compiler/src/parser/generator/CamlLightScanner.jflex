@@ -187,7 +187,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   \'{Identifier}	{ return token(SQIDENTIFIER(), yytext()); }
 
-  \'[a-zA-Z0-9]\'	{ return token(CHARCONST(), lexCharacter1(yytext())); }
+  \'[^\n\r\']\'	{ return token(CHARCONST(), lexCharacter1(yytext())); }
 
   \'\\[0-9]{3}\'	{ return token(CHARCONST(), lexCharacter2(yytext())); }
 
