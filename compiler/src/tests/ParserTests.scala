@@ -1,6 +1,7 @@
 
 package tests
 
+import parser.generator.Normalizer
 import parser.generator.CamlLightSpec
 import parser.ast.expressions.Expression
 import parser.ast.types.TypeDefinition
@@ -15,7 +16,7 @@ object ParserTests extends Tests {
 
 	def parseExpression(input: String, expr: String) =
 		calculate(parse(input)).shouldSuffice { case (e, _) =>
-			e.toString == expr
+			Normalizer.normalize(e).toString == expr
 		}
 
 	// SIMPLE TESTCASES (without type definitions)

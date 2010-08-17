@@ -179,18 +179,31 @@ class Tests {
 	protected final def test(t: Test[_, _]) { tests += t }
 
 	final def run {
+		var ignored = 0
+		var failed = 0
+		var successful = 0
 		for (t <- tests) {
 			try {
 				t.run match {
-					case Success(Ignored(message)) => println("IGNORED " + message)
-					case Success(value) => println("SUCCESS " + value)
-					case Failure(err) => println("FAILURE " + err)
+					case Success(Ignored(message)) =>
+						ignored += 1
+						println("(   ) IGNORED " + message)
+					case Success(value) =>
+						successful += 1
+						println("(+++) SUCCESS " + value)
+					case Failure(err) =>
+						failed += 1
+						println("(---) FAILURE " + err)
 				}
 			}
 			catch {
-				case ex => println("FAILURE uncaught exception " + ex)
+				case ex =>
+					failed += 1
+					println("(---) FAILURE uncaught exception " + ex)
 			}
 		}
+
+		println("(***) STATISTICS: %d successful, %d ignored, %d failed".format(successful, ignored, failed))
 	}
 
 }
