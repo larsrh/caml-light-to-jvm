@@ -509,12 +509,19 @@ object CodeGen {
 										(patterns.Tuple(patterns.Integer(1),patterns.Integer(2),patterns.Id("y")),
 										 Id("y"))
 		)
-										
-		val e42 = Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs")))
-		val e43 = Lambda(Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
-										 patterns.Cons(patterns.Id("y"), patterns.Id("ys")))
+
+    // (\x::xs.x) [42,5]
+    // EXPECTED RESULT 42
+		val e16 = App(Lambda(Id("x"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
+                Cons(Integer(42),Cons(Integer(5),Nil)))
+
+    // (\y::ys.\x::xs.x) [3] [42,5]
+    // EXPECTED RESULT 42
+		val e17 = App(App(Lambda(Lambda(Id("x"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
+										 patterns.Cons(patterns.Id("y"), patterns.Id("ys"))),Cons(Integer(3),Nil)),
+        Cons(Integer(42),Cons(Integer(5),Nil)))
 		
-		val list = List(e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12,e13,e14,e15)	
+		val list = List(e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12,e13,e14,e15,e16,e17)	
 			
 		def out(e:Expression):Unit = {
 			val is = Translator.codeb(e,HashMap.empty,0)
