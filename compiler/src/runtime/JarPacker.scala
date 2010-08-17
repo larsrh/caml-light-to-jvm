@@ -52,6 +52,20 @@ object JarPacker {
 		val cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS +
 														 ClassWriter.COMPUTE_FRAMES)
 
+		val ca = new BytecodeAdapter(cw, instr)
+		cr.accept(ca, 0)
+
+		zip.putNextEntry(new ZipEntry("runtime/Machine.class"))
+		val bytes = cw.toByteArray
+		zip.write(bytes, 0, bytes.length)
+	}
+
+  def main(args: Array[String]): Unit = {
+    val filename = args(0)
+		val jar = createJar(filename)
+		addManifest(jar)
+		copyClasses(jar)
+
 		/* begin TODO: this is currently hardcoded */
 		/*
 		val instr = List(LOADC(19), MKBASIC, PUSHLOC(0), GETBASIC, PUSHLOC(1),
@@ -172,7 +186,7 @@ object JarPacker {
 			),
 			patterns.Id("00"))))
 
-		//val instr = Translator.codeb(tmp, HashMap.empty, 0)
+		val instr = Translator.codeb(e15, HashMap.empty, 0)
 
 		/*
 		val l118 = LABEL(118)
@@ -185,21 +199,7 @@ object JarPacker {
 		*/
 
 		/* end of TODO */
-
-		val ca = new BytecodeAdapter(cw, instr)
-		cr.accept(ca, 0)
-
-		zip.putNextEntry(new ZipEntry("runtime/Machine.class"))
-		val bytes = cw.toByteArray
-		zip.write(bytes, 0, bytes.length)
-	}
-  
-  def main(args: Array[String]): Unit = {
-    val filename = args(0)
-		val jar = createJar(filename)
-		addManifest(jar)
-		copyClasses(jar)
-		//injectCode(jar)
+		injectCode(jar, instr)
 		jar close
   }
 
