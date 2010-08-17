@@ -248,11 +248,7 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 
 		// default case
 		mv.visitLabel(defaultLabel)
-		// TODO: remove this. This is only meant to determine whether we
-		// ran into an invalid label
-		mv.visitVarInsn(ALOAD, 1)
-		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "halt", "()V")
-		// End of TODO
+		// don't do anything in the default label, just jump to the loop again
 		mv.visitJumpInsn(GOTO, continueLabel)
 
 		// outside of while loop
