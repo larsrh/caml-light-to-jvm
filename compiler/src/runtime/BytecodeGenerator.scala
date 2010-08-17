@@ -129,6 +129,14 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		case HALT => aload invokevirtual("halt", "()V")
 		case GET(n) => aload bipush(n) invokevirtual("get", "(I)V")
 		case AND => aload invokevirtual("and", "()V")
+		case SUB => aload invokevirtual("sub", "()V")
+		case NIL => aload invokevirtual("nil", "()V")
+		case CONS => aload invokevirtual("cons", "()V")
+		case TLIST(LABEL(l)) => aload bipush l invokevirtual("tlist", "(I)I")
+			handleOptionalJump
+		case LE => aload invokevirtual("le", "()V")
+		case NOT => aload invokevirtual("not", "()V")
+		case NEG => aload invokevirtual("neg", "()V")
 	}
 }
 

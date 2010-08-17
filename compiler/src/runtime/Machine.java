@@ -202,10 +202,10 @@ public class Machine {
 	}
 	
 	public void cons() {
-			MachineData tail = stack.pop();
-			MachineData head = stack.pop();
-			stack.push(new List(head,tail));
-			sp--;
+		MachineData tail = stack.pop();
+		MachineData head = stack.pop();
+		stack.push(new List(head,tail));
+		sp--;
 	}		
 	
 	public void copyglob() {
@@ -409,8 +409,8 @@ public class Machine {
 	}	
 	
 	public void nil() {
-			stack.push(new List());
-			sp++;
+		stack.push(new List());
+		sp++;
 	}
 	
 	public void not() {
@@ -510,16 +510,16 @@ public class Machine {
 	}
 	
 	public int tlist(int label) {
-			List l = (List)stack.pop();
-			if(l.empty) {
-					sp--;
-					return -1;
-			} else {
-					stack.push(l.head);
-					stack.push(l.tail);
-					sp++;
-					return label;
-			}
+		List l = (List)stack.pop();
+		if(l.empty) {
+			sp--;
+			return -1;
+		} else {
+			stack.push(l.head);
+			stack.push(l.tail);
+			sp++;
+			return label;
+		}
 	}
 
 	public int update() {

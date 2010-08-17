@@ -16,7 +16,7 @@ import scala.io.Source
 import scala.collection.immutable.HashMap
 
 object Test {
-def main(args:Array[String]):Unit = {
+	def main(args:Array[String]):Unit = {
 		val generator = new LR1Generator(CamlLightSpec)
 		val table = generator.getParsingTable()
 		val parser = new LRParser(table)
@@ -35,7 +35,7 @@ def main(args:Array[String]):Unit = {
 			val jar = createJar(filename)
 			addManifest(jar)
 			copyClasses(jar)
-			injectCode(jar)
+			injectCode(jar, l)
 			jar close
 		}
 		
@@ -49,9 +49,9 @@ def main(args:Array[String]):Unit = {
 			val exp = parseExp(Source.fromFile("test/bigbang/" + x + ".cl").mkString(""));
 			//Console println "***************************"
 			//Console println exp
-			typeCheck(exp)
+			//typeCheck(exp)
 			output(genMaMaCode(exp),x)
-			//genByteCode(genMaMaCode(exp),"test/bigbang/" + x + ".jar")
+			genByteCode(genMaMaCode(exp),"test/bigbang/" + x + ".jar")
 		}
 	}
 }

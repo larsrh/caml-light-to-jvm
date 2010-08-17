@@ -22,7 +22,8 @@ object JarPacker {
 	/* copies all Machine$* stuff that is not to be changed into the JAR */
 	def copyClasses(zip: ZipOutputStream) = {
 		val classes = List("1", // this is an anonymous class that we need to add
-								 "Base", "Closure", "Function", "MachineData", "Raw", "Vector")
+								 "Base", "Closure", "Function", "List", "MachineData", "Raw",
+								 "Vector")
 
 		for (entry <- classes) {
 			val `class` = Class.forName("runtime.Machine$" + entry)
@@ -38,7 +39,7 @@ object JarPacker {
 	}
 
 	/* writes Machine.class */
-	def injectCode(zip: ZipOutputStream) = {
+	def injectCode(zip: ZipOutputStream, instr:List[Instruction]) = {
 		import runtime.Machine
 
 		val `class` = classOf[Machine]
@@ -165,7 +166,13 @@ object JarPacker {
 										 Id("y"))
 		)
 
-		val instr = Translator.codeb(e15, HashMap.empty, 0)
+		val tmp = LetRec(App(Id("fac"),Integer(5)),(patterns.Id("fac"),Lambda(Match(Id("00"),
+			(patterns.Id("n"),IfThenElse(BinOp(BinaryOperator.eq,Id("n"),Integer(0)),Integer(1),BinOp(BinaryOperator.mul,Id("n"),App(Id("fac"),
+			BinOp(BinaryOperator.sub,Id("n"),Integer(1))))))
+			),
+			patterns.Id("00"))))
+
+		//val instr = Translator.codeb(tmp, HashMap.empty, 0)
 
 		/*
 		val l118 = LABEL(118)
@@ -192,7 +199,7 @@ object JarPacker {
 		val jar = createJar(filename)
 		addManifest(jar)
 		copyClasses(jar)
-		injectCode(jar)
+		//injectCode(jar)
 		jar close
   }
 
