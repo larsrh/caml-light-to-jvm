@@ -1,0 +1,27 @@
+
+package tests
+
+import java.lang.reflect.InvocationTargetException
+
+object TestsTests extends Tests {
+
+	import Tests._
+
+	test(alwaysThrow(new IllegalArgumentException).shouldThrow[IllegalArgumentException])
+	test(alwaysThrow(new IllegalArgumentException).shouldThrow[InvocationTargetException].shouldFail)
+
+	test(alwaysFail(5).shouldFail.shouldBe(5))
+	test(alwaysFail(5).shouldFail.shouldBe(4).shouldFail)
+	test(alwaysFail(5).shouldFail.shouldBe(4).ignore)
+
+	test(alwaysSucceed(1).all(
+		{ (n: Int) => alwaysSucceed(n+1) },
+		{ (n: Int) => alwaysFail(n+1) }
+	).shouldFail.shouldBe(AllTest.TesterError(List(Success(2), Failure(2)))))
+
+	test(alwaysSucceed(1).all(
+		{ (n: Int) => alwaysSucceed(n+1) },
+		{ (n: Int) => alwaysSucceed(n+2) }
+	).shouldBe(List(2, 3)))
+
+}
