@@ -241,7 +241,7 @@ public class Machine {
             return apply0();
 		}
 		catch (ClassCastException e) {
-			return -1;
+			return label;
 		}
 	}
 	
