@@ -69,15 +69,6 @@ import static parser.generator.CamlLightTerminals.*;
 
   private char lexCharacter1(String str)
   {
-    Pattern p = Pattern.compile("'([a-zA-Z0-9])'");
-    Matcher m = p.matcher(str);
-    m.matches();
-
-    return m.group(1).charAt(0);
-  }
-
-  private char lexCharacter2(String str)
-  {
     Pattern p = Pattern.compile("'\\\\([0-9])([0-9])([0-9])'");
     Matcher m = p.matcher(str);
     m.matches();
@@ -89,7 +80,7 @@ import static parser.generator.CamlLightTerminals.*;
     return (char)(a * 100 + b * 10 + c);
   }
 
-  private char lexCharacter3(String str)
+  private char lexCharacter2(String str)
   {
     Pattern p = Pattern.compile("'\\([tnrb\\])'");
     Matcher m = p.matcher(str);
@@ -187,19 +178,19 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   \'{Identifier}	{ return token(SQIDENTIFIER(), yytext()); }
 
-  \'[^\n\r\']\'	{ return token(CHARCONST(), lexCharacter1(yytext())); }
+  \'[^\n\r\']\'	{ return token(CHARCONST(), yytext().charAt(1)); }
 
-  \'\\[0-9]{3}\'	{ return token(CHARCONST(), lexCharacter2(yytext())); }
+  \'\\[0-9]{3}\'	{ return token(CHARCONST(), lexCharacter1(yytext())); }
 
-  \'\\t\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
+  \'\\t\'		{ return token(CHARCONST(), lexCharacter2(yytext())); }
 
-  \'\\n\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
+  \'\\n\'		{ return token(CHARCONST(), lexCharacter2(yytext())); }
 
-  \'\\r\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
+  \'\\r\'		{ return token(CHARCONST(), lexCharacter2(yytext())); }
 
-  \'\\b\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
+  \'\\b\'		{ return token(CHARCONST(), lexCharacter2(yytext())); }
 
-  \'\\\'		{ return token(CHARCONST(), lexCharacter3(yytext())); }
+  \'\\\'		{ return token(CHARCONST(), lexCharacter2(yytext())); }
 
   \"		{ string.setLength(0); yybegin(STRING); }
 
