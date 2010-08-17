@@ -238,7 +238,7 @@ public class Machine {
 			Closure c = (Closure)stack.peek();
 			mark0(label);
 			pushloc(3);
-			return apply0();
+            return apply0();
 		}
 		catch (ClassCastException e) {
 			return -1;
@@ -363,7 +363,7 @@ public class Machine {
 	public void mkvec(int g) {
 		MachineData[] v = new MachineData[g];
 		for (int i = 0; i < g; i++) {
-			v[i] = stack.pop();
+			v[g-1-i] = stack.pop();
 			sp--;
 		}
 		Vector V = new Vector(v);

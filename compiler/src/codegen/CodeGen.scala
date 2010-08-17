@@ -106,7 +106,8 @@ object Translator {
 				 ++ codeb(e1, rho, sd) ++ List(JUMP(B),SETLABEL(A))
 				 ++ codeb(e2, rho, sd) :+ SETLABEL(B))
 			}
-		case _ => codev(expr, rho, sd) :+ GETBASIC
+		case _ => codev(expr, rho, sd) ++
+			(if(CBN) { val A = newLabel(); List(EVAL(A), SETLABEL(A))} else List.empty) :+ GETBASIC
 	}
 			
 	def codec(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
