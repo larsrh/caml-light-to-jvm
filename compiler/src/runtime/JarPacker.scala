@@ -6,11 +6,10 @@ import java.util.zip.{ZipOutputStream, ZipEntry}
 import org.objectweb.asm.{ClassWriter, ClassReader}
 import codegen.mama.mamaInstructions._
 
-object JarPacker {
-	def createJar(fileName: String) = new ZipOutputStream(
-		new FileOutputStream(fileName))
+class Assembly(filename: String) {
+	val zip = new ZipOutputStream(new FileOutputStream(filename))
 
-	def addManifest(zip: ZipOutputStream) = {
+	def addManifest = {
 		zip.putNextEntry(new ZipEntry("META-INF/MANIFEST.MF"))
 
 		zip.write("""Manifest-Verion: 1.0
@@ -19,8 +18,7 @@ object JarPacker {
 		// the manifest needs to have a trailing newline
 	}
 
-	/* copies all Machine$* stuff that is not to be changed into the JAR */
-	def copyClasses(zip: ZipOutputStream) = {
+	def copyClasses = {
 		val classes = List("1", // this is an anonymous class that we need to add
 								 "Base", "Closure", "Function", "List", "HeapData", "Raw",
 								 "Vector", "Ref", "StackData")
@@ -30,16 +28,15 @@ object JarPacker {
 			val className = `class`.getName.replace(".", "/") + ".class"
 			val bytecodeStream = `class`.getClassLoader.getResourceAsStream(className)
 
-			val buf = new Array[Byte](1024);
+			val buf = new Array[Byte](1024)
 			zip.putNextEntry(new ZipEntry("runtime/Machine$" + entry + ".class"))
 
 			// push the whole stream into the file
-			zip.write(BytesUtil.readWholeStream(bytecodeStream));
+			zip.write(BytesUtil.readWholeStream(bytecodeStream))
 		}
 	}
 
-	/* writes Machine.class */
-	def injectCode(zip: ZipOutputStream, instr:List[Instruction]) = {
+	def injectCode(instr:List[Instruction]) = {
 		import runtime.Machine
 
 		val `class` = classOf[Machine]
@@ -47,10 +44,28 @@ object JarPacker {
 		val bytecodeStream = `class`.getClassLoader.getResourceAsStream(className)
 		val bytesInput = BytesUtil.readWholeStream(bytecodeStream)
 
-		// don't ask why ClassReader cannot load the class without failing
 		val cr = new ClassReader(bytesInput)
 		val cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS +
 														 ClassWriter.COMPUTE_FRAMES)
+
+		val ca = new BytecodeAdapter(cw, instr)
+		cr.accept(ca, 0)
+
+		zip.putNextEntry(new ZipEntry("runtime/Machine.class"))
+		val bytes = cw.toByteArray
+		zip.write(bytes, 0, bytes.length)
+	}
+
+	def close = zip.close
+}
+
+object JarPacker {
+  def main(args: Array[String]): Unit = {
+    val filename = args(0)
+		/*
+		val jar = createJar(filename)
+		addManifest(jar)
+		copyClasses(jar)
 
 		/* begin TODO: this is currently hardcoded */
 		/*
@@ -172,7 +187,7 @@ object JarPacker {
 			),
 			patterns.Id("00"))))
 
-		//val instr = Translator.codeb(tmp, HashMap.empty, 0)
+		val instr = Translator.codeb(e15, HashMap.empty, 0)
 
 		/*
 		val l118 = LABEL(118)
@@ -185,22 +200,9 @@ object JarPacker {
 		*/
 
 		/* end of TODO */
-
-		val ca = new BytecodeAdapter(cw, instr)
-		cr.accept(ca, 0)
-
-		zip.putNextEntry(new ZipEntry("runtime/Machine.class"))
-		val bytes = cw.toByteArray
-		zip.write(bytes, 0, bytes.length)
-	}
-  
-  def main(args: Array[String]): Unit = {
-    val filename = args(0)
-		val jar = createJar(filename)
-		addManifest(jar)
-		copyClasses(jar)
-		//injectCode(jar)
+		injectCode(jar, instr)
 		jar close
+		*/
   }
 
 }
