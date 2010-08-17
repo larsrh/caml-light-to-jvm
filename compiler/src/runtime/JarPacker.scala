@@ -22,8 +22,8 @@ object JarPacker {
 	/* copies all Machine$* stuff that is not to be changed into the JAR */
 	def copyClasses(zip: ZipOutputStream) = {
 		val classes = List("1", // this is an anonymous class that we need to add
-								 "Base", "Closure", "Function", "List", "MachineData", "Raw",
-								 "Vector")
+								 "Base", "Closure", "Function", "List", "HeapData", "Raw",
+								 "Vector", "Ref", "StackData")
 
 		for (entry <- classes) {
 			val `class` = Class.forName("runtime.Machine$" + entry)

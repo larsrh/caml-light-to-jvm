@@ -30,7 +30,11 @@
  *    to
  *  - jump* is not implemented, because jumps are done by setting the _goto
  *    marker and calling continue in the outer code
- *  - targ and eval return -1 if they are meant to do nothing
+ *  - targ returns -1 if it is meant to do nothing
+ *
+ * UPDATE: MaMa now distinguishes between Stack- and HeapData. This is necessary
+ * for the correct implementation of the rewrite command since the references to
+ * the overwritten closure must stay persistent.
  */
 
 package runtime;
@@ -42,33 +46,34 @@ public class Machine {
 	private int sp;
 	private Vector gp;
 
-	abstract class MachineData {}
+	abstract class StackData {}
+	abstract class HeapData {}
 
-    private class Base extends MachineData {
-		private int v;
+    private class Ref extends StackData {
+        private HeapData v;
 
-		private Base(int constant) {
-			v = constant;
+        private Ref(HeapData v) {
+            this.v = v;
+        }
+
+        public String toString() {
+			return "R(" + v + ")";
 		}
+    }
 
-		public String toString() {
-			return "B(" + v + ")";
-		}
-	}
-
-	/* when stuff is not basic - we still need a wrapper type for that */
+    /* when stuff is not basic - we still need a wrapper type for that */
 	// future optimization: remove all raw types from the machine
-	private class Raw extends MachineData {
+	private class Raw extends StackData {
 		private int v;
 
 		private Raw(int constant) {
 			v = constant;
 		}
-		
+
 		private Raw(boolean constant) {
 			v = constant ? 1 : 0;
 		}
-		
+
 		/* maybe raise some exception if v != 0 and v != 1*/
 		private boolean asBool() {
 			 return v != 0;
@@ -78,13 +83,27 @@ public class Machine {
 			// nice example of weak typing in Java
 			return "" + v;
 		}
-	}
 
-	private class Vector extends MachineData {
+    }
+
+    private class Base extends HeapData {
+		private int v;
+
+		private Base(int constant) {
+			v = constant;
+		}
+
+		public String toString() {
+			return "B(" + v + ")";
+		}
+
+    }
+
+	private class Vector extends HeapData {
 		private final int n;
-		private final MachineData[] v;
+		private final StackData[] v;
 
-		private Vector(MachineData[] v) {
+		private Vector(StackData[] v) {
 			this.v = v;
 			this.n = v.length;
 		}
@@ -92,14 +111,15 @@ public class Machine {
 		public String toString() {
 			String pre = "V(" + n + ", [";
 			for (int i = 0; i < v.length; i++) {
-				pre += ", " + v[i];
+				pre += ", " + "v[i]";
 			}
 			pre += "])";
 			return pre;
 		}
-	}
 
-	private class Function extends MachineData {
+    }
+
+	private class Function extends HeapData {
 		// cp is the code pointer, that is, label
 		private int cp;
 		private Vector ap;
@@ -114,9 +134,10 @@ public class Machine {
 		public String toString() {
 			return "F(" + cp + ", " + ap + ", " + gp + ")";
 		}
-	}
 
-	private class Closure extends MachineData {
+    }
+
+	private class Closure extends HeapData {
 		private int cp;
 		private Vector gp;
 
@@ -126,20 +147,21 @@ public class Machine {
 		}
 
 		public String toString() {
-			return "C(" + cp + ", " + gp + ")";
+			return "C(" + cp + ", " + "gp" + ")";
 		}
-	}
+
+    }
 	
-	private class List extends MachineData {
+	private class List extends HeapData {
 		private boolean empty;
-		private MachineData head;
-		private MachineData tail;
+		private HeapData head;
+		private HeapData tail;
 		
 		private List() {
 				this.empty = true;
 		}
 		
-		private List(MachineData head, MachineData tail) {
+		private List(HeapData head, HeapData tail) {
 				this.empty = false;
 				this.head = head;
 				this.tail = tail;
@@ -148,12 +170,13 @@ public class Machine {
 		public String toString() {
 			return "L(" + (empty ? "Nil" : "Cons") + "," + head + "," + tail+ ")";
 		}
-	}
 
-	private final Stack<MachineData> stack;
+    }
+
+	private final Stack<StackData> stack;
 
 	public Machine() {
-		this.stack = new Stack<MachineData>();
+		this.stack = new Stack<StackData>();
 		// yeah, this is ugly, admittedly
 		this.fp = -1;
 		this.sp = -1;
@@ -168,7 +191,7 @@ public class Machine {
 	
 	public void alloc(int n) {
 		for (int i = 0; i < n; i++) {
-			stack.push(new Closure(-1, null));
+			stack.push(new Ref(new Closure(-1, null)));
 			sp++;
 		}
 	}
@@ -182,7 +205,7 @@ public class Machine {
 	
 	/* apply returns the label to which to jump */
 	public int apply() {
-		Function h = (Function)stack.pop();
+		Function h = (Function)((Ref)stack.pop()).v;
 		Vector a = h.ap;
 		int n = a.n;
 		for (int i = 0; i < n; i++) {
@@ -195,21 +218,21 @@ public class Machine {
 	}
 	
 	public int apply0() {
-		Closure top = (Closure)stack.pop();
+		Closure top = (Closure)((Ref)stack.pop()).v;
 		gp = top.gp;
 		sp--;
 		return top.cp;
 	}
 	
 	public void cons() {
-		MachineData tail = stack.pop();
-		MachineData head = stack.pop();
-		stack.push(new List(head,tail));
+		HeapData tail = ((Ref)stack.pop()).v;
+		HeapData head = ((Ref)stack.pop()).v;
+		stack.push(new Ref(new List(head,tail)));
 		sp--;
 	}		
 	
 	public void copyglob() {
-		stack.push(gp);
+		stack.push(new Ref(gp));
 		sp++;
 	}
 	
@@ -235,7 +258,7 @@ public class Machine {
 	/* eval needs to supply a label that is right *after* the call of eval */
 	public int eval(int label) {
 		try {
-			Closure c = (Closure)stack.peek();
+			Closure c = (Closure)((Ref)stack.peek()).v;
 			mark0(label);
 			pushloc(3);
             return apply0();
@@ -258,19 +281,19 @@ public class Machine {
 	}
 	
 	public void get(int j) {
-		Vector h = (Vector)stack.pop();
+		Vector h = (Vector)((Ref)stack.pop()).v;
 		stack.push(h.v[j]);
 	}
 	
 	// thows a ClassCastException when the code is wrong, which is more
 	// or less what we want. Me wants pattern match in this Java!
 	public void getbasic() {
-		Base b = (Base)stack.pop();
+		Base b = (Base)((Ref)stack.pop()).v;
 		stack.push(new Raw(b.v));
 	}
 	
 	public void getvec(int k) {
-		Vector h = (Vector)stack.pop();
+		Vector h = (Vector)((Ref)stack.pop()).v;
 		sp--;
 		assert (h.n == k);
 
@@ -326,7 +349,7 @@ public class Machine {
 	}
 	
 	public void mark(int label) {
-		stack.push(gp);
+		stack.push(new Ref(gp));
 		stack.push(new Raw(fp));
 		stack.push(new Raw(label));
 		sp += 3;
@@ -334,7 +357,7 @@ public class Machine {
 	}
 	
 	public void mark0(int label) {
-		stack.push(gp);
+		stack.push(new Ref(gp));
 		stack.push(new Raw(fp));
 		stack.push(new Raw(label));
 		sp += 3;
@@ -343,44 +366,43 @@ public class Machine {
 
 	public void mkbasic() {
 		Raw r = (Raw)stack.pop();
-		stack.push(new Base(r.v));
+		stack.push(new Ref(new Base(r.v)));
 	}
 	
 	public void mkclos(int label) {
-		Vector gp = (Vector)stack.pop();
-		stack.push(new Closure(label, gp));
+		Vector gp = (Vector)((Ref)stack.pop()).v;
+		stack.push(new Ref(new Closure(label, gp)));
 	}
 
 	public void mkfunval(int label) {
-		MachineData[] av = new MachineData[0];
+		StackData[] av = new StackData[0];
 		Vector ap = new Vector(av);
-		Vector gp = (Vector)stack.pop();
+		Vector gp = (Vector)((Ref)stack.pop()).v;
 
 		Function fun = new Function(label, ap, gp);
-		stack.push(fun);
+		stack.push(new Ref(fun));
 	}
 	
 	public void mkvec(int g) {
-		MachineData[] v = new MachineData[g];
+		StackData[] v = new StackData[g];
 		for (int i = 0; i < g; i++) {
 			v[g-1-i] = stack.pop();
 			sp--;
 		}
-		Vector V = new Vector(v);
-		stack.push(V);
+		stack.push(new Ref(new Vector(v)));
 		sp++;
 	}
 	
 	/* pops elements until FP and creates a Vector */
 	public void mkvec0() {
 		int n = sp - fp;
-		MachineData[] a = new MachineData[n];
+		StackData[] a = new StackData[n];
 		sp = fp + 1;
 		// put them into the array in *reverse* order
 		for (int i = n - 1; i >= 0; i--) {
 			a[i] = stack.pop();
 		}
-		stack.push(new Vector(a));
+		stack.push(new Ref(new Vector(a)));
 	}
 
 	public void mul() {
@@ -409,7 +431,7 @@ public class Machine {
 	}	
 	
 	public void nil() {
-		stack.push(new List());
+		stack.push(new Ref(new List()));
 		sp++;
 	}
 	
@@ -433,7 +455,7 @@ public class Machine {
 	
 	/* returns the label to which to jump */
 	public int popenv() {
-		gp = (Vector)stack.get(fp - 2);
+		gp = (Vector)((Ref)stack.get(fp - 2)).v;
 		int label = ((Raw)stack.get(fp)).v;
 		stack.set(fp - 2, stack.peek());
 
@@ -480,19 +502,26 @@ public class Machine {
 	}
 
 	public void rewrite(int j) {
-		MachineData value = stack.pop();
-		stack.set(sp - j, value);
+		HeapData value = ((Ref)stack.pop()).v;
+        ((Ref)stack.get(sp - j)).v = value;
 		sp--;
 	}
 
-	/* delete k elements under the topmost element */
+    /* delete k elements under the topmost element */
 	public void slide(int k) {
-		MachineData save = stack.pop();
+		StackData save = stack.pop();
 		for (int i = 0; i < k; i++) {
 			stack.pop();
 			sp--;
 		}
 		stack.push(save);
+	}
+
+	public void sub() {
+		Raw r2 = (Raw)stack.pop();
+		Raw r1 = (Raw)stack.pop();
+		stack.push(new Raw(r1.v - r2.v));
+		sp--;
 	}
 
 	/* contrary to what MaMa did, targ takes a label to jump to, in case
@@ -510,13 +539,13 @@ public class Machine {
 	}
 	
 	public int tlist(int label) {
-		List l = (List)stack.pop();
+		List l = (List)((Ref)stack.pop()).v;
 		if(l.empty) {
 			sp--;
 			return -1;
 		} else {
-			stack.push(l.head);
-			stack.push(l.tail);
+			stack.push(new Ref(l.head));
+			stack.push(new Ref(l.tail));
 			sp++;
 			return label;
 		}
@@ -529,7 +558,7 @@ public class Machine {
 	}
 
 	public void wrap(int label) {
-		stack.push(new Function(label, (Vector)stack.pop(), gp));
+		stack.push(new Ref(new Function(label, (Vector)((Ref)stack.pop()).v, gp)));
 	}
 	
 	public void _pstack() {
