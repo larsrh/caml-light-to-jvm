@@ -31,14 +31,33 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		this
 	}
 
-	/* TODO: Saner solution than Any */
-	def ldc(obj: Any) = {
-		mv.visitLdcInsn(obj)
+	/* ldc can also support objects other than Int, but I don't casre in the
+	 * slightest
+	 */
+	def ldc(constant: Int) = {
+		mv.visitLdcInsn(constant)
+		this
+	}
+
+	def iconst(variant: Int) = {
+		mv.visitInsn(variant)
 		this
 	}
 
 	def pushInt(constant: Int) = {
-		sipush(constant)
+		constant match {
+			case -1 => iconst(ICONST_M1)
+			case 0 => iconst(ICONST_0)
+			case 1 => iconst(ICONST_1)
+			case 2 => iconst(ICONST_2)
+			case 3 => iconst(ICONST_3)
+			case 4 => iconst(ICONST_4)
+			case 5 => iconst(ICONST_5)
+			case n if n >= -128 && n < 127 => bipush(n)
+			case n if n >= -32768 && n < 32767 => sipush(n)
+			case n => ldc(n)
+		}
+		this
 	}
 
 	def storeGoto(constant: Int) = {
@@ -204,10 +223,6 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		val orderedLabels = knownLabels.toList.sortBy(_._1)
 		val compilerLabels = orderedLabels.collect({case a => a._1.nr})
 		val jvmLabels = orderedLabels.collect({case a => a._2})
-
-		println(knownLabels.toList)
-		println(compilerLabels)
-		println(instr)
 
 		//println((Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1)).toList)
 		//println((Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel)).toList)
