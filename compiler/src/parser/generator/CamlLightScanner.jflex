@@ -185,7 +185,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   {Identifier}	{ return token(IDENTIFIER(), yytext()); }
 
-  \'{Identifier}	{ return token(SQIDENTIFIER(), new String(yytext())); }
+  \'{Identifier}	{ return token(SQIDENTIFIER(), yytext()); }
 
   \'[a-zA-Z0-9]\'	{ return token(CHARCONST(), lexCharacter1(yytext())); }
 
@@ -204,21 +204,6 @@ BinIntegerLiteral = 0 [bB] [0-1]+
   \"		{ string.setLength(0); yybegin(STRING); }
 
   .		{ throw new IllegalArgumentException("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn); }
-}
-
-<CHARACTER> {
-  \'		{ yybegin(YYINITIAL);
-		  if (string.length() != 1) throw new IllegalArgumentException("Error: More or less than one character found.");
-		  return token(CHARCONST(), string.toString().charAt(0));
-		}
-  \\[0-9]{3}	{ string.append(charFrom3Ints(yytext())); }
-  [^\n\r\"\\]	{ string.append( yytext() ); }
-  \\t		{ string.append('\t'); }
-  \\n		{ string.append('\n'); }
-  \\r		{ string.append('\r'); }
-  \\b		{ string.append('\b'); }
-  \\\"		{ string.append('\"'); }
-  \\		{ string.append('\\'); }
 }
 
 <STRING> {
