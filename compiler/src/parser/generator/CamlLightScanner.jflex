@@ -145,9 +145,11 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   {BinIntegerLiteral}	{ return token(INTCONST(), parseBinInt(yytext())); }
 
-  {Identifier}	{ return token(IDENTIFIER(), new String(yytext())); }
+  {Identifier}	{ return token(IDENTIFIER(), yytext()); }
 
-  \'		{ string.setLength(0); yybegin(CHARACTER); }
+//  \'		{ string.setLength(0); yybegin(CHARACTER); }
+
+  \'{Identifier}		{ return token(SQIDENTIFIER(), yytext()); }
 
   \"		{ string.setLength(0); yybegin(STRING); }
 

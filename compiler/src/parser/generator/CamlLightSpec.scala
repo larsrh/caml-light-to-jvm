@@ -8,12 +8,15 @@ import edu.tum.cup2.generator.LR1Generator
 import edu.tum.cup2.parser.LRParser
 import edu.tum.cup2.grammar.Symbol
 
+import scala.collection.mutable.HashMap
+
 // exported for usage in JFlex
 object CamlLightTerminals extends SymbolEnum {
 	val	IDENTIFIER,
 		INTCONST, BOOLCONST, STRINGCONST, CHARCONST,
 		LBRACKET, RBRACKET, LSQBRACKET, RSQBRACKET, LBRACE, RBRACE, // ( ) [ ] { }
 		STAR, PLUS, MINUS, SLASH, CONS, SEMI, SEMISEMI, POINT, COMMA, TUPLEACC, // * + - / :: ; ;; . , #
+		SQIDENTIFIER, // 'a ('sq' stands for 'single quote')
 		LESS, LEQ, GREATER, GEQ, EQ, NEQ, BIND, // < <= > >= == <> =
 		FUN, FUNCTION, MATCH, PIPE, ARROW, UNDERSCORE, WITH, // fun function match | -> _ with
 		LETAND, AND, OR, NOT, // and, &, or, not
@@ -30,7 +33,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		val toplevel, statement = NonTerminalEnum
 		val expr, simpleexpr, simpleexprlist, list, binding, andbindings, commaseq, entry, record = NonTerminalEnum
 		val pattern, caselist, `case`, funcase, funcaselist, patentry, patrecord, pattuple = NonTerminalEnum
-		val typeexpr, typedef, param, cdecl = NonTerminalEnum
+		val typeexpr, typeexpr2, typeexpr3, tupletypeexpr, typedef, typeheader, paramlist, cdecl, cdecllist = NonTerminalEnum
 	}
 
 	val terminals = CamlLightTerminals
@@ -51,12 +54,14 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	type FunCase = (List[Pattern], Expression)
 	type Statement = Either[Expression => Expression, TypeDefinition]
 	type Program = (Expression, List[TypeDefinition])
+	type CDecl = (String, Option[TypeExpression])
 
 	class INTCONST extends SymbolValue[Int]
 	class BOOLCONST extends SymbolValue[Boolean]
 	class STRINGCONST extends SymbolValue[String]
 	class CHARCONST extends SymbolValue[Char]
 	class IDENTIFIER extends SymbolValue[String]
+	class SQIDENTIFIER extends SymbolValue[String]
 	class toplevel extends SymbolValue[Program]
 	class statement extends SymbolValue[Statement]
 	class expr extends SymbolValue[Expression]
@@ -76,21 +81,57 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	class commaseq extends SymbolValue[List[Expression]]
 	class entry extends SymbolValue[Entry]
 	class record extends SymbolValue[List[Entry]]
+	class cdecl extends SymbolValue[CDecl]
+	class cdecllist extends SymbolValue[List[CDecl]]
 	class typeexpr extends SymbolValue[TypeExpression]
+	class typeexpr2 extends SymbolValue[TypeExpression]
+	class typeexpr3 extends SymbolValue[TypeExpression]
+	class tupletypeexpr extends SymbolValue[List[TypeExpression]]
 	class typedef extends SymbolValue[TypeDefinition]
+	class typeheader extends SymbolValue[(String, List[TypeVariable])]
+	class paramlist extends SymbolValue[List[TypeVariable]]
 
-	private var symCount = 0
+	/*
+	 * Tracks usage of new variables introduced by lambda expressions
+	 */
+	private var varCount: Int = _
 
-	def freshSym() = {
-		val sym = "0" + symCount
-		symCount += 1
-		sym
+	/*
+	 * The source code uses string literals for type variables, e. g.
+	 * 'a, but the AST uses Ints internally, so we need a mapping.
+	 */
+	private val typeVars = HashMap[String, TypeVariable]()
+
+	/*
+	 * Tracks usage of new type variables
+	 */
+	private var tvCount: Int = _
+
+	/*
+	 * Generate a new variable, beginning with "0" so no collisions
+	 * can occur.
+	 */
+	private def newVar() = {
+		varCount += 1
+		"0" + varCount
+	}
+
+	/*
+	 * Generates a new mapping between a type variable and an unused
+	 * AST representation of it, or return the existing representation, if any.
+	 */
+	private def getTypeVar(name: String) = {
+		typeVars.getOrElseUpdate(name, { tvCount += 1; TypeVariable(tvCount) })
 	}
 
 	private lazy val lrparser = new LRParser(new LR1Generator(this).getParsingTable())
 
+	def constructParser() { lrparser }
+
 	def parse(reader: java.io.Reader) = {
-		symCount = 0
+		tvCount = -1
+		varCount = -1
+		typeVars.clear()
 		val result = lrparser.parse(new CamlLightScanner(reader))
 		assert(classOf[Program].isAssignableFrom(result.getClass))
 		result.asInstanceOf[Program]
@@ -157,7 +198,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			LET ~ REC ~ andbindings ~ IN ~ expr ^^ { (bindings: List[Definition], body: Expression) => LetRec(body, bindings: _*) } |
 			LBRACE ~ record ~ RBRACE ^^ { (entries: List[Entry]) => expressions.Record(entries: _*) } |
 			FUNCTION ~ caselist ^^ { (cases: List[Case]) =>
-				val sym = freshSym()
+				val sym = newVar()
 				Lambda(Match(Id(sym), cases: _*), List(patterns.Id(sym)): _*)
 			} |
 			FUN ~ funcaselist ^^ { (cases: List[FunCase]) =>
@@ -173,7 +214,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 				//   lambda x1 ... xi => match (x1, ..., xi) with
 				//     (p11, p12, ..., p1i) -> e1
 				//   | ...
-				val syms = (1 to lengths.head) map { _ => freshSym() } toList
+				val syms = (1 to lengths.head) map { _ => newVar() } toList
 				val tupledCases = cases map { case (pats, expr) => (patterns.Tuple(pats: _*), expr) }
 				Lambda(
 					Match(Tuple(syms.map(Id.apply): _*), tupledCases: _*),
@@ -262,30 +303,45 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		funcaselist -> (
 			funcase ^^ { (c: FunCase) => List(c) } |
 			funcase ~ PIPE ~ funcaselist ^^ { (head: FunCase, tail: List[FunCase]) => head :: tail }
+		),
+
+		typeexpr -> (
+			typeexpr2 ^^ (identity[TypeExpression] _) |
+			typeexpr ~ ARROW ~ typeexpr2 ^^ { (expr1: TypeExpression, expr2: TypeExpression) => TypeFn(expr1, expr2) }
+		),
+		typeexpr2 -> (
+			typeexpr3 ^^ (identity[TypeExpression] _) |
+			typeexpr3 ~ STAR ~ tupletypeexpr ^^ { (head: TypeExpression, tail: List[TypeExpression]) => TypeTuple(head :: tail: _*) }
+		),
+		typeexpr3 -> (
+			LBRACKET ~ typeexpr ~ RBRACKET ^^ (identity[TypeExpression] _) |
+			SQIDENTIFIER ^^ { (str: String) => getTypeVar(str) }
+		),
+		tupletypeexpr -> (
+			typeexpr3 ^^ { (expr: TypeExpression) => List(expr) } |
+			typeexpr3 ~ STAR ~ tupletypeexpr ^^ { (head: TypeExpression, tail: List[TypeExpression]) => head :: tail }
+		),
+		paramlist -> (
+			SQIDENTIFIER ^^ { (str: String) => List(getTypeVar(str)) } |
+			SQIDENTIFIER ~ paramlist ^^ { (head: String, tail: List[TypeVariable]) => getTypeVar(head) :: tail }
+		),
+		cdecl -> (
+			IDENTIFIER ^^ { (str: String) => (Id(str), None) } |
+			IDENTIFIER ~ OF ~ typeexpr ^^ { (str: String, expr: TypeExpression) => (Id(str), Some(expr)) }
+		),
+		cdecllist -> (
+			cdecl ^^ { (c: CDecl) => List(c) } |
+			cdecl ~ PIPE ~ cdecllist ^^ { (head: CDecl, tail: List[CDecl]) => head :: tail }
+		),
+		typeheader -> (
+			TYPE ~ IDENTIFIER ~ BIND ^^ { (str: String) => (str, List[TypeVariable]()) } |
+			TYPE ~ SQIDENTIFIER ~ IDENTIFIER ~ BIND ^^ { (param: String, str: String) => (str, List(getTypeVar(param))) } |
+			TYPE ~ LBRACKET ~ paramlist ~ RBRACKET ~ IDENTIFIER ~ BIND ^^ { (params: List[TypeVariable], str: String) => (str, params) }
+		),
+		typedef -> (
+			typeheader ~ cdecllist ^^ { (header: (String, List[TypeVariable]), cdecls: List[CDecl]) => Data(header._1, header._2, cdecls: _*) }
 		)
 
-		/*,
-
-		typedef -> (
-			TYPE ~ param ~ IDENTIFIER ~ BIND ~ cdecl ^^ { (param: List[TypeVariable], id: String, cdecl: List[TypeExpression]) => val a = cdecl match {
-				case List(x) => x
-				case List(l @ _*) => TypeConstructor("Tuple", l: _*)
-			}
-			val b = param match {
-				case List(id) => id
-				case List(l @ _*) => TypeConstructor("Tuple", l: _*)
-			}
-			Data.apply(id, a, b)
-			}
-		),
-
-		param -> (
-			IDIENTIFIER ^^ { x: String => (Id(x), None) }
-		),
-
-		cdecl -> (
-			IDENTIFIER ^^ { x: String => (Id(x), None) }
-		)*/
 	)
 
 	def chain(terminal: Symbol, action: (Expression, Expression) => Expression) =
