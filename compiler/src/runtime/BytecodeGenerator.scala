@@ -99,38 +99,36 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		this
 	}
 
-	def generateInstruction(instr: Instruction) = { instr match {
-			case LOADC(constant) => aload bipush constant invokevirtual("loadc", "(I)V")
-			case MKBASIC => aload invokevirtual("mkbasic", "()V")
-			case PUSHLOC(value) => aload bipush value invokevirtual("pushloc", "(I)V")
-			case GETBASIC => aload invokevirtual("getbasic", "()V")
-			case MUL => aload invokevirtual("mul", "()V")
-			case ADD => aload invokevirtual("add", "()V")
-			case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
-			case SETLABEL(label) => enterLabel(label)
-			case EQ => aload invokevirtual("eq", "()V")
-			case JUMPZ(label) => aload invokevirtual("popraw", "()I") jumpz(label)
-			case JUMP(label) => jump(label)
-			case ALLOC(value) => aload bipush value invokevirtual("alloc", "(I)V")
-			case MKVEC(length) => aload bipush(length) invokevirtual("mkvec", "(I)V")
-			case MKCLOS(LABEL(l)) => aload bipush(l) invokevirtual("mkclos", "(I)V")
-			case UPDATE => aload invokevirtual("update", "()I") jumpto
-			case PUSHGLOB(n) => aload bipush(n) invokevirtual("pushglob", "(I)V")
-			case EVAL(LABEL(l)) => aload bipush(l) invokevirtual("eval", "(I)I")
-				jumpto
-			case MARK(LABEL(l)) => aload bipush(l) invokevirtual("mark", "(I)V")
-			case MKFUNVAL(LABEL(l)) => aload bipush(l) invokevirtual("mkfunval", "(I)V")
-			case TARG(drop, LABEL(l)) => aload bipush(drop) bipush(l)
-				invokevirtual("targ", "(II)I") handleOptionalJump
-			case MAMARETURN(n) => aload bipush(n) invokevirtual("return_", "(I)I")
-				handleOptionalJump
-			case APPLY => aload invokevirtual("apply", "()I") jumpto
-			case REWRITE(n) => aload bipush(n) invokevirtual("rewrite", "(I)V")
-			case MAMAPOP => aload invokevirtual("pop", "()V")
-			case HALT => aload invokevirtual("halt", "()V")
-			case GET(n) => aload bipush(n) invokevirtual("get", "(I)V")
-			case AND => aload invokevirtual("and", "()V")
-		}
+	def generateInstruction:Instruction=>Any = {
+		case LOADC(constant) => aload bipush constant invokevirtual("loadc", "(I)V")
+		case MKBASIC => aload invokevirtual("mkbasic", "()V")
+		case PUSHLOC(value) => aload bipush value invokevirtual("pushloc", "(I)V")
+		case GETBASIC => aload invokevirtual("getbasic", "()V")
+		case MUL => aload invokevirtual("mul", "()V")
+		case ADD => aload invokevirtual("add", "()V")
+		case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
+		case SETLABEL(label) => enterLabel(label)
+		case EQ => aload invokevirtual("eq", "()V")
+		case JUMPZ(label) => aload invokevirtual("popraw", "()I") jumpz(label)
+		case JUMP(label) => jump(label)
+		case ALLOC(value) => aload bipush value invokevirtual("alloc", "(I)V")
+		case MKVEC(length) => aload bipush(length) invokevirtual("mkvec", "(I)V")
+		case MKCLOS(LABEL(l)) => aload bipush(l) invokevirtual("mkclos", "(I)V")
+		case UPDATE => aload invokevirtual("update", "()I") jumpto
+		case PUSHGLOB(n) => aload bipush(n) invokevirtual("pushglob", "(I)V")
+		case EVAL(LABEL(l)) => aload bipush(l) invokevirtual("eval", "(I)I") jumpto
+		case MARK(LABEL(l)) => aload bipush(l) invokevirtual("mark", "(I)V")
+		case MKFUNVAL(LABEL(l)) => aload bipush(l) invokevirtual("mkfunval", "(I)V")
+		case TARG(drop, LABEL(l)) => aload bipush(drop) bipush(l)
+			invokevirtual("targ", "(II)I") handleOptionalJump
+		case MAMARETURN(n) => aload bipush(n) invokevirtual("return_", "(I)I")
+			handleOptionalJump
+		case APPLY => aload invokevirtual("apply", "()I") jumpto
+		case REWRITE(n) => aload bipush(n) invokevirtual("rewrite", "(I)V")
+		case MAMAPOP => aload invokevirtual("pop", "()V")
+		case HALT => aload invokevirtual("halt", "()V")
+		case GET(n) => aload bipush(n) invokevirtual("get", "(I)V")
+		case AND => aload invokevirtual("and", "()V")
 	}
 }
 
