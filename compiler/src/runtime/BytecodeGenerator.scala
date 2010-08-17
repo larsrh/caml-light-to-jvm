@@ -25,8 +25,24 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		mv.visitIntInsn(BIPUSH, constant)
 		this
 	}
+
+	def sipush(constant: Int) = {
+		mv.visitIntInsn(SIPUSH, constant)
+		this
+	}
+
+	/* TODO: Saner solution than Any */
+	def ldc(obj: Any) = {
+		mv.visitLdcInsn(obj)
+		this
+	}
+
+	def pushInt(constant: Int) = {
+		sipush(constant)
+	}
+
 	def storeGoto(constant: Int) = {
-		bipush(constant)
+		pushInt(constant)
 		mv.visitVarInsn(ISTORE, 2)
 		this
 	}
@@ -78,7 +94,7 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		// duplicate the return value of eval
 		mv.visitInsn(DUP)
 		// push -1 to compare it with
-		bipush(-1)
+		pushInt(-1)
 		// if it was equal to -1, jump to noAct
 		mv.visitJumpInsn(IF_ICMPEQ, noJump)
 		// otherwise, jump to that value
@@ -100,39 +116,39 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 	}
 
 	def generateInstruction:Instruction=>Any = {
-		case LOADC(constant) => aload bipush constant invokevirtual("loadc", "(I)V")
+		case LOADC(constant) => aload pushInt constant invokevirtual("loadc", "(I)V")
 		case MKBASIC => aload invokevirtual("mkbasic", "()V")
-		case PUSHLOC(value) => aload bipush value invokevirtual("pushloc", "(I)V")
+		case PUSHLOC(value) => aload pushInt value invokevirtual("pushloc", "(I)V")
 		case GETBASIC => aload invokevirtual("getbasic", "()V")
 		case MUL => aload invokevirtual("mul", "()V")
 		case ADD => aload invokevirtual("add", "()V")
-		case SLIDE(depth) => aload bipush depth invokevirtual("slide", "(I)V")
+		case SLIDE(depth) => aload pushInt depth invokevirtual("slide", "(I)V")
 		case SETLABEL(label) => enterLabel(label)
 		case EQ => aload invokevirtual("eq", "()V")
 		case JUMPZ(label) => aload invokevirtual("popraw", "()I") jumpz(label)
 		case JUMP(label) => jump(label)
-		case ALLOC(value) => aload bipush value invokevirtual("alloc", "(I)V")
-		case MKVEC(length) => aload bipush(length) invokevirtual("mkvec", "(I)V")
-		case MKCLOS(LABEL(l)) => aload bipush(l) invokevirtual("mkclos", "(I)V")
+		case ALLOC(value) => aload pushInt value invokevirtual("alloc", "(I)V")
+		case MKVEC(length) => aload pushInt length invokevirtual("mkvec", "(I)V")
+		case MKCLOS(LABEL(l)) => aload pushInt l invokevirtual("mkclos", "(I)V")
 		case UPDATE => aload invokevirtual("update", "()I") jumpto
-		case PUSHGLOB(n) => aload bipush(n) invokevirtual("pushglob", "(I)V")
-		case EVAL(LABEL(l)) => aload bipush(l) invokevirtual("eval", "(I)I") jumpto
-		case MARK(LABEL(l)) => aload bipush(l) invokevirtual("mark", "(I)V")
-		case MKFUNVAL(LABEL(l)) => aload bipush(l) invokevirtual("mkfunval", "(I)V")
-		case TARG(drop, LABEL(l)) => aload bipush(drop) bipush(l)
+		case PUSHGLOB(n) => aload pushInt n invokevirtual("pushglob", "(I)V")
+		case EVAL(LABEL(l)) => aload pushInt l invokevirtual("eval", "(I)I") jumpto
+		case MARK(LABEL(l)) => aload pushInt l invokevirtual("mark", "(I)V")
+		case MKFUNVAL(LABEL(l)) => aload pushInt l invokevirtual("mkfunval", "(I)V")
+		case TARG(drop, LABEL(l)) => aload pushInt drop pushInt l
 			invokevirtual("targ", "(II)I") handleOptionalJump
-		case MAMARETURN(n) => aload bipush(n) invokevirtual("return_", "(I)I")
+		case MAMARETURN(n) => aload pushInt n invokevirtual("return_", "(I)I")
 			handleOptionalJump
 		case APPLY => aload invokevirtual("apply", "()I") jumpto
-		case REWRITE(n) => aload bipush(n) invokevirtual("rewrite", "(I)V")
+		case REWRITE(n) => aload pushInt n invokevirtual("rewrite", "(I)V")
 		case MAMAPOP => aload invokevirtual("pop", "()V")
 		case HALT => aload invokevirtual("halt", "()V")
-		case GET(n) => aload bipush(n) invokevirtual("get", "(I)V")
+		case GET(n) => aload pushInt n invokevirtual("get", "(I)V")
 		case AND => aload invokevirtual("and", "()V")
 		case SUB => aload invokevirtual("sub", "()V")
 		case NIL => aload invokevirtual("nil", "()V")
 		case CONS => aload invokevirtual("cons", "()V")
-		case TLIST(LABEL(l)) => aload bipush l invokevirtual("tlist", "(I)I")
+		case TLIST(LABEL(l)) => aload pushInt l invokevirtual("tlist", "(I)I")
 			handleOptionalJump
 		case LE => aload invokevirtual("le", "()V")
 		case NOT => aload invokevirtual("not", "()V")
@@ -189,6 +205,10 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		val compilerLabels = orderedLabels.collect({case a => a._1.nr})
 		val jvmLabels = orderedLabels.collect({case a => a._2})
 
+		println(knownLabels.toList)
+		println(compilerLabels)
+		println(instr)
+
 		//println((Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1)).toList)
 		//println((Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel)).toList)
 
@@ -213,6 +233,11 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 
 		// default case
 		mv.visitLabel(defaultLabel)
+		// TODO: remove this. This is only meant to determine whether we
+		// ran into an invalid label
+		mv.visitVarInsn(ALOAD, 1)
+		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "halt", "()V")
+		// End of TODO
 		mv.visitJumpInsn(GOTO, continueLabel)
 
 		// outside of while loop

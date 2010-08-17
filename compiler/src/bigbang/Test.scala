@@ -5,7 +5,7 @@ import parser.generator._
 import typeinference.TypeInference
 import codegen.mama.Translator
 import codegen.mama.mamaInstructions.Instruction
-import runtime.JarPacker._
+import runtime.Assembly
 
 import edu.tum.cup2.generator.LR1Generator
 import edu.tum.cup2.parser.LRParser
@@ -31,12 +31,12 @@ object Test {
 		def genMaMaCode(e:Expression):List[Instruction] =
 			Translator.codeb(e,HashMap.empty,0)
 		
-		def genByteCode(l:List[Instruction],filename:String):Unit = {
-			val jar = createJar(filename)
-			addManifest(jar)
-			copyClasses(jar)
-			injectCode(jar, l)
-			jar close
+		def genByteCode(l: List[Instruction], filename:String):Unit = {
+			val jar = new Assembly(filename)
+			jar.addManifest
+			jar.copyClasses
+			jar.injectCode(l)
+			jar.close
 		}
 		
 		def output(l:List[Instruction],filename:String):Unit = {
@@ -50,8 +50,9 @@ object Test {
 			//Console println "***************************"
 			//Console println exp
 			//typeCheck(exp)
-			output(genMaMaCode(exp),x)
-			genByteCode(genMaMaCode(exp),"test/bigbang/" + x + ".jar")
+			val mamaCode = genMaMaCode(exp)
+			output(mamaCode, x)
+			genByteCode(mamaCode, "test/bigbang/" + x + ".jar")
 		}
 	}
 }
