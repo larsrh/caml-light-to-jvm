@@ -1,17 +1,27 @@
 
 package tests
 
+import scala.io.Source
 import scala.collection.mutable.ListBuffer
 
-object Tests {
+object TestSuite {
 
 	def main(args: Array[String]) {
-		ParserTests.run
+		for (line <- Source.fromFile("test/testsuites").getLines) {
+			try {
+				println("(***) TESTING " + line)
+				Class.forName(line).newInstance.asInstanceOf[TestSuite].run()
+			}
+			catch {
+				case ex: Exception =>
+					println("(---) SUITE EXECUTION FAILED: " + ex)
+			}
+		}
 	}
 
 }
 
-class Tests {
+class TestSuite {
 
 	final case class Ignored(message: String)
 
@@ -178,7 +188,7 @@ class Tests {
 
 	protected final def test(t: Test[_, _]) { tests += t }
 
-	final def run {
+	final def run() {
 		var ignored = 0
 		var failed = 0
 		var successful = 0

@@ -3,14 +3,12 @@ package tests
 
 import parser.generator.Normalizer
 import parser.generator.CamlLightSpec
-import parser.ast.expressions.Expression
-import parser.ast.types.TypeDefinition
 
 import scala.io.Source
 
 import java.io.StringReader
 
-object ParserTests extends Tests {
+class ParserTests extends TestSuite {
 
 	private def parse(input: String) = CamlLightSpec.parse(new StringReader(input))
 

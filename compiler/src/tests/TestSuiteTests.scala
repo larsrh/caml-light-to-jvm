@@ -3,9 +3,9 @@ package tests
 
 import java.lang.reflect.InvocationTargetException
 
-object TestsTests extends Tests {
+class TestSuiteTests extends TestSuite {
 
-	import Tests._
+	import TestSuite._
 
 	test(alwaysThrow(new IllegalArgumentException).shouldThrow[IllegalArgumentException])
 	test(alwaysThrow(new IllegalArgumentException).shouldThrow[InvocationTargetException].shouldFail)
