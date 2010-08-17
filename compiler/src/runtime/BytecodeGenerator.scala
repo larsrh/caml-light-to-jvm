@@ -128,6 +128,8 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 			case REWRITE(n) => aload bipush(n) invokevirtual("rewrite", "(I)V")
 			case MAMAPOP => aload invokevirtual("pop", "()V")
 			case HALT => aload invokevirtual("halt", "()V")
+			case GET(n) => aload bipush(n) invokevirtual("get", "(I)V")
+			case AND => aload invokevirtual("and", "()V")
 		}
 	}
 }

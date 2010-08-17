@@ -129,7 +129,24 @@ object JarPacker {
 		// EXPECTED RESULT 42
 		val e11 = Match(Integer(42),(patterns.Id("x"),Id("x")))
 
-		val instr = Translator.codeb(e11, HashMap.empty, 0)
+		// match (1,2,3) with (x,_,y) -> x + y
+		// EXPECTED RESULT 4
+		val e12 = Match(Tuple(Integer(1),Integer(2),Integer(3)),
+										(patterns.Tuple(patterns.Id("x"),patterns.Underscore,patterns.Id("y")),
+										 BinOp(BinaryOperator.add,Id("x"),Id("y")))
+		)
+
+		// match (1,(2,3),(5,3)) with (x,_,y) -> match y with (2,_) -> x | (z,3) -> x + z + 36
+		// EXPECTED RESULT 42
+		val e13 = Match(Tuple(Integer(1),Tuple(Integer(2),Integer(3)),Tuple(Integer(5),Integer(3))),
+										(patterns.Tuple(patterns.Id("x"),patterns.Underscore,patterns.Id("y")),
+										 Match(Id("y"),
+													 (patterns.Tuple(patterns.Integer(2),patterns.Underscore),Id("x")),
+													 (patterns.Tuple(patterns.Id("z"),patterns.Integer(3)),
+														BinOp(BinaryOperator.add,Id("x"),BinOp(BinaryOperator.add,Id("z"),Integer(36))))))
+		)
+
+		val instr = Translator.codeb(e13, HashMap.empty, 0)
 
 		/*
 		val l118 = LABEL(118)

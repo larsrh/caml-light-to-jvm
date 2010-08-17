@@ -255,7 +255,7 @@ public class Machine {
 			stack.push(new Raw(0));
 		}
 		sp--;
-	}	
+	}
 	
 	public void get(int j) {
 		Vector h = (Vector)stack.pop();
