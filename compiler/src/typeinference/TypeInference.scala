@@ -102,6 +102,10 @@ object TypeInference {
 		unify_((al,t)::u)
               case (TypeConstructor(n1,params1@_*),TypeConstructor(n2,params2@_*)) =>
                 if (params1.length != params2.length) {
+		  println("n1: " + n1)
+		  println("params1: " + params1)
+		  println("n2: " + n2)
+		  println("params2: " + params2)
                   throw new TypeError("TODO: unify - reasonable error message")
                 } else if (params1.length == 0) {
 		  // base types without any type parameters
@@ -119,6 +123,7 @@ object TypeInference {
       }
     }
 
+    println("constraints: " + constraints)
     unify_(constraints)
   }
 
@@ -202,14 +207,13 @@ object TypeInference {
 	  case expressions.BinaryOperator.eq | expressions.BinaryOperator.neq
 	    | expressions.BinaryOperator.geq | expressions.BinaryOperator.leq
 	    | expressions.BinaryOperator.gr | expressions.BinaryOperator.le =>
-	    println("e1: " + e1)
-	     println("e2: " + e2)
 	    (TypeBool(), fresh2, (t1,t2)::c1 ++ c2)
 	  case _ => (t1,fresh2,(t1,t2)::c1 ++ c2)
 	}
 
 	
       case expressions.Lambda(body, p) =>
+	println("In lambda")
 	val (patternType,fresh1) = getPatternType(p,fresh)
         val (gamma1,fresh2) = putPatternIntoEnv(gamma, p, patternType, fresh1)
 	val (typeBody,fresh3,constraints) = constraintGen(gamma1, body, fresh2)
@@ -274,7 +278,11 @@ object TypeInference {
       case expressions.Let(patterns.Id(x),expr,body) =>
         constraintGen(gamma,expr,fresh) match {
           case (typeExpr,fresh1,constraints) =>
+	    println("gamma " + gamma)
+	    println("expr " + expr)
+	    println("typeExpr " + typeExpr)
             val scheme = generalise(gamma,typeExpr,constraints)
+	    println("scheme " + scheme)
 	    val gamma1 = update(gamma,x,scheme)
 	    constraintGen(gamma1, body, fresh1)
         }
@@ -343,8 +351,8 @@ object TypeInference {
         // TODO: check if clauses are non-empty
         // all clauses must match the same type
 	val (scrutType, fresh1, constraints) = constraintGen(gamma, scrut, fresh)
-	val (fresh2, scrutType1, typeExpr) = checkClauses(clauses.toList, gamma, scrut, fresh1)
-	(typeExpr, fresh2, List((scrutType,scrutType1)))
+	val (fresh2, scrutType1, typeExpr,cs) = checkClauses(clauses.toList, gamma, scrut, fresh1)
+	(typeExpr, fresh2, List((scrutType,scrutType1)) ++ cs)
 
       case expressions.LetRec(body, funs@_*) =>
 	// put function names into type environment
@@ -363,15 +371,27 @@ object TypeInference {
       currFresh = currFresh + 1
     }
 
+    var cs = List[(TypeExpression,TypeExpression)]()
     for (f <- funs) {
       val funName = f._1.name
       val funBody = f._2
       val (funType, freshNew,constraints)  = constraintGen(currGamma, funBody, currFresh)
+      cs = constraints ++ cs
       // now update type
       val scheme = generalise(currGamma, funType, (currGamma(funName)._2,funType)::constraints)
       currGamma  = currGamma + (funName -> scheme)
       currFresh = freshNew
     }
+
+    val st = unify(cs)
+    for (f <- funs) {
+      val funName = f._1.name
+      val newType = currGamma(funName)._2.subst(st)
+      var newScheme = generalise(currGamma, newType, cs)
+      println("scheme: " + newScheme)
+      currGamma = currGamma + (funName -> newScheme)
+    }
+
     (currGamma, currFresh)
   }
 
@@ -402,8 +422,8 @@ object TypeInference {
   }
 
   def curryApp(app: expressions.App) = {
-    ((expressions.App(app.func, app.param.last))
-     /: (app.param.init.reverse)) ((a,p) => expressions.App(a, p))
+    ((expressions.App(app.func, app.param.head))
+     /: (app.param.tail)) ((a,p) => expressions.App(a, p))
   }
 
   /**
@@ -449,7 +469,7 @@ object TypeInference {
 		   gamma: Env,
 		   scrut: expressions.Expression,
 		   fresh: Int):
-  (Int, TypeExpression, TypeExpression) = {
+  (Int, TypeExpression, TypeExpression, List[(TypeExpression,TypeExpression)]) = {
 
     if (clauses.isEmpty) {
       throw new TypeError("No clause found.")
@@ -458,12 +478,13 @@ object TypeInference {
     var types:Set[TypeExpression] = Set()
     var scruttTypeInferred = false
     var firstScrutType: Option[TypeExpression] = None
+    var constraints = List[(TypeExpression,TypeExpression)]()
 
     for (clause <- clauses) {
       // find out the type the pattern may match against
       val (patType,fresh1) = getPatternType(clause._1, fresh)
       // determine the type of the scrutinee
-      val (scrutType,fresh3,constraints2) = constraintGen(gamma, scrut, fresh1)
+      val (scrutType,fresh2,constraints2) = constraintGen(gamma, scrut, fresh1)
 
       // TODO: if pattern and scrut aren't unifiable -> pattern match doesn't succeed
       // but we should continue to test the remaining patterns: needs more testing
@@ -476,9 +497,10 @@ object TypeInference {
 	  scruttTypeInferred = true
 	  firstScrutType = Some(inferredScrutType)
 	}
-	val (gamma1,fresh2) = putExpressionIntoEnv(gamma,scrut,inferredScrutType,fresh1)
-	val (gamma2,fresh3) = putPatternIntoEnv(gamma1, clause._1, inferredScrutType, fresh2)
-	val (clauseType,fresh4,cs1) = constraintGen(gamma2,clause._2,fresh3)
+	val (gamma1,fresh3) = putExpressionIntoEnv(gamma,scrut,inferredScrutType,fresh2)
+	val (gamma2,fresh4) = putPatternIntoEnv(gamma1, clause._1, inferredScrutType, fresh3)
+	val (clauseType,fresh5,cs1) = constraintGen(gamma2,clause._2,fresh3)
+	constraints = (patType,inferredScrutType)::cs1
 	types += clauseType
       } catch {
 	// pattern match failure, we can't check the right hand sidef of the clause,
@@ -487,7 +509,6 @@ object TypeInference {
       }
     }
 
-    var constraints = List[(TypeExpression,TypeExpression)]()
     val tHead = types.head
     for (t <- types.tail) {
       constraints =  (tHead,t)::constraints
@@ -504,7 +525,7 @@ object TypeInference {
 
       if (scruttTypeInferred) {
 	val Some(s) = firstScrutType
-	(fresh,s,types.head)
+	(fresh,s,types.head,constraints)
       } else {
 	throw new TypeError("TODO")
       }
