@@ -9,3 +9,5 @@
 nblibraries-private.properties
 .fuse*
 *.mama
+*.iml
+*.iws
