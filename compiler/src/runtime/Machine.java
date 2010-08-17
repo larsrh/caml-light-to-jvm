@@ -42,8 +42,9 @@ public class Machine {
 	private int sp;
 	private Vector gp;
 
-	abstract class MachineData {};
-	private class Base extends MachineData {
+	abstract class MachineData {}
+
+    private class Base extends MachineData {
 		private int v;
 
 		private Base(int constant) {
@@ -134,16 +135,14 @@ public class Machine {
 		private MachineData head;
 		private MachineData tail;
 		
-		private List(boolean empty) {
-				this.empty = empty;
+		private List() {
+				this.empty = true;
 		}
 		
-		private List(boolean empty, MachineData head, MachineData tail) {
-				this.empty = empty;
-				if(!empty) {
-						this.head = head;
-						this.tail = tail;
-				}
+		private List(MachineData head, MachineData tail) {
+				this.empty = false;
+				this.head = head;
+				this.tail = tail;
 		}
 			
 		public String toString() {
@@ -205,7 +204,7 @@ public class Machine {
 	public void cons() {
 			MachineData tail = stack.pop();
 			MachineData head = stack.pop();
-			stack.push(new List(false,head,tail));
+			stack.push(new List(head,tail));
 			sp--;
 	}		
 	
@@ -244,10 +243,6 @@ public class Machine {
 		catch (ClassCastException e) {
 			return -1;
 		}
-	}
-	
-	public void HALT() {
-			throw new RuntimeException("Pattern match failure... unlucky you!");
 	}
 	
 	public void geq() {
@@ -296,8 +291,10 @@ public class Machine {
 		}
 		sp--;
 	}
-	
-	//TODO halt -> pattern match failure
+
+	public void halt() {
+			throw new RuntimeException("Pattern match failure... unlucky you!");
+	}
 	
 	public void le() {
 		Raw r1 = (Raw)stack.pop();
@@ -412,7 +409,7 @@ public class Machine {
 	}	
 	
 	public void nil() {
-			stack.push(new List(true));
+			stack.push(new List());
 			sp++;
 	}
 	

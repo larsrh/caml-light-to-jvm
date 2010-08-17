@@ -234,7 +234,7 @@ object Translator {
 										val NEXT = newLabel()
 										val (matchingCode,n) = matchCG(e0,p,e,NEXT,DONE,E,rhoNew,sd+1)
 											
-										matchingCode ++ List(SETLABEL(NEXT),SLIDE(n-1),POP) 
+										matchingCode ++ List(SETLABEL(NEXT)) ++ pop(n) 
 									}
 							/* HALT is misused for runtime pattern match errors */
 							}) ++ List(HALT,SETLABEL(DONE))
@@ -320,12 +320,16 @@ object Translator {
 
 		val (matchingCode,sdNew,_) = matching(e0,p,sd+n,n)
 			
-		(List(ALLOC(n)) ++ matchingCode ++ List(JUMPZ(NEXT)) ++
+    (List(ALLOC(n)) ++ matchingCode ++ List(JUMPZ(NEXT)) ++
 		 codev(res,rhoNew,sd+n) ++ List(SLIDE(n+1),JUMP(DONE)),n)
 		
 	}
 	
-	//def pop(n:Int):List[Instruction] = (1 to n).toList map { _ => POP }
+	def pop(n:Int):List[Instruction] = n match {
+    case 0 => List.empty
+    case 1 => List(POP)
+    case _ => List(SLIDE(n-1),POP)
+  }
 		
 	def getvar(x:String, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
 	:List[Instruction] = rho.get(x) match {
@@ -400,7 +404,7 @@ object Translator {
 	def bound(pat:patterns.Pattern):LinkedHashSet[Id] = pat match {
 		case patterns.Id(x) => LinkedHashSet(Id(x))
 		case patterns.Record(pats@_*) => LinkedHashSet.empty ++
-			pats flatMap ((x:Tuple2[patterns.Id,patterns.Pattern]) => bound(x _1) ++ bound(x _2))
+			pats flatMap ((x:(patterns.Id, patterns.Pattern)) => bound(x _1) ++ bound(x _2))
 		case patterns.Cons(x,xs) => bound(x) ++ bound(xs)
 		case patterns.Alternative(a,b) => bound(a) ++ bound(b)
 		case patterns.Tuple(ts@_*) => LinkedHashSet.empty ++ ts flatMap bound
