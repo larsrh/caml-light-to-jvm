@@ -12,7 +12,7 @@ object TestsTests extends Tests {
 
 	test(alwaysFail(5).shouldFail.shouldBe(5))
 	test(alwaysFail(5).shouldFail.shouldBe(4).shouldFail)
-	test(alwaysFail(5).shouldFail.shouldBe(4).ignore)
+	test(alwaysFail(5).shouldFail.shouldBe(4).ignore())
 
 	test(alwaysSucceed(1).all(
 		{ (n: Int) => alwaysSucceed(n+1) },

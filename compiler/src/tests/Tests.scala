@@ -5,8 +5,15 @@ import scala.collection.mutable.ListBuffer
 
 object Tests {
 
-	sealed trait Ignored
-	object Ignored extends Ignored
+	def main(args: Array[String]) {
+		ParserTests.run
+	}
+
+}
+
+class Tests {
+
+	final case class Ignored(message: String)
 
 	sealed trait Result[+Val, +Err] {
 		def toEither = this match {
@@ -45,16 +52,6 @@ object Tests {
 		case class SelfError[+SelfErr](err: SelfErr) extends Error[SelfErr, Nothing, Nothing]
 		case class TesterError[+Val, +Err](results: List[Result[Val, Err]]) extends Error[Nothing, Val, Err]
 	}
-
-	def main(args: Array[String]) {
-		TestsTests.run
-	}
-
-}
-
-class Tests {
-
-	import Tests._
 
 	abstract class Test[+Val, +Err] { self =>
 		def run: Result[Val, Err]
@@ -155,12 +152,14 @@ class Tests {
 			override def run = Success(self.run)
 		}
 
-		final def ignore = new Test[Ignored, Nothing] {
-			override def run = Success(Ignored)
-		}
+		final def ignore(message: String = self.toString) = alwaysIgnore(message)
 
 	}
-	
+
+	def alwaysIgnore(message: String) = new Test[Ignored, Nothing] {
+		override def run = Success(Ignored(message))
+	}
+
 	def alwaysFail[E](err: => E) = new Test[Nothing, E] {
 		def run = Failure(err)
 	}
@@ -175,7 +174,6 @@ class Tests {
 
 	def calculate[V](expr: => V) = alwaysSucceed(expr)
 
-
 	private val tests = ListBuffer[Test[_, _]]()
 
 	protected final def test(t: Test[_, _]) { tests += t }
@@ -184,7 +182,7 @@ class Tests {
 		for (t <- tests) {
 			try {
 				t.run match {
-					case Success(Ignored) => println("IGNORED")
+					case Success(Ignored(message)) => println("IGNORED " + message)
 					case Success(value) => println("SUCCESS " + value)
 					case Failure(err) => println("FAILURE " + err)
 				}
