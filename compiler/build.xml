@@ -70,7 +70,11 @@
     <property name="jflex.input" value="CamlLightScanner.jflex" />
     <property name="jflex.output" value="CamlLightScanner.java" />
 
-    <target name="jflex">
+	<target name="jflex-changed">
+		<uptodate property="jflex.nochanges" srcfile="${jflex.dir}/${jflex.input}" targetfile="${jflex.dir}/${jflex.output}" />
+	</target>
+
+    <target name="jflex" depends="jflex-changed" unless="jflex.nochanges">
         <java jar="lib/JFlex.jar" fork="true" dir="${jflex.dir}">
             <arg value="${jflex.input}" />
         </java>
