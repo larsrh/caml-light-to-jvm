@@ -1,0 +1,167 @@
+%% Some useful variations of the document class
+%%\documentclass[draft]{beamer}
+%%\documentclass[handout]{beamer}
+% silence hyperref warnings
+\documentclass[hyperref={pdfpagelabels=false}]{beamer}
+%\documentclass{beamer}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage[autostyle]{csquotes}
+\usepackage{wasysym}
+\usepackage{ziffer}
+\mode<presentation>{\usetheme{Copenhagen}}
+\title{A Caml Light Compiler for the JVM}
+\author{Hupel, Kubica, Müller, Schulze, Traytel}
+\institute{TU München}
+\date{20.~August~2010}
+
+%% get rid of navigation symbols
+%\setbeamertemplate{navigation symbols}{}
+\beamertemplatenavigationsymbolsempty
+
+\definecolor{slowest}{RGB}{255, 0, 0}
+\definecolor{fastest}{RGB}{0, 255, 0}
+
+\begin{document}
+
+\frame{\titlepage}
+
+% define the logo after the title page
+\logo{\includegraphics[width=1.5cm]{tun}}
+
+\begin{frame}{Lexer}
+  \begin{block}{Technisches}
+    \begin{itemize}
+      \item JFlex
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Parser}
+  \begin{block}{Technisches}
+    \begin{itemize}
+      \item CUP2
+      \item CamlLight"=Syntax
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Typinferenz}
+\end{frame}
+
+\begin{frame}{Codegenerierung: MaMa}
+\end{frame}
+
+\begin{frame}{Codegenerierung: JVM"=Bytecode}
+  \begin{block}{Idee}
+    \begin{itemize}
+      \item Verarbeitet erweiterten MaMa"=Code: deineMaMa
+        \begin{itemize}
+          \item Instruktionen die PC lesen, nehmen stattdessen Label als Parameter
+          \item Instruktionen die PC modifizieren, geben stattdessen Label aus
+        \end{itemize}
+      \item Verwendung des JVM"=Heaps
+      \item Verwendung von \texttt{java.util.Stack}
+      \item Instruktionen in Java geschrieben
+    \end{itemize}
+  \end{block}
+  \begin{block}{ASM}
+    \begin{itemize}
+      \item Library für Bytecodeinspektion und Modifikation
+      \item Wird genutzt um unsere eigene \texttt{main()} einzuschleusen
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Zustand}
+  \begin{exampleblock}{Was funktioniert}
+    \begin{itemize}
+      \item Syntax, mit (sinnvollen?) Fehlermeldungen
+      \item Lambdas, Match, Tupel, Records, Strings, Listen
+      \item Ausgabe von Java"=Bytecode
+    \end{itemize}
+  \end{exampleblock}
+  \begin{alertblock}{Was nicht funktioniert}
+    \begin{itemize}
+      \item Typkonstruktoren
+      \item Seiteneffekte, Exceptions
+      \item Threads
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Benchmarks}
+  \begin{block}{Ackermann(3, 5)}
+    Zweifaches Pattern Matching
+
+    \begin{tabular}{l|l|l|l}
+       & Caml Light & Scala & TUM \\
+      \hline
+      Kompilieren & \textcolor{fastest}{0.0s} & \textcolor{slowest}{9.3s} & 4.1s \\
+      Ausführen & \textcolor{fastest}{0.00s} & 1.03s & \textcolor{slowest}{1.69s} \\
+    \end{tabular}
+  \end{block}
+  \begin{block}{Factorial(10)}
+    Rekursiv
+
+    \begin{tabular}{l|l|l|l}
+       & Caml Light & Scala & TUM \\
+      \hline
+      Kompilieren & \textcolor{fastest}{0.0s} & \textcolor{slowest}{9.1s} & 3.9s \\
+      Ausführen & \textcolor{fastest}{0.00s} & \textcolor{slowest}{0.98s} & 0.13s \\
+    \end{tabular}
+  \end{block}
+  System: Core2 Duo @ 1.5 GHz x86\_64; OpenJDK~1.6.0\_18; Scala~2.8.0; Caml Light~0.75
+\end{frame}
+
+\begin{frame}{Spaß}
+  \begin{block}{Code}
+    $\approx 3.300$ LOC Scala, $\approx 650$ LOC Java, $> 250$ Commits
+  \end{block}
+  \begin{block}{Best of Commit"=Messages}
+    \begin{itemize}
+      % TODO: select best
+      \item \enquote{Write the bytes in, you know, a correct way}
+      \item \enquote{Whee, the machine can actually run more complicated code without failing}
+      \item \enquote{Look at me mom, I made a jQuery"=like chainable DSL for generating bytecode}
+      \item \enquote{Maching of tuples works but is REALLY ugly}
+      \item \enquote{fixed REALLY stupid bug with CUP2/Scala layer}
+      \item \enquote{Get out of the JAR, *.mama. You're not even bytecode!}
+      \item \enquote{Case classes should not inherit other case classes, you know? We have so much syntactic sugar, use that instead!}
+      \item \enquote{Hey ., you should really consider matching newlines, too!}
+      \item \enquote{fixed \enquote{closures vs getbasic}}
+      \item \enquote{Changed order of generated code instruction so that the code is actually valid}
+      \item \enquote{Scala supports some mad syntactic sugar. Mad! I tell you.}
+      \item \enquote{Marek goes insane and after that, realizes that bipush handles only +127 and then wraps around.}
+      \item \enquote{I can haz right order of valyooz?}
+      \item \enquote{I heard you want to know where exactly the typo in your souce code is. Here you are!}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Rückblick}
+  \begin{exampleblock}{Was war gut}
+    \begin{itemize}
+      \item Scala Patternmatching
+      \item Betreuung \smiley
+    \end{itemize}
+  \end{exampleblock}
+  \begin{alertblock}{Was war weniger gut}
+    \begin{itemize}
+      \item NetBeans
+      \item Compilezeiten von \texttt{scalac}
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Zukunft}
+  \begin{block}{Mögliche Erweiterungen}
+    \begin{itemize}
+      \item Stdlib bereitstellen
+      \item Verwendung des JVM"=Stacks
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\end{document}

@@ -12,3 +12,10 @@ nblibraries-private.properties
 *.iml
 *.iws
 *.jar
+*.log
+*.aux
+*.toc
+*.snm
+*.nav
+*.out
+slides.pdf
