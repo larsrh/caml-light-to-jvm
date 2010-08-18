@@ -1,3 +1,46 @@
+/******************************************************************************
+ *                              INTRODUCTION
+ *
+ * The purpose of this file is to translate an expression into a list of MaMa
+ * instructions. The main parts of the translation are described in [Wilhelm,
+ * Seidl - "Uebersetzerbau: Virtuelle Maschinen"]. Some additional features are:
+ *
+ * --> Records - they are implemented on the MaMa level as nameless tuples
+ *   using type inference to resolve field names.
+ * --> Pattern matching with arbitrary patterns - this is done as follows:
+ *   the arbitrary pattern matching scheme is
+ *           MATCH e0 WITH p1 -> e1 | ... | pn -> en
+ *     Patterns of form "MATCH e0 WITH [] -> e1 | x::xs -> e2" (normal form) are
+ *   matched as described in the book. Otherwise we matching generate code for
+ *   every "case" pi -> ei. If e0 matches pi the generated matching code will
+ *   leave a "1" on the stack (and a "0" otherwise). If the expression e0
+ *   matches some pattern pi then the resulting "1" on top of the stack is
+ *   popped followed by the generated code of ei. Otherwise a JUMPZ leads MaMa
+ *   to the next pattern. If there is no matching pattern the last JUMP will
+ *   point to a HALT instruction which is misused in our compiler to indicate
+ *   pattern match failures.
+ *     The matching code is generated recursively. E.g. an underscore pattern
+ *   does always match, so its matching code is only to push the "1". An integer
+ *   pattern matches only if e0 has the same value as the pattern. The variable
+ *   pattern matches always, but it does more than that. It actually binds the
+ *   matched variable inside ei. Thus, the matching code of a variable pattern
+ *   has to know where to bind the variables. Therefore some stack entries are
+ *   reserved in a previous step by computing the free variables of ei. Note
+ *   that the "free" function preserves the order of occurrence of the variables
+ *   in the given expression.
+ *     The matching code is more complicated for constructed data types like
+ *   tuples, lists and records. For example the expression e0 matches the tuple
+ *   pattern (pi1,..pij) if and only if for all x = 1 .. j the expression
+ *   GET(e0,x) matches pix. Thus, we generate matching code for all tuple-
+ *   elements and check whether all cases are matching using the AND MaMa-
+ *   instruction. A similar construction is used for generating the matching
+ *   code of arbitrary list patterns. Here, to match CONS head tail ,we need to
+ *   check whether the expression MATCH e0 WITH NIL -> false | CONS h t -> h
+ *   matches head and the expression MATCH e0 WITH NIL -> false | CONS h t -> t
+ *   matches tail. Here h and t are new variables. These expressions correspond
+ *   to the normal form, s.t. the TLIST instruction can be used to generate this
+ *   code.
+ ******************************************************************************/
 
 package codegen.mama
 
@@ -10,7 +53,7 @@ import scala.collection.mutable.LinkedHashSet
 package mamaInstructions {
 
 	/******************************************************************************/
-	/*														INSTRUCTION SET																	*/
+	/*                           INSTRUCTION SET                                  */
 	/******************************************************************************/
 	sealed abstract class Instruction(str: String) {
 		final override def toString() = str + (this match {
@@ -74,7 +117,7 @@ package mamaInstructions {
 
 object Translator {
 
-  var gamma:typeinference.TypeInference.Env
+  var gamma:typeinference.TypeInference.Env = typeinference.TypeInference.emptyEnv
 	
 	object VarKind extends Enumeration {
 		type VarKind = Value
@@ -87,7 +130,7 @@ object Translator {
 	val cbfun = if(CBN) codec _ else codev _ 
 		
 	/******************************************************************************/
-	/*																	CODEGEN																		*/
+	/*                                  CODEGEN                                   */
 	/******************************************************************************/
 	// on-stack computations for mama
 	def codeb(expr:Expression, rho:HashMap[String,(VarKind.Value,Int)],sd:Int)
@@ -251,11 +294,11 @@ object Translator {
 	}
 		
 	/******************************************************************************/
-	/*																	MACROS																		*/
+	/*                                  MACROS                                    */
 	/******************************************************************************/
 	def matchCG(e0:Expression, p:patterns.Pattern, res:Expression, NEXT:LABEL, DONE:LABEL, E:String,
 							rho:HashMap[String,(VarKind.Value,Int)],sd:Int):(List[Instruction],Int) = {
-			
+	  	
 		val vars = bound(p)
 		val n = vars.size
 		val rhoNew = ((1 to n).toList foldLeft rho)
@@ -382,7 +425,7 @@ object Translator {
 	:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Global,i))
 			
 	/******************************************************************************/
-	/*														FREE & BOUND VARIABLES													*/
+	/*                            FREE & BOUND VARIABLES                          */
 	/******************************************************************************/
 	def free(e:Expression,vs:LinkedHashSet[Id]):LinkedHashSet[Id] = e match {
 		case x@Id(_) => if (vs contains x) LinkedHashSet.empty else LinkedHashSet(x)
@@ -422,8 +465,11 @@ object Translator {
 	}
 }
 
+/******************************************************************************/
+/*                                  TESTS                                     */
+/******************************************************************************/
 object CodeGen {
-		
+
 	def main(args:Array[String]):Unit = {
 		// let a = 19 in let b = a * a in a + b
 		// EXPECTED RESULT 380
@@ -432,21 +478,21 @@ object CodeGen {
 										 BinOp(BinaryOperator.add,Id("a"),Id("b"))
 			)
 		)
-		
+
 		// (\a.a) 42
 		// EXPECTED RESULT 42
 		val e1 = App(Lambda(Id("a"),patterns.Id("a")),Integer(42))
-		
+
 		// (\a.a + 3) 42
 		// EXPECTED RESULT 45
 		val e2 = App(Lambda(BinOp(BinaryOperator.add,Id("a"),Integer(3)),patterns.Id("a")),Integer(42))
-		
+
 		// let a = \a.a in a a
-		// EXPECTED RESULT NOT BASIC ERROR 
+		// EXPECTED RESULT NOT BASIC ERROR
 		val e3 = Let(patterns.Id("a"), Lambda(Id("a"), patterns.Id("a")),
 								 App(Id("a"),Id("a")))
-		
-		// (let a = \a.a in a a) 42 
+
+		// (let a = \a.a in a a) 42
 		// EXPECTED RESULT 42
 		val e4 = App(e3,Integer(42))
 
@@ -462,35 +508,35 @@ object CodeGen {
 								 Let(patterns.Id("b"),
 										 App(Id("a"), Id("a")),
 										 App(Id("a"), Id("a"))))
-	 
+
 		// (let a = \b.b in let b = \a.a in \a.a) 'a'
 		// EXPECTED RESULT 97
 		val e7 = App(e6,Character('a'));
-		
+
 		// if 97 = 'a' then 42 else false
 		// EXPECTED RESULT 42
 		val e8 = IfThenElse(BinOp(BinaryOperator.eq,Integer(97),Character('a')),Integer(42),Bool(false))
-		
+
 		// match 2 with 3 -> true | 2 -> false
 		// EXPECTED RESULT 0
 		val e9 = Match(Integer(2),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
-		
+
 		// match 4 with 3 -> true | 2 -> false
 		// EXPECTED RESULT SOME ERROR
 		val e10 = Match(Integer(4),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
-		
+
 		// match 42 with x -> x
 		// EXPECTED RESULT 42
 		val e11 = Match(Integer(42),(patterns.Id("x"),Id("x")))
-		
+
 		// match (1,2,3) with (x,_,y) -> x + y
 		// EXPECTED RESULT 4
 		val e12 = Match(Tuple(Integer(1),Integer(2),Integer(3)),
 										(patterns.Tuple(patterns.Id("x"),patterns.Underscore,patterns.Id("y")),
 										 BinOp(BinaryOperator.add,Id("x"),Id("y")))
 		)
-		
-		// match (1,(2,3),(5,3)) with (x,_,y) -> match y with (2,_) -> x | (z,3) -> x + z + 36 
+
+		// match (1,(2,3),(5,3)) with (x,_,y) -> match y with (2,_) -> x | (z,3) -> x + z + 36
 		// EXPECTED RESULT 42
 		val e13 = Match(Tuple(Integer(1),Tuple(Integer(2),Integer(3)),Tuple(Integer(5),Integer(3))),
 										(patterns.Tuple(patterns.Id("x"),patterns.Underscore,patterns.Id("y")),
@@ -499,7 +545,7 @@ object CodeGen {
 													 (patterns.Tuple(patterns.Id("z"),patterns.Integer(3)),
 														BinOp(BinaryOperator.add,Id("x"),BinOp(BinaryOperator.add,Id("z"),Integer(36))))))
 		)
-		
+
 		// match (1,(2,4),(5,3)) with (x,z,y) -> match z with (2,x) -> x | (z,3) -> x + z + 36
 		// EXPECTED RESULT 4
 		val e14 = Match(Tuple(Integer(1),Tuple(Integer(2),Integer(4)),Tuple(Integer(5),Integer(3))),
@@ -529,16 +575,16 @@ object CodeGen {
 		val e17 = App(App(Lambda(Lambda(Id("x"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
 										 patterns.Cons(patterns.Id("y"), patterns.Id("ys"))),Cons(Integer(3),Nil)),
         Cons(Integer(42),Cons(Integer(5),Nil)))
-		
-		val list = List(e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12,e13,e14,e15,e16,e17)	
-			
+
+		val list = List(e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12,e13,e14,e15,e16,e17)
+
 		def out(e:Expression):Unit = {
 			val is = Translator.codeb(e,HashMap.empty,0)
 			val out = new java.io.FileWriter("e" + (list indexOf e).toString + ".mama")
 			is map ((i:Instruction) => out write (i.toString))
 			out close
 		}
-		
+
 		list map out
 	}
 }

@@ -26,7 +26,8 @@ object Test {
 		def parseExp(input:String):Expression = 
 			Parser.parse(input)._1
 		
-		def typeCheck(e:Expression):Unit = TypeInference.typeCheck(TypeInference.emptyEnv, e)
+		def typeCheck(e:Expression):TypeInference.Env =
+      TypeInference.typeCheck2(TypeInference.emptyEnv, e) _2
 		
 		def genMaMaCode(e:Expression):List[Instruction] =
 			Translator.codeb(e,HashMap.empty,0)
@@ -49,7 +50,7 @@ object Test {
 			val exp = parseExp(Source.fromFile("test/bigbang/" + x + ".cl").mkString(""));
 			//Console println "***************************"
 			//Console println exp
-			typeCheck(exp)
+			Translator.gamma = typeCheck(exp)
 			val mamaCode = genMaMaCode(exp)
 			output(mamaCode, x)
 			genByteCode(mamaCode, "test/bigbang/" + x + ".jar")
