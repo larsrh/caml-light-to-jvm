@@ -9,6 +9,6 @@ let rec
 								0		->	(a (m - 1) 1)
 						|		_		->	(a (m - 1) (a m (n-1)))))
 in
-		(a 1 2)
+		(a 3 5)
 
-(* EXPECTED RESULT 4 *)
+(* EXPECTED RESULT 253 *)
