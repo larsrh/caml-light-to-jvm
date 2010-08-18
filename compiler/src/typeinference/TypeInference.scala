@@ -41,6 +41,12 @@ object TypeInference {
   case class TypeError(err: String) extends Exception(err) { }
 
   /**
+   * Represents a unification error.  Will be thrown whenever constraints
+   * are unifiable.
+   */
+  case class UnificationError(err: String) extends Exception(err) { }
+
+  /**
    * Returns an empty type environment.
    */
   def emptyEnv() = Map[String,TypeScheme]()
@@ -93,7 +99,7 @@ object TypeInference {
           else {
             (t1,t2) match {
               case (al@TypeVariable(a), t) =>
-                if (freeVars(t).contains(al)) { throw new TypeError("Occurs check failed.") }
+                if (freeVars(t).contains(al)) { throw new UnificationError("Occurs check failed.") }
                 else {
                   val rest = unify_(u.subst_((t,al)))
                   (t,al)::rest
@@ -102,18 +108,18 @@ object TypeInference {
 		unify_((al,t)::u)
               case (t1@TypeConstructor(n1,params1@_*),t2@TypeConstructor(n2,params2@_*)) =>
                 if (params1.length != params2.length) {
-                  throw new TypeError("ERROR: Couldn' unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2)
+                  throw new UnificationError("ERROR: Couldn' unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2)
                 } else if (params1.length == 0) {
 		  // base types without any type parameters
 		  if (n1 == n2) {
 		    unify_(u)
 		  } else {
-		    throw new TypeError("Couldn't unify TODO")
+		    throw new UnificationError("Couldn't unify TODO")
 		  }
 		} else {
                   unify_(params1.zip(params2).toList ++ u)
                 }
-              case _ => throw new TypeError("TODO: unify - reasonable error message")
+              case _ => throw new UnificationError("TODO: unify - reasonable error message")
             }
           }
       }
@@ -293,15 +299,14 @@ object TypeInference {
 	    }
         }
 
-      case expressions.Let(p@patterns.Tuple(_), expr, body) =>
-	val (typeExpr, fresh1, _) = constraintGen(gamma,expr,fresh)
-	val (gamma1,fresh2) = putPatternIntoEnv(gamma, p, typeExpr, fresh1)
-	val (typeBody, fresh3, constraints) = constraintGen(gamma1, body, fresh2)
-	typeExpr match {
+      case expressions.Let(p@patterns.Tuple(_@_*), expr, body) =>
+	val (typeExpr, fresh1, constraints1) = constraintGen(gamma,expr,fresh)
+	val (patType, freshNew) = getPatternType(p, fresh1)
+	val (gamma1,fresh2) = putPatternIntoEnv(gamma, p, patType, freshNew)
+	val (typeBody, fresh3, constraints2) = constraintGen(gamma1, body, fresh2)
+	patType match {
 	  case TypeTuple(fields@_*) =>
-//	    val newVars = fresh3 to fresh3 + (fields.length - 1) map (i => TypeVariable(i))
-	    (typeBody,fresh3 + fields.length,constraints)
-//	     (typeExpr,TypeTuple(newVars:_*))::constraints)
+	    (typeBody,fresh3 + fields.length,(patType,typeExpr)::constraints1++constraints2)
 	  case _ => throw new TypeError("Couldn't match tuple type.")
 	}
 
@@ -488,7 +493,8 @@ object TypeInference {
       } catch {
 	// pattern match failure, we can't check the right hand sidef of the clause,
 	// but we need to check the other clauses
-	case err: TypeError => println("Pattern match failed..") // checkClauses1(r, gamma, List(), fresh2, None, scrut, None)
+	case unificationErr: UnificationError => throw unificationErr 
+	case typeErr: TypeError => throw typeErr
       }
     }
 
@@ -514,7 +520,7 @@ object TypeInference {
       }
     } catch {
       // TODO: cleanup
-      case _ => throw new TypeError("Pattern clauses return values differ. TODO")
+      case _ => throw new UnificationError("Pattern clauses return values differ. TODO")
     }
   }
 
@@ -554,10 +560,11 @@ object TypeInference {
 	  (env,fresh)
 	}
       case tup@patterns.Tuple(pats@_*) =>
+
 	typeExpr match {
 	  case TypeTuple(types@_*) =>
 	    if (types.length != pats.length) {
-	      throw new TypeError("Match failed TODO")
+	      throw new TypeError("ERROR: Tupel pattern match failed.\nType: " + typeExpr + ", pattern: " + tup + " .")
 	    } else {
 	      var gamma = env
 	      var currFresh = fresh
