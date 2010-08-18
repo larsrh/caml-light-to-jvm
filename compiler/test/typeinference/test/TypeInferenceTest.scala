@@ -461,11 +461,29 @@ class TypeInferenceTest {
   }
 
   @Test
-  def test_Record2 {
+  def test_Record2 = {
     val test = Let(patterns.Id("x"), expressions.Record((Id("y"), Lambda(Integer(1), patterns.Integer(2)))), Integer(0))
 
     assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
+
+  @Test
+  def test_Tuple0 = {
+    val test = Let(patterns.Id("x"), expressions.Tuple(Integer(1), Integer(2), Integer(3)),
+		   Id("x"))
+
+    assertEquals((List(), TypeTuple(TypeInt(), TypeInt(), TypeInt())),
+		 TypeInference.typeCheck(TypeInference.emptyEnv, test))
+  }
+
+//  @Test
+//  def test_Tuple1 = {
+//    // let foo = fun u -> (1, true, 3) in let (x, y, z) = foo 0 in y;;
+//    val test = Let(patterns.Id("foo"), Lambda(Tuple(Integer(1), Bool(true), Integer(3)), patterns.Id("u")),
+//				      Let(patterns.Tuple(patterns.Id("x"), patterns.Id("y"), patterns.Id("z")), App(Id("foo"), Integer(0)), Id("y")))
+//
+//    assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+//  }
 
   @Test
   def test_parseInt = {
