@@ -11,3 +11,4 @@ nblibraries-private.properties
 *.mama
 *.iml
 *.iws
+*.jar

@@ -185,6 +185,15 @@ class TestSuite {
 	}
 
 	def calculate[V](expr: => V) = alwaysSucceed(expr)
+	implicit def anyCalculation2Test(any: => Any) = calculate(any)
+
+	def assertTrue(expr: => Boolean) = calculate(expr) shouldBe true
+	def assertEquals[U, V >: U](expected: => U, input: => V) = calculate(input) shouldBe expected
+
+	def all[V, E](tester: Test[V, E]*) =
+		alwaysSucceed(()).all(tester map { t => ((_: Unit) => t) } : _*).mapError {
+			case AllTest.TesterError(results) => results
+		}
 
 	private var count = 0
 	private val tests = LinkedHashMap[AnyRef, Test[_, _]]()

@@ -85,6 +85,7 @@
     </target>
 
     <!-- overrides -->
-    <target name="-compile-depend" depends="jflex" />
-    <target name="-javadoc-build" /> <!-- disabled because Scaladoc fails -->
+	<target name="-compile-depend" depends="jflex" />
+	<target name="-post-clean" depends="jflex-clean" />
+	<target name="-javadoc-build" /> <!-- disabled because Scaladoc fails -->
 </project>
