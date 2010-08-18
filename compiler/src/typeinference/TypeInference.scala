@@ -212,10 +212,8 @@ object TypeInference {
         // anonymous record definition like in e.g.
         // let x = { one=Integer(1), id=Lamda(Id("x"),patterns.Id("x")) }
       case expressions.Record(defs@_*) =>
-        determineRecordFieldTypes(List(), List(), gamma, fresh, defs:_*) match {
-          case (fields,fresh1,constraints) =>
-            (TypeRecord("anonymous", fields:_*),fresh1,constraints)
-        }
+        val (fields,fresh1,constraints) = determineRecordFieldTypes(List(), List(), gamma, fresh, defs:_*)
+	(TypeRecord("anonymous", fields:_*),fresh1,constraints)
 
       case expressions.Tuple(expr@_*) =>
 	// TODO: 2nd and 5th parameter may be omitted from caller
@@ -263,14 +261,11 @@ object TypeInference {
         val (typeE1, fresh1, constraints) = constraintGen(gamma, e1, fresh+1)
 	val (typeE2, fresh2, constraints1) = constraintGen(gamma, e2, fresh1)
 	val alpha = TypeVariable(fresh)
-	println("alpha" + alpha)
 	(alpha,fresh2,(typeE1, TypeFn(typeE2,alpha))::(constraints++constraints1))
 
       case expressions.Let(patterns.Id(x),expr,body) =>
         constraintGen(gamma,expr,fresh) match {
           case (typeExpr,fresh1,constraints) =>
-	    println("let cs: " + constraints)
-	    println("let te: " + typeExpr)
             val scheme = generalise(gamma,typeExpr,constraints)
 	    val gamma1 = update(gamma,x,scheme)
 	    constraintGen(gamma1, body, fresh1)
@@ -365,7 +360,6 @@ object TypeInference {
     var allConstraints = List[(TypeExpression,TypeExpression)]()
     for (f <- funs) {
       val funName = f._1.name
-      println("funName " + funName)
       val funBody = f._2
       val (funType,freshNew,constraints)  = constraintGen(currGamma, funBody, currFresh)
       // collect generated constraints 
@@ -390,9 +384,6 @@ object TypeInference {
     expr match {
       case fun@expressions.Lambda(_,arguments@_*) =>
 	if (arguments.length > 1) {
-	  println("fun before: "+ fun)
-	  println("fun after: " +   ((expressions.Lambda(fun.body, fun.arguments.last))
-				     /: (fun.arguments.init.reverse)) ((l,p) => expressions.Lambda(l, p)))
 	  ((expressions.Lambda(fun.body, fun.arguments.last))
 	   /: (fun.arguments.init.reverse)) ((l,p) => expressions.Lambda(l, p))
 	} else {
@@ -409,9 +400,9 @@ object TypeInference {
   }
 
   def curryApp(app: expressions.App) = {
-    println("app before " + app )
-    println("app after " + ((expressions.App(app.func, app.param.head))
-			    /: (app.param.tail)) ((a,p) => expressions.App(a, p)))
+//    println("app before " + app )
+//    println("app after " + ((expressions.App(app.func, app.param.head))
+//			    /: (app.param.tail)) ((a,p) => expressions.App(a, p)))
     ((expressions.App(app.func, app.param.head))
      /: (app.param.tail)) ((a,p) => expressions.App(a, p))
   }
@@ -432,7 +423,7 @@ object TypeInference {
       constraintGen(gamma, recField._2, fresh) match {
         case (typeexpr, fresh1, constraints1) =>
           val constraintsNew = constraints union constraints1
-          determineRecordFieldTypes(constraintsNew, (recField._1.name, typeexpr)::fields,
+          determineRecordFieldTypes(constraintsNew, fields :+ (recField._1.name, typeexpr),
 				    gamma, fresh1, recordFields.tail:_*)
       }
     }
@@ -682,6 +673,35 @@ object TypeInference {
     gamma find {t => t._1 == id} match {
       case Some((id1,scheme)) => Right(scheme)
       case None => Left("variable " + id + " not bound")
+    }
+  }
+
+  /**
+   * Returns the position of the given label within the given record.
+   * Indexing starts at ?
+   */
+  def getRecordLabelPos(recExpr: expressions.Expression, label: expressions.Id): Int = {
+    // local method
+    def findLabel(fields: List[(String,TypeExpression)], labelName: String, cnt: Int): Int = {
+      fields match {
+	case List() => throw new TypeError("ERROR: No field named " + label.name + " in record " + recExpr + ".")
+	case (fieldDef::rest) =>
+	  val fieldName = fieldDef._1
+	  val fieldlType = fieldDef._2
+	  if (labelName == fieldName) {
+	    cnt
+	  } else {
+	    findLabel(rest,labelName,cnt+1)
+	  }
+      }
+    }
+
+    // we don't care about the type environment nor
+    // the constraints or the fresh variable here
+    val (recType,_,_) = constraintGen(emptyEnv, recExpr, 1)
+    recType match {
+      case TypeRecord(n,fields@_*) => findLabel(fields.toList, label.name, 0)
+      case _ => throw new TypeError("ERROR: Expression " + recExpr + " is not a record.")
     }
   }
 }
