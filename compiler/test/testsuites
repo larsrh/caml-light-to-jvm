@@ -1,2 +1,3 @@
 tests.TestSuiteTests
 tests.ParserTests
+tests.TypeInferenceTests
