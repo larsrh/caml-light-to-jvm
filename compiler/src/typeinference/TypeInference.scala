@@ -311,16 +311,16 @@ object TypeInference {
 	}
 
       case expressions.Let(p@patterns.Record(pats@_*), expr, body) =>
-        val (typeExpr,fresh1,_) = constraintGen(gamma, expr, fresh)
-	val (gamma1,fresh2,cs) = putPatternIntoEnv(gamma, p, typeExpr, fresh1)
-	val (typeBody, fresh3, constraints) = constraintGen(gamma1, body, fresh2)
+        val (typeExpr,fresh1,constraints1) = constraintGen(gamma, expr, fresh)
+	val (gamma1,fresh2,constraints2) = putPatternIntoEnv(gamma, p, typeExpr, fresh1)
+	val (typeBody,fresh3,constraints3) = constraintGen(gamma1, body, fresh2)
 	typeExpr match {
 	  case TypeRecord(_,fields@_*) =>
 	    // extract field names
 	    val fieldNames = fields map (f => f._1)
 	    val newVars = fresh3 to fresh3 + fields.length map (i => TypeVariable(i))
 	    (typeBody,fresh3 + fields.length + 1,
-	     (typeExpr,TypeRecord("anonymous",fieldNames zip newVars:_*))::constraints++cs)
+	     (typeExpr,TypeRecord("anonymous",fieldNames zip newVars:_*))::constraints1 ++ constraints2 ++ constraints3)
 	  case _ => throw new TypeError("Couldn't match record type.")
 	}
 
@@ -532,9 +532,6 @@ object TypeInference {
    */
   def putPatternIntoEnv(env: Env, pattern: patterns.Pattern,
 			typeExpr: TypeExpression, fresh: Int): (Env,Int,List[(TypeExpression,TypeExpression)]) = {
-    // we don't generate any co
-    // nstraints here; if the pattern doesn't
-    // match the given type, we found a pattern match error 
     pattern match {
       case patterns.Id(x) =>
 	val scheme = (List(),typeExpr)
