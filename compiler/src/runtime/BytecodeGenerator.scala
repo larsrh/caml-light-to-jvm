@@ -180,6 +180,17 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		case LE => aload invokevirtual("le", "()V")
 		case NOT => aload invokevirtual("not", "()V")
 		case NEG => aload invokevirtual("neg", "()V")
+		case COPYGLOB => aload invokevirtual("copyglob", "()V")
+		case DIV => aload invokevirtual("div", "()V")
+		case GEQ => aload invokevirtual("geq", "()V")
+		case GETVEC(k) => aload pushInt k invokevirtual("getvec", "(I)V")
+		case GR => aload invokevirtual("gr", "()V")
+		case LABEL(name) => // LABELs don't get compiled to anything
+		case LEQ => aload invokevirtual("leq", "()V")
+		case NEQ => aload invokevirtual("neq", "()V")
+		case OR => aload invokevirtual("or", "()V")
+		case POPENV => aload invokevirtual("popenv", "()V") jumpto
+		case WRAP(LABEL(l)) => aload pushInt l invokevirtual("wrap", "(I)V")
 	}
 }
 
@@ -231,9 +242,6 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		val orderedLabels = knownLabels.toList.sortBy(_._1)
 		val compilerLabels = orderedLabels.collect({case a => a._1.nr})
 		val jvmLabels = orderedLabels.collect({case a => a._2})
-
-		//println((Array[Int](0) ++ compilerLabels.toArray[Int] ++ Array[Int](compilerLabels.last + 1)).toList)
-		//println((Array[Label](switchEntry) ++ jvmLabels.toArray[Label] ++ Array[Label](doTerminateLabel)).toList)
 
 		// generate a switch statement with defaultLabel as default case
 		mv.visitLookupSwitchInsn(defaultLabel,
