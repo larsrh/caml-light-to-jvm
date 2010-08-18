@@ -207,25 +207,29 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 	}
 
 	def injectMain() = {
-		// method definition
+		// method definition and body
 		val mv = cv.visitMethod(ACC_PUBLIC + ACC_STATIC, "main",
 														"([Ljava/lang/String;)V", null, null)
-		// code: instantiate Machine and store it in position 1
 		mv.visitCode
+
+		// instantiate Machine and store it in position 1
 		mv.visitTypeInsn(NEW, "runtime/Machine")
 		mv.visitInsn(DUP)
 		mv.visitMethodInsn(INVOKESPECIAL, "runtime/Machine", "<init>", "()V")
 		val machineLocation = 1
 		mv.visitVarInsn(ASTORE, machineLocation)
+
 		// store _goto = 0
 		val gotoLocation = 2
 		mv.visitInsn(ICONST_0)
 		mv.visitVarInsn(ISTORE, gotoLocation)
+
 		// store _terminate = 0
 		val terminateLocation = 3
 		mv.visitInsn(ICONST_0)
 		mv.visitVarInsn(ISTORE, terminateLocation)
 
+		// begin the while loop
 		val continueLabel = new Label()
 
 		mv.visitLabel(continueLabel)
@@ -233,19 +237,20 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		val terminateCheckLabel = new Label()
 
 		mv.visitJumpInsn(IFNE, terminateCheckLabel)
-		mv.visitVarInsn(ILOAD, 2)
+		mv.visitVarInsn(ILOAD, gotoLocation)
 
 		val switchEntry = new Label()
 
+		// locate the labels in a first pass and generate appropriate JVM labels
+		// order them so they can be passed to the switch-case builder
 		val knownLabels = discoverLabels(instr)
+		val orderedLabels = knownLabels.toList.sortBy(_._1)
+		val compilerLabels = orderedLabels.collect({case a => a._1.nr})
+		val jvmLabels = orderedLabels.collect({case a => a._2})
 
 		val doTerminateLabel = new Label()
 
 		val defaultLabel = new Label()
-
-		val orderedLabels = knownLabels.toList.sortBy(_._1)
-		val compilerLabels = orderedLabels.collect({case a => a._1.nr})
-		val jvmLabels = orderedLabels.collect({case a => a._2})
 
 		// generate a switch statement with defaultLabel as default case
 		mv.visitLookupSwitchInsn(defaultLabel,
@@ -255,8 +260,7 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		// entry case
 		mv.visitLabel(switchEntry)
 
-		// from here starts the actual code generation
-		// we need to discover the labels first
+		// here starts the actual code generation
 		val gen = new BytecodeGenerator(mv, knownLabels, continueLabel,
 			machineLocation, gotoLocation)
 		// generate the instructions
@@ -275,10 +279,12 @@ class BytecodeAdapter(cv: ClassVisitor, instr: List[Instruction]) extends ClassA
 		// outside of while loop
 		mv.visitLabel(terminateCheckLabel)
 
+		// print the contents of the stack, to show results
 		mv.visitVarInsn(ALOAD, machineLocation)
 		mv.visitMethodInsn(INVOKEVIRTUAL, "runtime/Machine", "_pstack", "()V")
+
 		mv.visitInsn(RETURN)
-		// (0, 0) might be a better idea
+		// maxs get calculated automatically so (0, 0) might be a better idea
 		mv.visitMaxs(2, 4)
 		mv.visitEnd
 	}
