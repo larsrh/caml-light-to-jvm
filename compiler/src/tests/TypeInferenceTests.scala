@@ -121,9 +121,9 @@ class TypeInferenceTests extends TestSuite {
 		val e13 = Lambda(Match(Id("x"),
 							   (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("y")),
 							   (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("y"))), patterns.Id("x"))
-		// TODO check
-		//println(TypeList(TypeVariable(2)), TypeInference.typeCheck(TypeInference.emptyEnv, e13))
-		alwaysIgnore("TODO")
+
+		assertEquals((List(TypeVariable(3)),TypeFn(TypeList(TypeVariable(3)),TypeVariable(3))),
+			     TypeInference.typeCheck(TypeInference.emptyEnv, e13))
 	})
 
 	test("Match_ReturnValue_Fail", {
@@ -158,12 +158,11 @@ class TypeInferenceTests extends TestSuite {
 					 TypeInference.typeCheck(TypeInference.emptyEnv, e20))
 	})
 
-
-	// TODO
 	test("Alternative_Pattern", {
-		val todo = Lambda(Id("x"), patterns.Alternative(patterns.Cons(patterns.Id("x"),patterns.Id("xs")),
-														patterns.Cons(patterns.Id("x"),patterns.Nil)))
-		alwaysIgnore("todo")
+		val test = Lambda(Id("x"), patterns.Alternative(patterns.Cons(patterns.Id("x"),patterns.Id("xs")),
+					   patterns.Cons(patterns.Id("x"),patterns.Nil)))
+
+		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
 	})
 
 	/**
