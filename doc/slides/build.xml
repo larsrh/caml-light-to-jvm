@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="compiler-doc" default="build" basedir=".">
+    <description>Builds the documentation for the compiler project.</description>
+
+	<property name="latex.file" value="slides.tex" />
+
+	<target name="clean">
+		<exec executable="git">
+			<arg value="clean" />
+			<arg value="-X" />
+			<arg value="-f" />
+		</exec>
+	</target>
+
+	<target name="build">
+		<exec executable="latexmk">
+			<arg value="-pdf" />
+			<arg value="${latex.file}" />
+		</exec>
+	</target>
+</project>
