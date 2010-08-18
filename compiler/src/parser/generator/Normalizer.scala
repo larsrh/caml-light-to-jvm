@@ -3,7 +3,7 @@ package parser.generator
 
 import parser.ast.expressions._
 
-object Normalizer {
+private[parser] object Normalizer {
 
 	def normalize(expr: Expression): Expression = expr match {
 		case Sequence(e1, e2) => Sequence(normalize(e1), normalize(e2))

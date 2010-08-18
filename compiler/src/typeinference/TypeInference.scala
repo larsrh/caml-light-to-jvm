@@ -38,13 +38,13 @@ object TypeInference {
    * Represents a typing error.  Will be thrown whenever an expression
    * isn't typed correctly.
    */
-  case class TypeError(err: String) extends Exception(err) { }
+  case class TypeError(err: String) extends Exception(err)
 
   /**
    * Represents a unification error.  Will be thrown whenever constraints
-   * are unifiable.
+   * aren't unifiable.
    */
-  case class UnificationError(err: String) extends Exception(err) { }
+  case class UnificationError(err: String) extends Exception(err)
 
   /**
    * Returns an empty type environment.
@@ -99,7 +99,7 @@ object TypeInference {
           else {
             (t1,t2) match {
               case (al@TypeVariable(a), t) =>
-                if (freeVars(t).contains(al)) { throw new UnificationError("Occurs check failed.") }
+                if (freeVars(t).contains(al)) { throw UnificationError("Occurs check failed.") }
                 else {
                   val rest = unify_(u.subst_((t,al)))
                   (t,al)::rest
@@ -108,18 +108,18 @@ object TypeInference {
 		unify_((al,t)::u)
               case (t1@TypeConstructor(n1,params1@_*),t2@TypeConstructor(n2,params2@_*)) =>
                 if (params1.length != params2.length) {
-                  throw new UnificationError("ERROR: Couldn' unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2)
+                  throw UnificationError("ERROR: Couldn' unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2)
                 } else if (params1.length == 0) {
 		  // base types without any type parameters
 		  if (n1 == n2) {
 		    unify_(u)
 		  } else {
-		    throw new UnificationError("Couldn't unify TODO")
+		    throw UnificationError("Couldn't unify TODO")
 		  }
 		} else {
                   unify_(params1.zip(params2).toList ++ u)
                 }
-              case _ => throw new UnificationError("TODO: unify - reasonable error message")
+              case _ => throw UnificationError("TODO: unify - reasonable error message")
             }
           }
       }
@@ -163,18 +163,26 @@ object TypeInference {
 	val (typeExpr2, freshNew, constraints) = constraintGen(gamma,expr2, fresh)
 	(typeExpr2,freshNew,List())
 
-      case expressions.TupleElem(tup, nr) =>
-	val (typeTup, freshNew, constraints) = constraintGen(gamma, tup, fresh)
+      case expressions.TupleElem(expr, nr) =>
+	val (typeExpr, freshNew, constraints) = constraintGen(gamma, expr, fresh)
+	val s = unify(constraints)
+	val typeTup = typeExpr.subst(s)
 	typeTup match {
 	  case TypeTuple(tupleTypes@_*) =>
 	    // tuple indexing start at 1
+	    try {
 	    (tupleTypes(nr-1),freshNew,constraints)
-	  case _ => throw new TypeError("Couldn't match expected tuple tuple type against type " + typeTup + ".")
+	    } catch {
+	      case err: IndexOutOfBoundsException =>
+		throw new TypeError("ERROR: Tuple " + typeTup + " only constists of " + tupleTypes.length + " elements, "
+				    + "tried to access element nr " + nr + ".")
+	    }
+	  case _ => throw new TypeError("Couldn't match expected tuple type against type " + typeTup + ".")
 	}
 
       case expressions.Id(x) =>
         lookup(gamma, x) match {
-          case Left(err) => throw new TypeError(err)
+          case Left(err) => throw TypeError(err)
           case Right(sigma) =>
 	    instantiate(sigma, fresh) match {
 	      case (typeExpr,fresh1) => (typeExpr,fresh1,List())
@@ -186,7 +194,7 @@ object TypeInference {
 	op match {
 	  case expressions.UnaryOperator.neg => (t, f, (TypeInt(), t) :: c)
 	  case expressions.UnaryOperator.not => (t, f, (TypeBool(), t) :: c)
-	  case _ => throw new TypeError("Unknown unary operator.")
+	  case _ => throw TypeError("Unknown unary operator.")
 	}
 	
       case expressions.IfThenElse(e1, e2, e3) =>
@@ -237,16 +245,16 @@ object TypeInference {
                 // lookup type of desired field
                 val matchedFields = fields filter {f => f._1 == fieldId.name}
                 if (matchedFields.length == 0) {
-		  throw new TypeError("No such field " + fieldId.name + " in record " + recName + ".")
+		  throw TypeError("No such field " + fieldId.name + " in record " + recName + ".")
                 } else if (matchedFields.length > 1) {
                   // sanity check; we should never get here since records aren't
 		  // allowed to conatain fields with a duplicate name
-                  throw new TypeError("Duplicate field " + fieldId.name + " found in record " + recName + ".")
+                  throw TypeError("Duplicate field " + fieldId.name + " found in record " + recName + ".")
                 } else {
                   // return type
                   (matchedFields.head._2, fresh1, constraints)
                 }
-              case _ => throw new TypeError("No record " + recExpr + " found.")
+              case _ => throw TypeError("No record " + recExpr + " found.")
             }
         }
 
@@ -307,21 +315,21 @@ object TypeInference {
 	patType match {
 	  case TypeTuple(fields@_*) =>
 	    (typeBody,fresh3 + fields.length,(patType,typeExpr)::constraints1++constraints2 ++ cs)
-	  case _ => throw new TypeError("Couldn't match tuple type.")
+	  case _ => throw TypeError("Couldn't match tuple type.")
 	}
 
       case expressions.Let(p@patterns.Record(pats@_*), expr, body) =>
-        val (typeExpr,fresh1,_) = constraintGen(gamma, expr, fresh)
-	val (gamma1,fresh2,cs) = putPatternIntoEnv(gamma, p, typeExpr, fresh1)
-	val (typeBody, fresh3, constraints) = constraintGen(gamma1, body, fresh2)
+        val (typeExpr,fresh1,constraints1) = constraintGen(gamma, expr, fresh)
+	val (gamma1,fresh2,constraints2) = putPatternIntoEnv(gamma, p, typeExpr, fresh1)
+	val (typeBody,fresh3,constraints3) = constraintGen(gamma1, body, fresh2)
 	typeExpr match {
 	  case TypeRecord(_,fields@_*) =>
 	    // extract field names
 	    val fieldNames = fields map (f => f._1)
 	    val newVars = fresh3 to fresh3 + fields.length map (i => TypeVariable(i))
 	    (typeBody,fresh3 + fields.length + 1,
-	     (typeExpr,TypeRecord("anonymous",fieldNames zip newVars:_*))::constraints++cs)
-	  case _ => throw new TypeError("Couldn't match record type.")
+	     (typeExpr,TypeRecord("anonymous",fieldNames zip newVars:_*))::constraints1 ++ constraints2 ++ constraints3)
+	  case _ => throw TypeError("Couldn't match record type.")
 	}
 
       case expressions.Let(patterns.Integer(_), expr, body) =>
@@ -460,7 +468,7 @@ object TypeInference {
   (Int, TypeExpression, TypeExpression, List[(TypeExpression,TypeExpression)]) = {
 
     if (clauses.isEmpty) {
-      throw new TypeError("No clause found.")
+      throw TypeError("No clause found.")
     }
 
     var types:Set[TypeExpression] = Set()
@@ -508,7 +516,7 @@ object TypeInference {
 
       for (t <- tpes) {
 	if (t != tpes.head) {
-	  throw new TypeError("ERROR: Pattern clauses return values differ.")
+	  throw TypeError("ERROR: Pattern clauses return values differ.")
 	}
       }
 
@@ -516,11 +524,11 @@ object TypeInference {
 	val Some(st) = firstScrutType
 	(freshNew,st,types.head,constraints ++ constr)
       } else {
-	throw new TypeError("ERROR: Pattern match failure.")
+	throw TypeError("ERROR: Pattern match failure.")
       }
     } catch {
       // TODO: cleanup
-      case _ => throw new UnificationError("Pattern clauses return values differ. TODO")
+      case _ => throw UnificationError("Pattern clauses return values differ. TODO")
     }
   }
 
@@ -532,9 +540,6 @@ object TypeInference {
    */
   def putPatternIntoEnv(env: Env, pattern: patterns.Pattern,
 			typeExpr: TypeExpression, fresh: Int): (Env,Int,List[(TypeExpression,TypeExpression)]) = {
-    // we don't generate any co
-    // nstraints here; if the pattern doesn't
-    // match the given type, we found a pattern match error 
     pattern match {
       case patterns.Id(x) =>
 	val scheme = (List(),typeExpr)
@@ -552,7 +557,7 @@ object TypeInference {
 	typeExpr match {
 	  case TypeTuple(types@_*) =>
 	    if (types.length != pats.length) {
-	      throw new TypeError("ERROR: Tupel pattern match failed.\nType: " + typeExpr + ", pattern: " + tup + " .")
+	      throw TypeError("ERROR: Tupel pattern match failed.\nType: " + typeExpr + ", pattern: " + tup + " .")
 	    } else {
 	      var gamma = env
 	      var currFresh = fresh
@@ -568,7 +573,7 @@ object TypeInference {
 	      
 	      (gamma,currFresh,constraints)
 	    }
-	  case _ => throw new TypeError("Match failed TODO")
+	  case _ => throw TypeError("Match failed TODO")
 	}
       case rec@patterns.Record(defs@_*) =>
 	var constraints: List[(TypeExpression,TypeExpression)] = List()
@@ -588,7 +593,7 @@ object TypeInference {
 	    }
 
 	    (currGamma,currFresh,constraints)
-	  case _ => throw new TypeError("Match failed TODO")
+	  case _ => throw TypeError("Match failed TODO")
 	}
       case cons@patterns.Cons(head, tail) =>
 	typeExpr match {
@@ -596,9 +601,9 @@ object TypeInference {
 	    val (env1, fresh1,constraints1) = putPatternIntoEnv(env, head, a, fresh)
 	    val (env2,fresh2,constraints2) = putPatternIntoEnv(env1, tail, TypeList(a), fresh1)
 	    (env2,fresh2,constraints1 ++ constraints2)
-	  case _ => throw new TypeError("List Pattern match failed TODO")
+	  case _ => throw TypeError("List Pattern match failed TODO")
 	}
-      case _ => throw new TypeError("Unknown pattern TODO")
+      case _ => throw TypeError("Unknown pattern TODO")
     }
   }
 
@@ -641,7 +646,7 @@ object TypeInference {
 	if (t1 == t2) {
 	  (t1, fresh2)
 	} else {
-	  throw new TypeError("ERROR: Types in alternative pattern match differ.")
+	  throw TypeError("ERROR: Types in alternative pattern match differ.")
 	}
       case patterns.Record(defs@_*) =>
 	var currFresh = fresh
@@ -681,7 +686,7 @@ object TypeInference {
     // local method
     def findLabel(fields: List[(String,TypeExpression)], labelName: String, cnt: Int): Int = {
       fields match {
-	case List() => throw new TypeError("ERROR: No field named " + label.name + " in record " + recExpr + ".")
+	case List() => throw TypeError("ERROR: No field named " + label.name + " in record " + recExpr + ".")
 	case (fieldDef::rest) =>
 	  val fieldName = fieldDef._1
 	  val fieldlType = fieldDef._2
@@ -698,7 +703,7 @@ object TypeInference {
     val (recType,_,_) = constraintGen(emptyEnv, recExpr, 1)
     recType match {
       case TypeRecord(n,fields@_*) => findLabel(fields.toList, label.name, 0)
-      case _ => throw new TypeError("ERROR: Expression " + recExpr + " is not a record.")
+      case _ => throw TypeError("ERROR: Expression " + recExpr + " is not a record.")
     }
   }
 }
