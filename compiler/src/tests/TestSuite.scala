@@ -188,7 +188,7 @@ class TestSuite {
 	implicit def anyCalculation2Test(any: => Any) = calculate(any)
 
 	def assertTrue(expr: => Boolean) = calculate(expr) shouldBe true
-	def assertEquals[U, V >: U](expected: => U, input: => V) = calculate(expected) shouldBe input
+	def assertEquals[U, V >: U](expected: => U, input: => V) = calculate(input) shouldBe expected
 
 	def all[V, E](tester: Test[V, E]*) =
 		alwaysSucceed(()).all(tester map { t => ((_: Unit) => t) } : _*).mapError {

@@ -69,7 +69,7 @@ package mamaInstructions {
 	final case class TARG(drop:Int, label:LABEL) extends Instruction("targ " + drop)
 	final case class TLIST(target:LABEL) extends Instruction("tlist " + target)
 	case object UPDATE extends Instruction("update")
-	case object WRAP extends Instruction("wrap")
+	final case class WRAP(label:LABEL) extends Instruction("wrap")
 }
 
 object Translator {

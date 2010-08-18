@@ -6,6 +6,7 @@ import parser.ast.types._
 import parser.ast.expressions._
 import typeinference._
 import typeinference.TypeInference.TypeError
+import typeinference.TypeInference.UnificationError
 
 class TypeInferenceTests extends TestSuite {
 
@@ -44,7 +45,7 @@ class TypeInferenceTests extends TestSuite {
 		val e4 = Lambda(App(App(Id("1"), Id("2")), App(Id("1"), Id("3"))),
 						patterns.Id("1"), patterns.Id("2"), patterns.Id("3"))
 
-		TypeInference.typeCheck(Map(), e4).shouldThrow[TypeError]
+		TypeInference.typeCheck(Map(), e4).shouldThrow[UnificationError]
 	})
 
 	test("If_Curried_Equals_NonCurried", {
@@ -132,7 +133,7 @@ class TypeInferenceTests extends TestSuite {
 		val e14 = Lambda(Match(Id("x"),
 							   (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("y")),
 							   (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("x"))), patterns.Id("x"))
-		TypeInference.typeCheck(TypeInference.emptyEnv, e14).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, e14).shouldThrow[UnificationError]
 	})
 
 	test("Match", {
@@ -222,7 +223,7 @@ class TypeInferenceTests extends TestSuite {
 
 	test("e8", {
 		val e8 = IfThenElse(BinOp(BinaryOperator.eq,Integer(97),Character('a')),Integer(42),Bool(false))
-		TypeInference.typeCheck(TypeInference.emptyEnv, e8).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, e8).shouldThrow[UnificationError]
 	})
 
 	test("e9", {
@@ -299,13 +300,13 @@ class TypeInferenceTests extends TestSuite {
 	test("BinOp_var3", {
 		val test = BinOp(BinaryOperator.add, Integer(1), Bool(true))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
 	})
 
 	test("BinOp_var4", {
 		val test = BinOp(BinaryOperator.and, Integer(1), Bool(true))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
 	})
 
 	test("TupleElem", {
@@ -348,6 +349,133 @@ class TypeInferenceTests extends TestSuite {
 					Id("x"))
 		assertEquals((List(), TypeInt()),
 					 TypeInference.typeCheck(TypeInference.emptyEnv, e))
+	})
+
+	test("Let_Match_Literal", {
+		// should type check; would throw an pattern match
+		val e = Let(patterns.Integer(1), Integer(2), Integer(3))
+		assertEquals((List(), TypeInt()),
+					 TypeInference.typeCheck(TypeInference.emptyEnv, e))
+	})
+
+
+	test("Lambda_Match_Literal", {
+		// should type check; would throw an pattern match
+		val e = Lambda(Integer(2), patterns.Integer(1))
+		assertEquals((List(), TypeFn(TypeInt(), TypeInt())),
+					 TypeInference.typeCheck(TypeInference.emptyEnv, e))
+	})
+
+	test("Oddeven", {
+		val test = LetRec(BinOp(BinaryOperator.and, App(Id("even"), Integer(4)), UnOp(UnaryOperator.not, App(Id("odd"), Integer(0)))),
+						  (patterns.Id("odd"), Lambda(Match(Id("x"),
+															(patterns.Integer(0), Bool(false)),
+															(patterns.Underscore, App(Id("even"), BinOp(BinaryOperator.sub, Id("x"), Integer(1))))),
+													  patterns.Id("x"))),
+						  (patterns.Id("even"), Lambda(Match(Id("y"),
+															 (patterns.Integer(0), Bool(true)),
+															 (patterns.Underscore, App(Id("odd"), BinOp(BinaryOperator.sub, Id("y"), Integer(1))))),
+													   patterns.Id("y"))))
+
+		assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+	})
+
+	test("Complexmatch", {
+		val test = LetRec(Match(App(Id("list"), Integer(5)),
+								(patterns.Nil, Integer(42)),
+								(patterns.Cons(patterns.Id("n1"), patterns.Cons(patterns.Id("n2"), patterns.Cons(patterns.Id("n3"), patterns.Nil))), Id("n2")),
+								(patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Match(Id("n2"),
+																							(patterns.Nil, Integer(42)),
+																							(patterns.Cons(patterns.Id("n1"), patterns.Id("n2")), Id("n1"))))
+			),
+						  (patterns.Id("list"), Lambda(Match(Id("n"),
+															 (patterns.Integer(0), Nil),
+															 (patterns.Underscore, Cons(Id("n"), App(Id("list"), BinOp(BinaryOperator.sub, Id("n"), Integer(1)))))),
+													   patterns.Id("n"))))
+
+		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+	})
+
+	test("Record0", {
+		// let {x = 0} = {x = 1} in 1
+		val test = Let(patterns.Record((patterns.Id("x"), patterns.Integer(0))),
+					   expressions.Record((Id("x"), Integer(1))),
+					   Integer(1))
+
+		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+	})
+
+	test("Record1", {
+		// let {x = 0} = {x = true} in 1
+		val test = Let(patterns.Record((patterns.Id("x"), patterns.Bool(true))),
+					   expressions.Record((Id("x"), Integer(1))),
+					   Integer(1))
+
+		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
+	})
+
+	test("Record2", {
+		val test = Let(patterns.Id("x"), expressions.Record((Id("y"), Lambda(Integer(1), patterns.Integer(2)))), Integer(0))
+
+		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+	})
+
+	test("Tuple0", {
+		val test = Let(patterns.Id("x"), expressions.Tuple(Integer(1), Integer(2), Integer(3)),
+					   Id("x"))
+
+		assertEquals((List(), TypeTuple(TypeInt(), TypeInt(), TypeInt())),
+					 TypeInference.typeCheck(TypeInference.emptyEnv, test))
+	})
+
+	test("Tuple1", {
+		// let foo = fun u -> (1, true, 3) in let (x, y, z) = foo 0 in y;;
+		val test = Let(patterns.Id("foo"), Lambda(Tuple(Integer(1), Bool(true), Integer(3)), patterns.Id("u")),
+					   Let(patterns.Tuple(patterns.Id("x"), patterns.Id("y"), patterns.Id("z")), App(Id("foo"), Integer(0)), Id("y")))
+
+		assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+	})
+
+	test("parseInt", {
+		val parseminus = Lambda(IfThenElse(BinOp(BinaryOperator.eq,Id("x"),Character('-')),
+										   Tuple(Lambda(UnOp(UnaryOperator.neg,Id("z")),patterns.Id("z")), Id("xs")),
+										   Tuple(Lambda(Id("z"),patterns.Id("z")), Cons(Id("x"), Id("xs")))),
+								patterns.Cons(patterns.Id("x"),patterns.Id("xs")))
+		val parsepositive = Lambda(Match(Id("list"), (patterns.Nil, Id("acc")),
+										 (patterns.Cons(patterns.Id("x"),patterns.Id("xs")),
+										  App(Id("parsepositive"),Id("xs"),
+											  BinOp(BinaryOperator.add,
+													BinOp(BinaryOperator.mul,Integer(10), Id("acc")),
+													(App(Id("intofchar"), Id("x"))))))),
+								   patterns.Id("list"),patterns.Id("acc"))
+
+		val intofchar = (patterns.Id("intofchar"), Lambda(Match(Id("x"),
+																(patterns.Character('1'), Integer(1)),
+																(patterns.Character('2'), Integer(2)),
+																(patterns.Character('3'), Integer(3)),
+																(patterns.Character('4'), Integer(4)),
+																(patterns.Character('5'), Integer(5)),
+																(patterns.Character('6'), Integer(6)),
+																(patterns.Character('7'), Integer(7)),
+																(patterns.Character('8'), Integer(8)),
+																(patterns.Character('9'), Integer(9)),
+																(patterns.Character('0'), Integer(0))
+				), patterns.Id("x")))
+
+		val body = Let(patterns.Id("parsepos"), Lambda(App(Id("sign"), App(Id("parsepositive"), Id("list"), Integer(0))), patterns.Tuple(patterns.Id("sign"), patterns.Id("list"))),
+					   Let(patterns.Id("o"),
+//			Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("f"), patterns.Id("g"), patterns.Id("x")),
+						   Lambda(Lambda(Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("x")), patterns.Id("g")), patterns.Id("f")),
+						   BinOp(BinaryOperator.add,
+								 App(App(Id("o"), Id("parsepos"), Id("parseminus")), Cons(Character('-'), Cons(Character('4'), Cons(Character('2'), Nil)))),
+								 App(App(Id("o"), Id("parsepos"), Id("parseminus")), Cons(Character('4'), Cons(Character('2'), Nil))))))
+
+
+		val test = LetRec(body, (patterns.Id("parseminus"), parseminus),
+						  (patterns.Id("parsepositive"), parsepositive),
+						  intofchar)
+
+		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
 	})
 
 }
