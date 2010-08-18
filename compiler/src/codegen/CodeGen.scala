@@ -28,7 +28,7 @@ package mamaInstructions {
 	final case class ALLOC(value:Int) extends Instruction("alloc " + value)
 	case object AND extends Instruction("and")
 	case object APPLY extends Instruction("apply")
-	// case object APPLY0 extends Instruction("apply0") TODO necessary?
+	// case object APPLY0 extends Instruction("apply0")
 	case object CONS extends Instruction("cons")
 	case object COPYGLOB extends Instruction("copyglob")	
 	case object DIV extends Instruction("div")
@@ -46,12 +46,12 @@ package mamaInstructions {
 	case object LEQ extends Instruction("leq")
 	final case class LOADC(value:Int) extends Instruction("loadc " + value)
 	final case class MARK(ret:LABEL) extends Instruction("mark " + ret)
-	// case object MARK0 extends Instruction("mark0") TODO necessary?
+	// case object MARK0 extends Instruction("mark0")
 	case object MKBASIC extends Instruction("mkbasic")
 	final case class MKCLOS(target:LABEL) extends Instruction("mkclos " + target)
 	final case class MKFUNVAL(target:LABEL) extends Instruction("mkfunval " + target)
 	final case class MKVEC(length:Int) extends Instruction("mkvec " + length)
-	// case object MKVEC0 extends Instruction("mkvec0") TODO necessary?
+	// case object MKVEC0 extends Instruction("mkvec0")
 	case object MUL extends Instruction("mul")
 	case object NEG extends Instruction("neg")
 	case object NEQ extends Instruction("neq")
@@ -213,15 +213,17 @@ object Translator {
 				(ks foldLeft (List.empty:List[Instruction]))((l:List[Instruction],k:Int) => 
 					l ++ codec(idVals(k) _2,rho,sd+k)) :+ MKVEC(ks.length)
 			}
-			// FIXME get position from type checking
-		case Field(rec,name) => codev(rec,rho,sd) :+ GET(0/*getRecordLabelPos(rec,name)*/) 
+			// get position from type checking
+		case Field(rec,name) => codev(rec,rho,sd) :+ GET(typeinference.TypeInference.getRecordLabelPos(rec,name))
 		case Match(e0,patDefs@_*) => patDefs match {
 				case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
 					=> {
 						val A = newLabel()
 						val B = newLabel()
+            val X = newLabel()
 					 
-						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
+						(codev(e0,rho,sd) ++ List(EVAL(X),SETLABEL(X)) ++
+                    List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
 						 codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++ 
 						 List(SLIDE(2),SETLABEL(B)))
 					}			
@@ -263,18 +265,18 @@ object Translator {
 				case patterns.Underscore => (List(LOADC(1)),sdAct+1,i)
 				case patterns.Id(x) => (codev(e,rhoNew,sdAct) ++ List(REWRITE(i+(sdAct-(sd+n))),LOADC(1)),sdAct+1,i-1)
 				case patterns.Tuple(ts@_*) => 
-					((1 to ts.length - 1).toList foldLeft matching(TupleElem(Id(E),0),ts(0),sdAct,i)){
+					((1 to ts.length - 1).toList foldLeft matching(TupleElem(e.subst(e0, Id(E)),0),ts(0),sdAct,i)){
 						case ((l,sd,j),n) => {
-								val (lt,sdNew,jNew) = matching(TupleElem(Id(E),n),ts(n),sd,j)
+								val (lt,sdNew,jNew) = matching(TupleElem(e.subst(e0, Id(E)),n),ts(n),sd,j)
 
 								(l ++ lt :+ AND,sdNew-1,jNew)
 							}
 					}
 				case patterns.Record((patterns.Id(x),exp),ts@_*) => 
-					(ts.toList foldLeft matching(Field(Id(E),Id(x)),exp,sdAct,i)){
+					(ts.toList foldLeft matching(Field(e.subst(e0, Id(E)),Id(x)),exp,sdAct,i)){
 						case ((l,sd,j),idExp) => {
 								val (lt,sdNew,jNew) = 
-									matching(Field(Id(E),Id((patterns.Id unapply(idExp _1)).get)),idExp _2,sd,j)
+									matching(Field(e.subst(e0, Id(E)),Id((patterns.Id unapply(idExp _1)).get)),idExp _2,sd,j)
 
 								(l ++ lt :+ AND,sdNew-1,jNew)
 							}
