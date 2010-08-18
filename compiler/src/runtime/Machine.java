@@ -47,7 +47,9 @@ public class Machine {
 	private Vector gp;
 
 	abstract class StackData {}
-	abstract class HeapData {}
+	abstract class HeapData {
+        public abstract String toFlatString();
+    }
 
     private class Ref extends StackData {
         private HeapData v;
@@ -58,6 +60,10 @@ public class Machine {
 
         public String toString() {
 			return "R(" + v + ")";
+		}
+
+        public String toFlatString() {
+			return "R(" + v.toFlatString() + ")";
 		}
     }
 
@@ -84,17 +90,9 @@ public class Machine {
 			return "" + v;
 		}
 
-    }
-
-    private class Base extends HeapData {
-		private int v;
-
-		private Base(int constant) {
-			v = constant;
-		}
-
-		public String toString() {
-			return "B(" + v + ")";
+        public String toFlatString() {
+			// nice example of weak typing in Java
+			return "" + v;
 		}
 
     }
@@ -111,12 +109,15 @@ public class Machine {
 		public String toString() {
 			String pre = "V(" + n + ", [";
 			for (int i = 0; i < v.length; i++) {
-				pre += ", " + "v[i]";
+				pre += ", " + v[i].toFlatString();
 			}
 			pre += "])";
 			return pre;
 		}
 
+        public String toFlatString() {
+			return "V(" + n + ", ...)";
+		}
     }
 
 	private class Function extends HeapData {
@@ -135,6 +136,26 @@ public class Machine {
 			return "F(" + cp + ", " + ap + ", " + gp + ")";
 		}
 
+        public String toFlatString() {
+			return "F(" + cp + ", " + ap.toFlatString() + ", " + gp.toFlatString() + ")";
+		}
+    }
+
+    private class Base extends HeapData {
+		private int v;
+
+		private Base(int constant) {
+			v = constant;
+		}
+
+		public String toString() {
+			return "B(" + v + ")";
+		}
+
+        public String toFlatString() {
+			return "B(" + v + ")";
+		}
+
     }
 
 	private class Closure extends HeapData {
@@ -147,7 +168,11 @@ public class Machine {
 		}
 
 		public String toString() {
-			return "C(" + cp + ", " + "gp" + ")";
+			return "C(" + cp + ", " + gp + ")";
+		}
+
+        public String toFlatString() {
+			return "C(" + cp + ", " + gp.toFlatString() + ")";
 		}
 
     }
@@ -168,9 +193,15 @@ public class Machine {
 		}
 			
 		public String toString() {
-			return "L(" + (empty ? "Nil" : "Cons") + "," + head + "," + tail+ ")";
+			return "L(" + (empty ? "Nil" : "Cons") +
+                    (empty ? "" : "," + head + "," + tail) + ")";
 		}
 
+        @Override
+        public String toFlatString() {
+            return "L(" + (empty ? "Nil" : "Cons") +
+                    (empty ? "" : "," + head.toFlatString() + "," + tail.toFlatString()) + ")";
+        }
     }
 
 	private final Stack<StackData> stack;
@@ -288,13 +319,8 @@ public class Machine {
 	// throws a ClassCastException when the code is wrong, which is more
 	// or less what we want. Me wants pattern match in this Java!
 	public void getbasic() {
-        try {
-		    Base b = (Base)((Ref)stack.pop()).v;
-		    stack.push(new Raw(b.v));
-        } catch (ClassCastException e) {
-            _pstack();
-            throw e;
-        }
+        Base b = (Base)((Ref)stack.pop()).v;
+        stack.push(new Raw(b.v));
 	}
 	
 	public void getvec(int k) {
