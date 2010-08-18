@@ -186,6 +186,9 @@ class TestSuite {
 
 	def calculate[V](expr: => V) = alwaysSucceed(expr)
 
+	def assertTrue(expr: => Boolean) = calculate(expr).shouldBe(true)
+	def assertEquals[V](expected: => V)(input: => V) = calculate(input).shouldBe(expected)
+
 	private var count = 0
 	private val tests = LinkedHashMap[AnyRef, Test[_, _]]()
 

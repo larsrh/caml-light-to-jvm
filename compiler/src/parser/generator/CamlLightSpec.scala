@@ -47,14 +47,14 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	import types._
 	import patterns.Pattern
 
-	type Case = (Pattern, Expression)
-	type Definition = (patterns.Id, Expression)
-	type Entry = (Id, Expression)
-	type PatEntry = (patterns.Id, Pattern)
-	type FunCase = (List[Pattern], Expression)
-	type Statement = Either[Expression => Expression, TypeDefinition]
+	private type Case = (Pattern, Expression)
+	private type Definition = (patterns.Id, Expression)
+	private type Entry = (Id, Expression)
+	private type PatEntry = (patterns.Id, Pattern)
+	private type FunCase = (List[Pattern], Expression)
+	private type Statement = Either[Expression => Expression, TypeDefinition]
+	private type CDecl = (String, Option[TypeExpression])
 	type Program = (Expression, List[TypeDefinition])
-	type CDecl = (String, Option[TypeExpression])
 
 	class INTCONST extends SymbolValue[Int]
 	class BOOLCONST extends SymbolValue[Boolean]
@@ -326,8 +326,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			SQIDENTIFIER ~ paramlist ^^ { (head: String, tail: List[TypeVariable]) => getTypeVar(head) :: tail }
 		),
 		cdecl -> (
-			IDENTIFIER ^^ { (str: String) => (Id(str), None) } |
-			IDENTIFIER ~ OF ~ typeexpr ^^ { (str: String, expr: TypeExpression) => (Id(str), Some(expr)) }
+			IDENTIFIER ^^ { (str: String) => (str, None) } |
+			IDENTIFIER ~ OF ~ typeexpr ^^ { (str: String, expr: TypeExpression) => (str, Some(expr)) }
 		),
 		cdecllist -> (
 			cdecl ^^ { (c: CDecl) => List(c) } |
