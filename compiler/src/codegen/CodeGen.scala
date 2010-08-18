@@ -214,7 +214,7 @@ object Translator {
 					l ++ codec(idVals(k) _2,rho,sd+k)) :+ MKVEC(ks.length)
 			}
 			// FIXME get position from type checking
-		case Field(rec,name) => codev(rec,rho,sd) :+ GET(0/*getPos(rec,name)*/) 
+		case Field(rec,name) => codev(rec,rho,sd) :+ GET(0/*getRecordLabelPos(rec,name)*/) 
 		case Match(e0,patDefs@_*) => patDefs match {
 				case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
 					=> {
