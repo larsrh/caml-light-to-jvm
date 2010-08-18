@@ -73,6 +73,8 @@ package mamaInstructions {
 }
 
 object Translator {
+
+  var gamma:typeinference.TypeInference.Env
 	
 	object VarKind extends Enumeration {
 		type VarKind = Value
@@ -216,7 +218,7 @@ object Translator {
 			// get position from type checking
 		case Field(rec,name) => codev(rec,rho,sd) ++ {
       val X = newLabel()
-      List(GET(typeinference.TypeInference.getRecordLabelPos(rec,name)),EVAL(X),SETLABEL(X))
+      List(GET(typeinference.TypeInference.getRecordLabelPos(gamma,rec,name)),EVAL(X),SETLABEL(X))
     }
 		case Match(e0,patDefs@_*) => patDefs match {
 				case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
