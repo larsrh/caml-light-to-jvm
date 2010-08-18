@@ -185,7 +185,7 @@ class TestSuite {
 	}
 
 	def calculate[V](expr: => V) = alwaysSucceed(expr)
-	implicit def anyCalculation2Test(any: => Any) = calculate(any)
+	implicit def anyCalculation2Test[V](any: => V) = calculate(any)
 
 	def assertTrue(expr: => Boolean) = calculate(expr) shouldBe true
 	def assertEquals[U, V >: U](expected: => U, input: => V) = calculate(input) shouldBe expected
