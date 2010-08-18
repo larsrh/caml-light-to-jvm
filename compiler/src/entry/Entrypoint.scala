@@ -3,12 +3,11 @@ package entry
 import scala.io.Source
 import scala.collection.immutable.HashMap
 
-import java.io.{StringReader,FileNotFoundException}
+import java.io.FileNotFoundException
 
 import org.github.scopt._
 
-import parser.generator.Normalizer
-import parser.generator.CamlLightSpec
+import parser.Parser
 import codegen.mama.Translator
 import typeinference.TypeInference
 import codegen.mama.mamaInstructions.Instruction
@@ -83,7 +82,7 @@ object Entrypoint {
 
 			try {
 				val content = Source.fromFile(camlSourceFile).mkString("")
-				val exp = Normalizer.normalize(CamlLightSpec.parse(new StringReader(content))._1)
+				val exp = Parser.parse(content)._1
 				if (typeCheck)
 					TypeInference.typeCheck(TypeInference.emptyEnv, exp)
 				val mama = Translator.codeb(exp, HashMap.empty, 0)

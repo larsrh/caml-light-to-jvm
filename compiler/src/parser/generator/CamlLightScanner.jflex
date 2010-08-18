@@ -95,6 +95,9 @@ import static parser.generator.CamlLightTerminals.*;
       default: throw new IllegalArgumentException("Error: Should not happen, but keeps Java quiet.");
     }
   }
+
+  public int getLine() { return yyline; }
+  public int getColumn() { return yycolumn; }
 %}
 
 LineTerminator = \r | \n | \r\n

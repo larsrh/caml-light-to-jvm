@@ -4,8 +4,6 @@ package parser.generator
 import edu.tum.cup2.semantics.{SymbolValue}
 import edu.tum.cup2.spec.CUP2Specification
 import edu.tum.cup2.spec.scala.{ScalaCUPSpecification, SymbolEnum}
-import edu.tum.cup2.generator.LR1Generator
-import edu.tum.cup2.parser.LRParser
 import edu.tum.cup2.grammar.Symbol
 
 import scala.collection.mutable.HashMap
@@ -46,6 +44,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	import expressions._
 	import types._
 	import patterns.Pattern
+	import parser.Parser.Program
 
 	private type Case = (Pattern, Expression)
 	private type Definition = (patterns.Id, Expression)
@@ -54,7 +53,6 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	private type FunCase = (List[Pattern], Expression)
 	private type Statement = Either[Expression => Expression, TypeDefinition]
 	private type CDecl = (String, Option[TypeExpression])
-	type Program = (Expression, List[TypeDefinition])
 
 	class INTCONST extends SymbolValue[Int]
 	class BOOLCONST extends SymbolValue[Boolean]
@@ -124,17 +122,14 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 		typeVars.getOrElseUpdate(name, { tvCount += 1; TypeVariable(tvCount) })
 	}
 
-	private lazy val lrparser = new LRParser(new LR1Generator(this).getParsingTable())
-
-	def constructParser() { lrparser }
-
-	def parse(reader: java.io.Reader) = {
+	/*
+	 * Resets this object to the initial state, causing all new variables
+	 * starting with 0.
+	 */
+	private[parser] def reset() = {
 		tvCount = -1
 		varCount = -1
 		typeVars.clear()
-		val result = lrparser.parse(new CamlLightScanner(reader))
-		assert(classOf[Program].isAssignableFrom(result.getClass))
-		result.asInstanceOf[Program]
 	}
 
 	precedences(

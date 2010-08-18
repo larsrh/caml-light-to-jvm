@@ -121,9 +121,9 @@ class TypeInferenceTests extends TestSuite {
 		val e13 = Lambda(Match(Id("x"),
 							   (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("y")),
 							   (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("y"))), patterns.Id("x"))
-		// TODO check
-		//println(TypeList(TypeVariable(2)), TypeInference.typeCheck(TypeInference.emptyEnv, e13))
-		alwaysIgnore("TODO")
+
+		assertEquals((List(TypeVariable(3)),TypeFn(TypeList(TypeVariable(3)),TypeVariable(3))),
+			     TypeInference.typeCheck(TypeInference.emptyEnv, e13))
 	})
 
 	test("Match_ReturnValue_Fail", {
@@ -158,12 +158,11 @@ class TypeInferenceTests extends TestSuite {
 					 TypeInference.typeCheck(TypeInference.emptyEnv, e20))
 	})
 
-
-	// TODO
 	test("Alternative_Pattern", {
-		val todo = Lambda(Id("x"), patterns.Alternative(patterns.Cons(patterns.Id("x"),patterns.Id("xs")),
-														patterns.Cons(patterns.Id("x"),patterns.Nil)))
-		alwaysIgnore("todo")
+		val test = Lambda(Id("x"), patterns.Alternative(patterns.Cons(patterns.Id("x"),patterns.Id("xs")),
+					   patterns.Cons(patterns.Id("x"),patterns.Nil)))
+
+		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
 	})
 
 	/**
@@ -411,7 +410,7 @@ class TypeInferenceTests extends TestSuite {
 					   expressions.Record((Id("x"), Integer(1))),
 					   Integer(1))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
 	})
 
 	test("Record2", {
@@ -464,7 +463,6 @@ class TypeInferenceTests extends TestSuite {
 
 		val body = Let(patterns.Id("parsepos"), Lambda(App(Id("sign"), App(Id("parsepositive"), Id("list"), Integer(0))), patterns.Tuple(patterns.Id("sign"), patterns.Id("list"))),
 					   Let(patterns.Id("o"),
-//			Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("f"), patterns.Id("g"), patterns.Id("x")),
 						   Lambda(Lambda(Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("x")), patterns.Id("g")), patterns.Id("f")),
 						   BinOp(BinaryOperator.add,
 								 App(App(Id("o"), Id("parsepos"), Id("parseminus")), Cons(Character('-'), Cons(Character('4'), Cons(Character('2'), Nil)))),

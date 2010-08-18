@@ -1,5 +1,6 @@
 package bigbang
 
+import parser.Parser
 import parser.ast.expressions.Expression
 import parser.generator._
 import typeinference.TypeInference
@@ -10,7 +11,6 @@ import runtime.Assembly
 import edu.tum.cup2.generator.LR1Generator
 import edu.tum.cup2.parser.LRParser
 
-import java.io.StringReader
 import java.io.FileWriter
 import scala.io.Source
 import scala.collection.immutable.HashMap
@@ -24,7 +24,7 @@ object Test {
 		val inputs = Source.fromFile("test/bigbang/test").getLines()
 		
 		def parseExp(input:String):Expression = 
-			Normalizer.normalize(CamlLightSpec.parse(new StringReader(input))._1)
+			Parser.parse(input)._1
 		
 		def typeCheck(e:Expression):Unit = TypeInference.typeCheck(TypeInference.emptyEnv, e)
 		
