@@ -202,7 +202,7 @@ object Translator {
 				(ks foldLeft (List.empty:List[Instruction]))((l:List[Instruction],k:Int) => 
 					l ++ codec(elems(k),rho,sd+k)) :+ MKVEC(ks.length)
 			}
-		case TupleElem(t,i) => codev(t,rho,sd) :+ GET(i)
+		case TupleElem(t,i) => codev(t,rho,sd) ++ {val X = newLabel(); List(GET(i),EVAL(X),SETLABEL(X))}
 		case Nil => List(NIL)
 		case Cons(head,tail) => cbfun(head,rho,sd) ++ cbfun(tail,rho,sd+1) :+ CONS
 			// FIXME For now ignore e1 - this will be changed when side effects are allowed
@@ -214,7 +214,10 @@ object Translator {
 					l ++ codec(idVals(k) _2,rho,sd+k)) :+ MKVEC(ks.length)
 			}
 			// get position from type checking
-		case Field(rec,name) => codev(rec,rho,sd) :+ GET(typeinference.TypeInference.getRecordLabelPos(rec,name))
+		case Field(rec,name) => codev(rec,rho,sd) ++ {
+      val X = newLabel()
+      List(GET(typeinference.TypeInference.getRecordLabelPos(rec,name)),EVAL(X),SETLABEL(X))
+    }
 		case Match(e0,patDefs@_*) => patDefs match {
 				case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
 					=> {
@@ -222,13 +225,13 @@ object Translator {
 						val B = newLabel()
             val X = newLabel()
 					 
-						(codev(e0,rho,sd) ++ List(EVAL(X),SETLABEL(X)) ++
-                    List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
+						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
 						 codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++ 
 						 List(SLIDE(2),SETLABEL(B)))
 					}			
 				case _ => {
 						val DONE = newLabel()
+            val X = newLabel();
 						val E = "42" + (counter + 1)//not a valid identifier -> no conflicts
 						counter = counter + 1
 						val rhoNew = rho + {E -> (VarKind.Local,sd+1)} // store value of e0
@@ -322,6 +325,8 @@ object Translator {
 			}
 
 		val (matchingCode,sdNew,_) = matching(e0,p,sd+n,n)
+
+    val X = newLabel();
 			
     (List(ALLOC(n)) ++ matchingCode ++ List(JUMPZ(NEXT)) ++
 		 codev(res,rhoNew,sd+n) ++ List(SLIDE(n+1),JUMP(DONE)),n)
