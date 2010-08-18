@@ -7,8 +7,11 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[ngerman]{babel}
-\title{Caml Compiler}
-\author{Yours truly}
+\usepackage{wasysym}
+\usepackage{ziffer}
+\mode<presentation>{\usetheme{Copenhagen}}
+\title{A CamlLight Compiler for the JVM}
+\author{Hupel, Kubica, Müller, Schulze, Traytel}
 \institute{TU München}
 \date{20.~August~2010}
 
@@ -24,15 +27,92 @@
 \logo{\includegraphics[width=1.5cm]{tun}}
 
 \begin{frame}{Lexer}
+  \begin{itemize}
+    \item JFlex
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{Parser}
+  \begin{itemize}
+    \item CUP2
+    \item CamlLight"=Syntax
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{Typinferenz}
 \end{frame}
 
-\begin{frame}{Codegenerierung}
+\begin{frame}{Codegenerierung: MaMa}
+\end{frame}
+
+\begin{frame}{Codegenerierung: JVM"=Bytecode}
+  \begin{block}{Idee}
+    \begin{itemize}
+      \item Verarbeitet erweiterten MaMa"=Code: deineMaMa
+        \begin{itemize}
+          \item Instruktionen die PC lesen, nehmen stattdessen Label als Parameter
+          \item Instruktionen die PC modifizieren, geben stattdessen Label aus
+        \end{itemize}
+      \item Verwendung des JVM"=Heaps
+      \item Verwendung von \texttt{java.util.Stack}
+      \item Instruktionen in Java geschrieben
+    \end{itemize}
+  \end{block}
+  \begin{block}{ASM}
+    \begin{itemize}
+      \item Library für Bytecodeinspektion und Modifikation
+      \item Wird genutzt um unsere eigene \texttt{main()} einzuschleusen
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Zustand}
+  \begin{exampleblock}{Was funktioniert}
+    \begin{itemize}
+      \item Syntax, mit (sinnvollen?) Fehlermeldungen
+      \item Lambdas, Match, Tupel, Records, Strings, Listen
+      \item Ausgabe von Java"=Bytecode
+    \end{itemize}
+  \end{exampleblock}
+  \begin{alertblock}{Was nicht funktioniert}
+    \begin{itemize}
+      \item Typkonstruktoren
+      \item Seiteneffekte, Exceptions
+      \item Threads
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Benchmarks}
+\end{frame}
+
+\begin{frame}{Stats}
+  \begin{block}{Code}
+    $\approx 3.300$ LOC Scala, $650$ LOC Java, $> 250$ Commits
+  \end{block}
+  \begin{block}{Best of Commit"=Messages}
+    \begin{itemize}
+      \item Foo
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Rückblick}
+  \begin{exampleblock}{Was war gut}
+    \begin{itemize}
+      \item Scala Patternmatching
+      \item Betreuung \smiley
+    \end{itemize}
+  \end{exampleblock}
+  \begin{alertblock}{Was war weniger gut}
+    \begin{itemize}
+      \item NetBeans
+      \item Compilezeiten von \texttt{scalac}
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Zukunft}
 \end{frame}
 
 \end{document}
