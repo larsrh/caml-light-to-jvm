@@ -12,7 +12,7 @@ class TestSuiteTests extends TestSuite {
 
 	test(alwaysFail(5).shouldFail.shouldBe(5))
 	test(alwaysFail(5).shouldFail.shouldBe(4).shouldFail)
-	test(alwaysFail(5).shouldFail.shouldBe(4).ignore())
+	test(alwaysFail(5).shouldFail.shouldBe(4).ignore().shouldSuffice(_.isInstanceOf[Ignored]).mapValue(_ => ()))
 
 	test(alwaysSucceed[Option[String]](None).couldBe("foo"))
 	test(alwaysSucceed[Option[String]](Some("foo")).couldBe("foo"))
@@ -27,5 +27,8 @@ class TestSuiteTests extends TestSuite {
 		{ (n: Int) => alwaysSucceed(n+1) },
 		{ (n: Int) => alwaysSucceed(n+2) }
 	).shouldBe(List(2, 3)))
+
+	test(assertEquals("expected", throw new Exception).failOnException.shouldFail)
+	test(assertEquals("expected", "expected"))
 
 }
