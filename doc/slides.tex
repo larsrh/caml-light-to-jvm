@@ -2,8 +2,8 @@
 %%\documentclass[draft]{beamer}
 %%\documentclass[handout]{beamer}
 % silence hyperref warnings
-%\documentclass[hyperref={pdfpagelabels=false}]{beamer}
-\documentclass{beamer}
+\documentclass[hyperref={pdfpagelabels=false}]{beamer}
+%\documentclass{beamer}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[ngerman]{babel}
@@ -84,6 +84,20 @@
 \end{frame}
 
 \begin{frame}{Benchmarks}
+  \begin{block}{Ackermann(3, 5)}
+    \begin{tabular}{l|l|l}
+       & Scala & TUM \\
+      Kompilieren & 9.3s & 4.1s \\
+      Ausführen & 1.03s & 1.69s \\
+    \end{tabular}
+  \end{block}
+  \begin{block}{Factorial(10)}
+    \begin{tabular}{l|l|l}
+       & Scala & TUM \\
+      Kompilieren & 9.1s & 3.9s \\
+      Ausführen & 0.98s & 0.13s \\
+    \end{tabular}
+  \end{block}
 \end{frame}
 
 \begin{frame}{Stats}
