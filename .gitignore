@@ -18,4 +18,4 @@ nblibraries-private.properties
 *.snm
 *.nav
 *.out
-*.pdf
+slides.pdf
