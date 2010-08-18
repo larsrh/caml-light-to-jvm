@@ -7,6 +7,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[ngerman]{babel}
+\usepackage[autostyle]{csquotes}
 \usepackage{wasysym}
 \usepackage{ziffer}
 \mode<presentation>{\usetheme{Copenhagen}}
@@ -114,13 +115,27 @@
   System: Core2 Duo @ 1.5 GHz x86\_64; OpenJDK~1.6.0\_18; Scala~2.8.0; Caml Light~0.75
 \end{frame}
 
-\begin{frame}{Stats}
+\begin{frame}{Spaß}
   \begin{block}{Code}
     $\approx 3.300$ LOC Scala, $\approx 650$ LOC Java, $> 250$ Commits
   \end{block}
   \begin{block}{Best of Commit"=Messages}
     \begin{itemize}
-      \item Foo
+      % TODO: select best
+      \item \enquote{Write the bytes in, you know, a correct way}
+      \item \enquote{Whee, the machine can actually run more complicated code without failing}
+      \item \enquote{Look at me mom, I made a jQuery"=like chainable DSL for generating bytecode}
+      \item \enquote{Maching of tuples works but is REALLY ugly}
+      \item \enquote{fixed REALLY stupid bug with CUP2/Scala layer}
+      \item \enquote{Get out of the JAR, *.mama. You're not even bytecode!}
+      \item \enquote{Case classes should not inherit other case classes, you know? We have so much syntactic sugar, use that instead!}
+      \item \enquote{Hey ., you should really consider matching newlines, too!}
+      \item \enquote{fixed \enquote{closures vs getbasic}}
+      \item \enquote{Changed order of generated code instruction so that the code is actually valid}
+      \item \enquote{Scala supports some mad syntactic sugar. Mad! I tell you.}
+      \item \enquote{Marek goes insane and after that, realizes that bipush handles only +127 and then wraps around.}
+      \item \enquote{I can haz right order of valyooz?}
+      \item \enquote{I heard you want to know where exactly the typo in your souce code is. Here you are!}
     \end{itemize}
   \end{block}
 \end{frame}
@@ -144,7 +159,7 @@
   \begin{block}{Mögliche Erweiterungen}
     \begin{itemize}
       \item Stdlib bereitstellen
-      \item Verwendung des des JVM"=Stacks
+      \item Verwendung des JVM"=Stacks
     \end{itemize}
   \end{block}
 \end{frame}
