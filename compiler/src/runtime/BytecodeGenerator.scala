@@ -17,21 +17,29 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		this
 	}
 
+	/* iconst can push -1 to 5 (constant) onto the JVM operand stack */
+	def iconst(variant: Int) = {
+		mv.visitInsn(variant)
+		this
+	}
+
 	/*
-	 * there is a version of bipush, iconst_<i> that can push from (-1...5)
-	 * but that's an optimization, we always use bipush for constants
+	 * bipush pushes smaller numbers onto the stack, beware: it wraps around if
+	 * you pass too large numbers without warning.
 	 */
 	def bipush(constant: Int) = {
 		mv.visitIntInsn(BIPUSH, constant)
 		this
 	}
 
+	/* sipush pushes slightly bigger numbers onto the JVM operand stack */
 	def sipush(constant: Int) = {
 		mv.visitIntInsn(SIPUSH, constant)
 		this
 	}
 
-	/* ldc can also support objects other than Int, but I don't casre in the
+	/*
+	 * ldc can also support objects other than Int, but I don't casre in the
 	 * slightest
 	 */
 	def ldc(constant: Int) = {
@@ -39,11 +47,11 @@ class BytecodeGenerator(mv: MethodVisitor, labels:HashMap[LABEL,Label], continue
 		this
 	}
 
-	def iconst(variant: Int) = {
-		mv.visitInsn(variant)
-		this
-	}
-
+	/*
+	 * this method is used to push ANY number onto the JVM operand stack.
+	 * it dispatches depending on the number size to the appropriate JVM
+	 * instruction calls.
+	 */
 	def pushInt(constant: Int) = {
 		constant match {
 			case -1 => iconst(ICONST_M1)
