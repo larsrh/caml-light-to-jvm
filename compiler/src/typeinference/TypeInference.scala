@@ -163,13 +163,21 @@ object TypeInference {
 	val (typeExpr2, freshNew, constraints) = constraintGen(gamma,expr2, fresh)
 	(typeExpr2,freshNew,List())
 
-      case expressions.TupleElem(tup, nr) =>
-	val (typeTup, freshNew, constraints) = constraintGen(gamma, tup, fresh)
+      case expressions.TupleElem(expr, nr) =>
+	val (typeExpr, freshNew, constraints) = constraintGen(gamma, expr, fresh)
+	val s = unify(constraints)
+	val typeTup = typeExpr.subst(s)
 	typeTup match {
 	  case TypeTuple(tupleTypes@_*) =>
 	    // tuple indexing start at 1
+	    try {
 	    (tupleTypes(nr-1),freshNew,constraints)
-	  case _ => throw new TypeError("Couldn't match expected tuple tuple type against type " + typeTup + ".")
+	    } catch {
+	      case err: IndexOutOfBoundsException =>
+		throw new TypeError("ERROR: Tuple " + typeTup + " only constists of " + tupleTypes.length + " elements, "
+				    + "tried to access element nr " + nr + ".")
+	    }
+	  case _ => throw new TypeError("Couldn't match expected tuple type against type " + typeTup + ".")
 	}
 
       case expressions.Id(x) =>
