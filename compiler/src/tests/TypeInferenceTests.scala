@@ -410,7 +410,7 @@ class TypeInferenceTests extends TestSuite {
 					   expressions.Record((Id("x"), Integer(1))),
 					   Integer(1))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
 	})
 
 	test("Record2", {
@@ -463,7 +463,6 @@ class TypeInferenceTests extends TestSuite {
 
 		val body = Let(patterns.Id("parsepos"), Lambda(App(Id("sign"), App(Id("parsepositive"), Id("list"), Integer(0))), patterns.Tuple(patterns.Id("sign"), patterns.Id("list"))),
 					   Let(patterns.Id("o"),
-//			Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("f"), patterns.Id("g"), patterns.Id("x")),
 						   Lambda(Lambda(Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("x")), patterns.Id("g")), patterns.Id("f")),
 						   BinOp(BinaryOperator.add,
 								 App(App(Id("o"), Id("parsepos"), Id("parseminus")), Cons(Character('-'), Cons(Character('4'), Cons(Character('2'), Nil)))),
