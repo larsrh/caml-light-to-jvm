@@ -10,7 +10,7 @@
 \usepackage{wasysym}
 \usepackage{ziffer}
 \mode<presentation>{\usetheme{Copenhagen}}
-\title{A CamlLight Compiler for the JVM}
+\title{A Caml Light Compiler for the JVM}
 \author{Hupel, Kubica, Müller, Schulze, Traytel}
 \institute{TU München}
 \date{20.~August~2010}
@@ -30,16 +30,20 @@
 \logo{\includegraphics[width=1.5cm]{tun}}
 
 \begin{frame}{Lexer}
-  \begin{itemize}
-    \item JFlex
-  \end{itemize}
+  \begin{block}{Technisches}
+    \begin{itemize}
+      \item JFlex
+    \end{itemize}
+  \end{block}
 \end{frame}
 
 \begin{frame}{Parser}
-  \begin{itemize}
-    \item CUP2
-    \item CamlLight"=Syntax
-  \end{itemize}
+  \begin{block}{Technisches}
+    \begin{itemize}
+      \item CUP2
+      \item CamlLight"=Syntax
+    \end{itemize}
+  \end{block}
 \end{frame}
 
 \begin{frame}{Typinferenz}
@@ -90,29 +94,29 @@
   \begin{block}{Ackermann(3, 5)}
     Zweifaches Pattern Matching
 
-    \begin{tabular}{l|l|l}
-       & Scala & TUM \\
+    \begin{tabular}{l|l|l|l}
+       & Caml Light & Scala & TUM \\
       \hline
-      Kompilieren & \textcolor{slowest}{9.3s} & \textcolor{fastest}{4.1s} \\
-      Ausführen & \textcolor{fastest}{1.03s} & \textcolor{slowest}{1.69s} \\
+      Kompilieren & \textcolor{fastest}{0.0s} & \textcolor{slowest}{9.3s} & 4.1s \\
+      Ausführen & \textcolor{fastest}{0.00s} & 1.03s & \textcolor{slowest}{1.69s} \\
     \end{tabular}
   \end{block}
   \begin{block}{Factorial(10)}
     Rekursiv
 
-    \begin{tabular}{l|l|l}
-       & Scala & TUM \\
+    \begin{tabular}{l|l|l|l}
+       & Caml Light & Scala & TUM \\
       \hline
-      Kompilieren & \textcolor{slowest}{9.1s} & \textcolor{fastest}{3.9s} \\
-      Ausführen & \textcolor{slowest}{0.98s} & \textcolor{fastest}{0.13s} \\
+      Kompilieren & \textcolor{fastest}{0.0s} & \textcolor{slowest}{9.1s} & 3.9s \\
+      Ausführen & \textcolor{fastest}{0.00s} & \textcolor{slowest}{0.98s} & 0.13s \\
     \end{tabular}
   \end{block}
-  System: Core2 Duo @ 1.5 GHz; OpenJDK (ArchLinux-6.b18\_1.8.1-1-x86\_64)
+  System: Core2 Duo @ 1.5 GHz x86\_64; OpenJDK~1.6.0\_18; Scala~2.8.0; Caml Light~0.75
 \end{frame}
 
 \begin{frame}{Stats}
   \begin{block}{Code}
-    $\approx 3.300$ LOC Scala, $650$ LOC Java, $> 250$ Commits
+    $\approx 3.300$ LOC Scala, $\approx 650$ LOC Java, $> 250$ Commits
   \end{block}
   \begin{block}{Best of Commit"=Messages}
     \begin{itemize}
@@ -137,6 +141,12 @@
 \end{frame}
 
 \begin{frame}{Zukunft}
+  \begin{block}{Mögliche Erweiterungen}
+    \begin{itemize}
+      \item Stdlib bereitstellen
+      \item Verwendung des des JVM"=Stacks
+    \end{itemize}
+  \end{block}
 \end{frame}
 
 \end{document}
