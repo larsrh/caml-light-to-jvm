@@ -101,9 +101,9 @@ public class Machine {
 
 	private class Vector extends HeapData {
 		private final int n;
-		private final StackData[] v;
+		private final Ref[] v;
 
-		private Vector(StackData[] v) {
+		private Vector(Ref[] v) {
 			this.v = v;
 			this.n = v.length;
 		}
@@ -197,8 +197,8 @@ public class Machine {
 	}
 	
 	public void and() {
-		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
+		Raw r1 = (Raw)stack.pop();
 		stack.push(new Raw(r1.asBool() && r2.asBool()));
 		sp--;
 	}
@@ -244,8 +244,8 @@ public class Machine {
 	}
 	
 	public void eq() {
-		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
+		Raw r1 = (Raw)stack.pop();
 		if (r1.v == r2.v) {
 			// push true
 			stack.push(new Raw(1));
@@ -253,7 +253,7 @@ public class Machine {
 			stack.push(new Raw(0));
 		}
 		sp--;
-	}	
+	}	                    
 	
 	/* eval needs to supply a label that is right *after* the call of eval */
 	public int eval(int label) {
@@ -279,17 +279,22 @@ public class Machine {
 		}
 		sp--;
 	}
-	
+
 	public void get(int j) {
 		Vector h = (Vector)((Ref)stack.pop()).v;
 		stack.push(h.v[j]);
 	}
 	
-	// thows a ClassCastException when the code is wrong, which is more
+	// throws a ClassCastException when the code is wrong, which is more
 	// or less what we want. Me wants pattern match in this Java!
 	public void getbasic() {
-		Base b = (Base)((Ref)stack.pop()).v;
-		stack.push(new Raw(b.v));
+        try {
+		    Base b = (Base)((Ref)stack.pop()).v;
+		    stack.push(new Raw(b.v));
+        } catch (ClassCastException e) {
+            _pstack();
+            throw e;
+        }
 	}
 	
 	public void getvec(int k) {
@@ -365,8 +370,8 @@ public class Machine {
 	}
 
 	public void mkbasic() {
-		Raw r = (Raw)stack.pop();
-		stack.push(new Ref(new Base(r.v)));
+        Raw r = (Raw)stack.pop();
+        stack.push(new Ref(new Base(r.v)));
 	}
 	
 	public void mkclos(int label) {
@@ -375,7 +380,7 @@ public class Machine {
 	}
 
 	public void mkfunval(int label) {
-		StackData[] av = new StackData[0];
+		Ref[] av = new Ref[0];
 		Vector ap = new Vector(av);
 		Vector gp = (Vector)((Ref)stack.pop()).v;
 
@@ -384,9 +389,9 @@ public class Machine {
 	}
 	
 	public void mkvec(int g) {
-		StackData[] v = new StackData[g];
+		Ref[] v = new Ref[g];
 		for (int i = 0; i < g; i++) {
-			v[g-1-i] = stack.pop();
+			v[g-1-i] = (Ref)stack.pop();
 			sp--;
 		}
 		stack.push(new Ref(new Vector(v)));
@@ -396,11 +401,11 @@ public class Machine {
 	/* pops elements until FP and creates a Vector */
 	public void mkvec0() {
 		int n = sp - fp;
-		StackData[] a = new StackData[n];
+		Ref[] a = new Ref[n];
 		sp = fp + 1;
 		// put them into the array in *reverse* order
 		for (int i = n - 1; i >= 0; i--) {
-			a[i] = stack.pop();
+			a[i] = (Ref)stack.pop();
 		}
 		stack.push(new Ref(new Vector(a)));
 	}
@@ -415,12 +420,11 @@ public class Machine {
 	public void neg() {
 		Raw r = (Raw)stack.pop();
 		stack.push(new Raw(-r.v));
-		sp--;
 	}
 	
 	public void neq() {
-		Raw r1 = (Raw)stack.pop();
 		Raw r2 = (Raw)stack.pop();
+		Raw r1 = (Raw)stack.pop();
 		if (r1.v != r2.v) {
 			// push true
 			stack.push(new Raw(1));
@@ -438,7 +442,6 @@ public class Machine {
 	public void not() {
 		Raw r = (Raw)stack.pop();
 		stack.push(new Raw(!r.asBool()));
-		sp--;
 	}
 	
 	public void or() {
@@ -502,8 +505,7 @@ public class Machine {
 	}
 
 	public void rewrite(int j) {
-		HeapData value = ((Ref)stack.pop()).v;
-        ((Ref)stack.get(sp - j)).v = value;
+        ((Ref)stack.get(sp - j)).v = ((Ref)stack.pop()).v;
 		sp--;
 	}
 
@@ -562,11 +564,11 @@ public class Machine {
 	}
 	
 	public void _pstack() {
-		System.out.println("---- TOP OF STACK ----");
+		//System.out.println("---- TOP OF STACK ----");
 		for (int i = stack.size(); i > 0; i--) {
 			System.out.println(stack.get(i-1));
 		}
-		System.out.println("---- BTM OF STACK ----");
+		//System.out.println("---- BTM OF STACK ----");
 	}
 
 	/* this method is only for demonstration purposes, the proper code

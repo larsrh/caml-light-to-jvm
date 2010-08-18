@@ -20,8 +20,8 @@ class Assembly(filename: String) {
 
 	def copyClasses = {
 		val classes = List("1", // this is an anonymous class that we need to add
-								 "Base", "Closure", "Function", "List", "HeapData", "Raw",
-								 "Vector", "Ref", "StackData")
+								 "Base", "Closure", "Function", "List",  "Raw", "Vector", "Ref",
+                 "StackData", "HeapData")
 
 		for (entry <- classes) {
 			val `class` = Class.forName("runtime.Machine$" + entry)
