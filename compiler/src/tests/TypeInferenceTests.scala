@@ -6,6 +6,7 @@ import parser.ast.types._
 import parser.ast.expressions._
 import typeinference._
 import typeinference.TypeInference.TypeError
+import typeinference.TypeInference.UnificationError
 
 class TypeInferenceTests extends TestSuite {
 
@@ -44,7 +45,7 @@ class TypeInferenceTests extends TestSuite {
 		val e4 = Lambda(App(App(Id("1"), Id("2")), App(Id("1"), Id("3"))),
 						patterns.Id("1"), patterns.Id("2"), patterns.Id("3"))
 
-		TypeInference.typeCheck(Map(), e4).shouldThrow[TypeError]
+		TypeInference.typeCheck(Map(), e4).shouldThrow[UnificationError]
 	})
 
 	test("If_Curried_Equals_NonCurried", {
@@ -132,7 +133,7 @@ class TypeInferenceTests extends TestSuite {
 		val e14 = Lambda(Match(Id("x"),
 							   (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("y")),
 							   (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("x"))), patterns.Id("x"))
-		TypeInference.typeCheck(TypeInference.emptyEnv, e14).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, e14).shouldThrow[UnificationError]
 	})
 
 	test("Match", {
@@ -222,7 +223,7 @@ class TypeInferenceTests extends TestSuite {
 
 	test("e8", {
 		val e8 = IfThenElse(BinOp(BinaryOperator.eq,Integer(97),Character('a')),Integer(42),Bool(false))
-		TypeInference.typeCheck(TypeInference.emptyEnv, e8).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, e8).shouldThrow[UnificationError]
 	})
 
 	test("e9", {
@@ -299,13 +300,13 @@ class TypeInferenceTests extends TestSuite {
 	test("BinOp_var3", {
 		val test = BinOp(BinaryOperator.add, Integer(1), Bool(true))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
 	})
 
 	test("BinOp_var4", {
 		val test = BinOp(BinaryOperator.and, Integer(1), Bool(true))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
+		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
 	})
 
 	test("TupleElem", {
