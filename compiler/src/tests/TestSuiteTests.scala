@@ -14,6 +14,10 @@ class TestSuiteTests extends TestSuite {
 	test(alwaysFail(5).shouldFail.shouldBe(4).shouldFail)
 	test(alwaysFail(5).shouldFail.shouldBe(4).ignore())
 
+	test(alwaysSucceed[Option[String]](None).couldBe("foo"))
+	test(alwaysSucceed[Option[String]](Some("foo")).couldBe("foo"))
+	test(alwaysSucceed[Option[String]](Some("foo")).couldBe(new Object()).shouldFail)
+
 	test(alwaysSucceed(1).all(
 		{ (n: Int) => alwaysSucceed(n+1) },
 		{ (n: Int) => alwaysFail(n+1) }

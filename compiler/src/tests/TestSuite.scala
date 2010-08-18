@@ -2,15 +2,17 @@
 package tests
 
 import scala.io.Source
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{LinkedHashMap, ListBuffer}
 
 object TestSuite {
 
 	def main(args: Array[String]) {
+		val verbose = args.length >= 1 && args(0) == "-verbose"
+
 		for (line <- Source.fromFile("test/testsuites").getLines) {
 			try {
 				println("(***) TESTING " + line)
-				Class.forName(line).newInstance.asInstanceOf[TestSuite].run()
+				Class.forName(line).newInstance.asInstanceOf[TestSuite].run(verbose)
 			}
 			catch {
 				case ex: Exception =>
@@ -184,36 +186,48 @@ class TestSuite {
 
 	def calculate[V](expr: => V) = alwaysSucceed(expr)
 
-	private val tests = ListBuffer[Test[_, _]]()
+	private var count = 0
+	private val tests = LinkedHashMap[AnyRef, Test[_, _]]()
 
-	protected final def test(t: Test[_, _]) { tests += t }
+	protected final def test(t: Test[_, _]) {
+		test(count.asInstanceOf[AnyRef], t)
+		count += 1
+	}
 
-	final def run() {
-		var ignored = 0
-		var failed = 0
+	protected final def test(key: AnyRef, t: Test[_, _]) {
+		require(!tests.contains(key))
+		tests(key) = t
+	}
+
+	final def run(verbose: Boolean = false) {
+		val ignored, failed = ListBuffer[String]()
 		var successful = 0
-		for (t <- tests) {
+		for ((key, t) <- tests) {
+			val keyStr = key.toString
 			try {
 				t.run match {
 					case Success(Ignored(message)) =>
-						ignored += 1
-						println("(   ) IGNORED " + message)
+						ignored += keyStr
+						println("(   ) [%s] IGNORED %s".format(keyStr, message))
 					case Success(value) =>
 						successful += 1
-						println("(+++) SUCCESS " + value)
+						if (verbose)
+							println("(+++) [%s] SUCCESS %s".format(keyStr, value))
 					case Failure(err) =>
-						failed += 1
-						println("(---) FAILURE " + err)
+						failed += keyStr
+						println("(---) [%s] FAILURE %s".format(keyStr, err))
 				}
 			}
 			catch {
 				case ex =>
-					failed += 1
-					println("(---) FAILURE uncaught exception " + ex)
+					failed += keyStr
+					println("(---) [%s] FAILURE uncaught exception [%s]".format(keyStr, ex.toString))
 			}
 		}
 
-		println("(***) STATISTICS: %d successful, %d ignored, %d failed".format(successful, ignored, failed))
+		println("(***) STATISTICS: %d successful, %d ignored, %d failed".format(successful, ignored.size, failed.size))
+		if (ignored.size > 0) println("(   ) IGNORED " + ignored.mkString(", "))
+		if (failed.size > 0)  println("(---) FAILED "  + failed.mkString(", "))
 	}
 
 }
