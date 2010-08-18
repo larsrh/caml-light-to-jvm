@@ -55,9 +55,10 @@ object TypeInference {
    * Top-level typecheck method. Given a type environment and an expression
    * returns the type of the given expression.
    */
-  def typeCheck(gamma: Env, expr: expressions.Expression): (List[TypeVariable], TypeExpression) = {
+  def typeCheck(gamma: Env, expr: expressions.Expression): (TypeScheme,Env) = {
     val (typeExpr, _, constraints) = constraintGen(gamma, expr, 1)
-    generalise(gamma, typeExpr, constraints)
+    val scheme = generalise(gamma, typeExpr, constraints)
+    (scheme,gamma)
   }
 
   /**
@@ -148,6 +149,7 @@ object TypeInference {
   def constraintGen(gamma: Env, expr1: expressions.Expression, fresh: Int):
   (TypeExpression,Int,List[(TypeExpression,TypeExpression)]) = {
 
+    // make sure the expression is in curried form
     val expr = curry(expr1)
     
     expr match {
@@ -159,42 +161,39 @@ object TypeInference {
 
       case expressions.Sequence(_,expr2) =>
 	// TODO: we might test here whether expr1 is of type Unit and if so
-	// print a warning
+	// TODO: print a warning
 	val (typeExpr2, freshNew, constraints) = constraintGen(gamma,expr2, fresh)
 	(typeExpr2,freshNew,List())
 
+	// tuple element access, indexing starts at 1
       case expressions.TupleElem(expr, nr) =>
 	val (typeExpr, freshNew, constraints) = constraintGen(gamma, expr, fresh)
+	// unify here to find out the type of the expression
 	val s = unify(constraints)
 	val typeTup = typeExpr.subst(s)
 	typeTup match {
 	  case TypeTuple(tupleTypes@_*) =>
-	    // tuple indexing start at 1
 	    try {
-	    (tupleTypes(nr-1),freshNew,constraints)
+	      (tupleTypes(nr-1),freshNew,constraints)
 	    } catch {
 	      case err: IndexOutOfBoundsException =>
-		throw new TypeError("ERROR: Tuple " + typeTup + " only constists of " + tupleTypes.length + " elements, "
-				    + "tried to access element nr " + nr + ".")
+		throw TypeError("ERROR: Tuple " + typeTup + " only constists of " + tupleTypes.length + " elements, "
+				+ "tried to access element nr " + nr + ".")
 	    }
-	  case _ => throw new TypeError("Couldn't match expected tuple type against type " + typeTup + ".")
+	  case _ => throw TypeError("ERROR: Couldn't match expected tuple type against type " + typeTup + ".")
 	}
 
       case expressions.Id(x) =>
-        lookup(gamma, x) match {
-          case Left(err) => throw TypeError(err)
-          case Right(sigma) =>
-	    instantiate(sigma, fresh) match {
-	      case (typeExpr,fresh1) => (typeExpr,fresh1,List())
-	    }
-        }
+        val scheme = lookup(gamma, x)
+	val (typeExpr,fresh1) = instantiate(scheme, fresh)
+	(typeExpr,fresh1,List())
 
       case expressions.UnOp(op, e) =>
 	val (t, f, c) = constraintGen(gamma, e, fresh)
 	op match {
 	  case expressions.UnaryOperator.neg => (t, f, (TypeInt(), t) :: c)
 	  case expressions.UnaryOperator.not => (t, f, (TypeBool(), t) :: c)
-	  case _ => throw TypeError("Unknown unary operator.")
+	  case _ => throw TypeError("ERROR: Unknown unary operator " + op + ".")
 	}
 	
       case expressions.IfThenElse(e1, e2, e3) =>
@@ -216,7 +215,6 @@ object TypeInference {
 	  case _ => (t1,fresh2,(t1,t2)::c1 ++ c2)
 	}
 
-	
       case expressions.Lambda(body, p) =>
 	val (patternType,fresh1) = getPatternType(p,fresh)
         val (gamma1,fresh2,cs) = putPatternIntoEnv(gamma, p, patternType, fresh1)
@@ -226,86 +224,85 @@ object TypeInference {
         // anonymous record definition like in e.g.
         // let x = { one=Integer(1), id=Lamda(Id("x"),patterns.Id("x")) }
       case expressions.Record(defs@_*) =>
-        val (fields,fresh1,constraints) = determineRecordFieldTypes(List(), List(), gamma, fresh, defs:_*)
+        val (fields,fresh1,constraints) = getRecordFieldTypes(List(), List(), gamma, fresh, defs:_*)
 	(TypeRecord("anonymous", fields:_*),fresh1,constraints)
 
-      case expressions.Tuple(expr@_*) =>
-	// TODO: 2nd and 5th parameter may be omitted from caller
-	val (tupleTypes,freshNew,constraints) = determineTupleTypes(expr.toList, List(), gamma, fresh, List())
+      case expressions.Tuple(expr@_*) =>5
+	val (tupleTypes,freshNew,constraints) = getTupleTypes(expr.toList, gamma, fresh)
 	(TypeTuple(tupleTypes:_*),freshNew,constraints)
 
         // field access
-      case expressions.Field(recExpr, fieldId) =>
+      case expressions.Field(expr, fieldId) =>
         // generate type for recExpr
-        constraintGen(gamma, recExpr, fresh) match {
-          case (typeRecExpr,fresh1,constraints) =>
-            // generated type expression should match a record type
-            typeRecExpr match {
-              case TypeRecord(recName, fields@_*) =>
-                // lookup type of desired field
-                val matchedFields = fields filter {f => f._1 == fieldId.name}
-                if (matchedFields.length == 0) {
-		  throw TypeError("No such field " + fieldId.name + " in record " + recName + ".")
-                } else if (matchedFields.length > 1) {
-                  // sanity check; we should never get here since records aren't
-		  // allowed to conatain fields with a duplicate name
-                  throw TypeError("Duplicate field " + fieldId.name + " found in record " + recName + ".")
-                } else {
-                  // return type
-                  (matchedFields.head._2, fresh1, constraints)
-                }
-              case _ => throw TypeError("No record " + recExpr + " found.")
-            }
-        }
+        val (typeExpr,fresh1,constraints) = constraintGen(gamma, expr, fresh)
+	val s = unify(constraints)
+	val typeRecExpr = typeExpr.subst(s)
+	// generated type expression should match a record type
+	typeRecExpr match {
+	  case TypeRecord(recName, fields@_*) =>
+	    // lookup type of desired field
+	    val matchedFields = fields filter {f => f._1 == fieldId.name}
+	    if (matchedFields.length == 0) {
+	      throw TypeError("ERROR: No such field " + fieldId.name + " in record " + recName + ".")
+	    } else if (matchedFields.length > 1) {
+	      // sanity check; we should never get here since records aren't
+	      // allowed to conatain fields with a duplicate name
+	      throw TypeError("ERROR: Duplicate field " + fieldId.name + " found in record " + recName + ".")
+	    } else {
+	      // return type
+	      (matchedFields.head._2, fresh1, constraints)
+	    }
+	  case _ => throw TypeError("ERROR: No record " + expr + " found.")
+	}
 
       case expressions.Cons(hd,rst) =>
-        constraintGen(gamma, hd, fresh) match {
-          case (te1,fresh1,constraints1) =>
-            constraintGen(gamma, rst, fresh1) match {
-              case (te2,fresh2,constraints2) =>
-                (TypeList(te1), fresh2,(te2,TypeList(te1))::constraints1++constraints2)
-            }
-        }
+	constraintGen(gamma, hd, fresh) match {
+	  case (te1,fresh1,constraints1) =>
+	    constraintGen(gamma, rst, fresh1) match {
+	      case (te2,fresh2,constraints2) =>
+		(TypeList(te1), fresh2,(te2,TypeList(te1))::constraints1++constraints2)
+	    }
+	}
 
-        // empty list
+	// empty list
       case expressions.Nil =>
-        (TypeList(TypeVariable(fresh)), fresh+1, List())
+	(TypeList(TypeVariable(fresh)), fresh+1, List())
 
       case expressions.App(e1,e2) =>
-        val (typeE1, fresh1, constraints) = constraintGen(gamma, e1, fresh+1)
+	val (typeE1, fresh1, constraints) = constraintGen(gamma, e1, fresh+1)
 	val (typeE2, fresh2, constraints1) = constraintGen(gamma, e2, fresh1)
 	val alpha = TypeVariable(fresh)
 	(alpha,fresh2,(typeE1, TypeFn(typeE2,alpha))::(constraints++constraints1))
 
       case expressions.Let(patterns.Id(x),expr,body) =>
-        constraintGen(gamma,expr,fresh) match {
-          case (typeExpr,fresh1,constraints) =>
-            val scheme = generalise(gamma,typeExpr,constraints)
+	constraintGen(gamma,expr,fresh) match {
+	  case (typeExpr,fresh1,constraints) =>
+	    val scheme = generalise(gamma,typeExpr,constraints)
 	    val gamma1 = update(gamma,x,scheme)
 	    constraintGen(gamma1, body, fresh1)
-        }
+	}
 
-        // ignore matched pattern
+	// ignore matched pattern
       case expressions.Let(patterns.Underscore,expr,body) =>
-        constraintGen(gamma,body,fresh)
+	constraintGen(gamma,body,fresh)
 
       case expressions.Let(p@patterns.Cons(head,rest), expr, body) =>
-        val (typeExpr,fresh1,constraints1) = constraintGen(gamma,expr,fresh)
+	val (typeExpr,fresh1,constraints1) = constraintGen(gamma,expr,fresh)
 	val (gamma1,fresh2,constraints2) = putPatternIntoEnv(gamma, p, typeExpr, fresh1)
 	val (tbody,fresh3,constraints3) = constraintGen(gamma1, body, fresh2)
 	(tbody,fresh3, constraints1 ++ constraints2 ++ constraints3)
 
-        // ignore constraints for type of expr
-        // it only has to match a list
+	// ignore constraints for type of expr
+	// it only has to match a list
       case expressions.Let(patterns.Nil, expr, body) =>
-        constraintGen(gamma,expr,fresh) match {
-          case (typeExpr,fresh1,_) =>
+	constraintGen(gamma,expr,fresh) match {
+	  case (typeExpr,fresh1,_) =>
 	    constraintGen(gamma, body, fresh1) match {
 	      case (typeBody, fresh1, constraints) =>
 		(typeBody, fresh1+1,
 		 (typeExpr,TypeList(TypeVariable(fresh1)))::constraints)
 	    }
-        }
+	}
 
       case expressions.Let(p@patterns.Tuple(_@_*), expr, body) =>
 	val (typeExpr, fresh1, constraints1) = constraintGen(gamma,expr,fresh)
@@ -319,7 +316,7 @@ object TypeInference {
 	}
 
       case expressions.Let(p@patterns.Record(pats@_*), expr, body) =>
-        val (typeExpr,fresh1,constraints1) = constraintGen(gamma, expr, fresh)
+	val (typeExpr,fresh1,constraints1) = constraintGen(gamma, expr, fresh)
 	val (gamma1,fresh2,constraints2) = putPatternIntoEnv(gamma, p, typeExpr, fresh1)
 	val (typeBody,fresh3,constraints3) = constraintGen(gamma1, body, fresh2)
 	typeExpr match {
@@ -345,8 +342,8 @@ object TypeInference {
 	(TypeChar(), fresh1, (typeExpr,TypeChar())::constraints)
 	    
       case expressions.Match(scrut, clauses@_*) =>
-        // TODO: check if clauses are non-empty
-        // all clauses must match the same type
+	// TODO: check if clauses are non-empty
+	// all clauses must match the same type
 	val (scrutType, fresh1, constraints) = constraintGen(gamma, scrut, fresh)
 	val (fresh2, scrutType1,typeExpr,cs) = checkClauses(clauses.toList, gamma, scrutType, constraints, scrut, fresh1)
 	(typeExpr, fresh2, List((scrutType,scrutType1)) ++ cs ++ constraints)
@@ -359,7 +356,7 @@ object TypeInference {
   }
 
   // TODO: rename funs
-  def putRecFunctionsIntoScope(gamma: Env, fresh: Int, 
+  def putRecFunctionsIntoScope(gamma: Env, fresh: Int,
 			       funs: List[(patterns.Id, expressions.Expression)]): (Env,Int)= {
     var currFresh = fresh
     var currGamma = gamma
@@ -375,7 +372,7 @@ object TypeInference {
       val funName = f._1.name
       val funBody = f._2
       val (funType,freshNew,constraints)  = constraintGen(currGamma, funBody, currFresh)
-      // collect generated constraints 
+      // collect generated constraints
       allConstraints = constraints ++ allConstraints
       // now update type
       val scheme = generalise(currGamma, funType, (currGamma(funName)._2,funType)::allConstraints)
@@ -388,43 +385,27 @@ object TypeInference {
 
   /**
    * Curries the given function, e.g. when a lambda expression like
-   *   Lambda(Id("x"), patterns.Id("x"), patterns.Id("y"))
-   * is given, it is brought into this shape:
-   *   Lambda(Lambda(patterns.Id("y"), Id("x"), patterns.Id("x"))
+   *     Lambda(Id("x"), patterns.Id("x"), patterns.Id("y"))
+   * is given, it is brought into shape
+   *     Lambda(Lambda(patterns.Id("y"), Id("x"), patterns.Id("x"))
    */
   def curry(expr: expressions.Expression): expressions.Expression = {
-    // curry variable param expressions
     expr match {
-      case fun@expressions.Lambda(_,arguments@_*) =>
-	if (arguments.length > 1) {
-	  ((expressions.Lambda(fun.body, fun.arguments.last))
-	   /: (fun.arguments.init.reverse)) ((l,p) => expressions.Lambda(l, p))
-	} else {
-	  expr
-	}
-      case a@expressions.App(_,p@_*) =>
-	if (p.length > 1) {
-	  curryApp(a)
-	} else {
-	  expr
-	}
+      case fun@expressions.Lambda(_,arguments@_*) if arguments.length > 1=>
+	((expressions.Lambda(fun.body, fun.arguments.last))
+	 /: (fun.arguments.init.reverse)) ((l,p) => expressions.Lambda(l, p))
+      case app@expressions.App(_,p@_*) if p.length > 1=>
+	((expressions.App(app.func, app.param.head))
+	 /: (app.param.tail)) ((a,p) => expressions.App(a, p))
       case _ => expr
     }
-  }
-
-  def curryApp(app: expressions.App) = {
-//    println("app before " + app )
-//    println("app after " + ((expressions.App(app.func, app.param.head))
-//			    /: (app.param.tail)) ((a,p) => expressions.App(a, p)))
-    ((expressions.App(app.func, app.param.head))
-     /: (app.param.tail)) ((a,p) => expressions.App(a, p))
   }
 
   /**
    * Determines the types of the given records field and returns them
    * together with the generated constraints.
    */
-  def determineRecordFieldTypes(
+  def getRecordFieldTypes(
     constraints: List[(TypeExpression,TypeExpression)],
     fields: List[(String,TypeExpression)],
     gamma: Env, fresh: Int, recordFields: (expressions.Id,expressions.Expression)*):
@@ -434,24 +415,35 @@ object TypeInference {
     } else {
       val recField = recordFields.head
       constraintGen(gamma, recField._2, fresh) match {
-        case (typeexpr, fresh1, constraints1) =>
-          val constraintsNew = constraints union constraints1
-          determineRecordFieldTypes(constraintsNew, fields :+ (recField._1.name, typeexpr),
-				    gamma, fresh1, recordFields.tail:_*)
+	case (typeexpr, fresh1, constraints1) =>
+	  val constraintsNew = constraints union constraints1
+	  getRecordFieldTypes(constraintsNew, fields :+ (recField._1.name, typeexpr),
+			      gamma, fresh1, recordFields.tail:_*)
       }
     }
   }
 
-  def determineTupleTypes(exprs: List[expressions.Expression],
-			  types: List[TypeExpression], gamma: Env, fresh: Int,
-			  constraints: List[(TypeExpression,TypeExpression)]):
+  /**
+   * Returns the types that appear within a tuple
+   */
+  def getTupleTypes(exprs: List[expressions.Expression],
+		    gamma: Env, fresh: Int):
   (List[TypeExpression], Int, List[(TypeExpression,TypeExpression)]) = {
-    exprs match {
-      case List() => (types,fresh,constraints)
-      case e::exprRest =>
-	val (typeExpr, fresh1, constraints1) = constraintGen(gamma, e, fresh)
-	determineTupleTypes(exprRest, types :+ typeExpr, gamma, fresh1, constraints ++ constraints1)
+
+    // local function
+    def getTupleTypes1(express: List[expressions.Expression],
+		       types: List[TypeExpression], env: Env, freshVar: Int,
+		       constraints: List[(TypeExpression,TypeExpression)]):
+    (List[TypeExpression], Int, List[(TypeExpression,TypeExpression)]) = {
+      express match {
+	case List() => (types,freshVar,constraints)
+	case expr::exprRest =>
+	  val (typeExpr, fresh1, constraints1) = constraintGen(env, expr, freshVar)
+	  getTupleTypes1(exprRest, types :+ typeExpr, env, fresh1, constraints ++ constraints1)
+      }
     }
+
+    getTupleTypes1(exprs, List(), gamma, fresh, List())
   }
 
   /**
@@ -460,11 +452,9 @@ object TypeInference {
    * the same type and each pattern must be the same type as the matched expression (TODO)
    */
   def checkClauses(clauses: List[(patterns.Pattern, expressions.Expression)],
-		   gamma: Env,
-		   scrutType: TypeExpression,
+		   gamma: Env, scrutType: TypeExpression,
 		   constr: List[(TypeExpression,TypeExpression)],
-		   scrut: expressions.Expression,
-		   fresh: Int):
+		   scrut: expressions.Expression, fresh: Int):
   (Int, TypeExpression, TypeExpression, List[(TypeExpression,TypeExpression)]) = {
 
     if (clauses.isEmpty) {
@@ -472,11 +462,10 @@ object TypeInference {
     }
 
     var types:Set[TypeExpression] = Set()
-    var scruttTypeInferred = false
+    var scruttTypeInferred = false // flag that signalizes whether a pattern match has succeeded
     var firstScrutType: Option[TypeExpression] = None
     var constraints = List[(TypeExpression,TypeExpression)]()
     var freshNew = fresh
-//    val (scrutType,fresh1,constr1) = constraintGen(gamma, scrut, fresh)
     
     for (clause <- clauses) {
       // find out the type the pattern may match against
@@ -501,15 +490,17 @@ object TypeInference {
       } catch {
 	// pattern match failure, we can't check the right hand sidef of the clause,
 	// but we need to check the other clauses
-	case unificationErr: UnificationError => throw unificationErr 
+	case unificationErr: UnificationError => throw unificationErr
 	case typeErr: TypeError => throw typeErr
       }
     }
 
+    // all types must be equal
     val tHead = types.head
     for (t <- types.tail) {
       constraints =  (tHead,t)::constraints
     }
+    
     try {
       val s = unify(constraints)
       val tpes = types map (t => t.subst(s))
@@ -527,7 +518,6 @@ object TypeInference {
 	throw TypeError("ERROR: Pattern match failure.")
       }
     } catch {
-      // TODO: cleanup
       case _ => throw UnificationError("Pattern clauses return values differ. TODO")
     }
   }
@@ -536,24 +526,27 @@ object TypeInference {
    * Updates the type enviroment based on the given pattern and the given type.
    * It is assumed that the given type matches the pattern.
    *
-   * The new type environment together with the fresh variable are returned.
+   * The new type environment together with the fresh variable and possibly
+   * generated constraints are returned.
    */
   def putPatternIntoEnv(env: Env, pattern: patterns.Pattern,
-			typeExpr: TypeExpression, fresh: Int): (Env,Int,List[(TypeExpression,TypeExpression)]) = {
+			typeExpr: TypeExpression, fresh: Int):
+  (Env,Int,List[(TypeExpression,TypeExpression)]) = {
     pattern match {
       case patterns.Id(x) =>
 	val scheme = (List(),typeExpr)
-        (update(env,x,scheme),fresh,List())
-      case patterns.Underscore => (env,fresh,List())
-      case patterns.Nil  => (env,fresh,List())
+	(update(env,x,scheme),fresh,List())
+      case patterns.Underscore =>
+	(env,fresh,List())
+      case patterns.Nil  =>
+	(env,fresh,List())
       case patterns.Integer(_) =>
-	  (env,fresh,List((typeExpr,TypeInt())))
+	(env,fresh,List((typeExpr,TypeInt())))
       case patterns.Bool(_) =>
-	  (env,fresh,List((typeExpr,TypeBool())))
+	(env,fresh,List((typeExpr,TypeBool())))
       case patterns.Character(_) =>
-	  (env,fresh,List((typeExpr,TypeChar())))
+	(env,fresh,List((typeExpr,TypeChar())))
       case tup@patterns.Tuple(pats@_*) =>
-
 	typeExpr match {
 	  case TypeTuple(types@_*) =>
 	    if (types.length != pats.length) {
@@ -570,7 +563,6 @@ object TypeInference {
 		currFresh = fresh1
 		i += 1
 	      }
-	      
 	      (gamma,currFresh,constraints)
 	    }
 	  case _ => throw TypeError("Match failed TODO")
@@ -591,13 +583,12 @@ object TypeInference {
 	      currFresh = fresh1
 	      i += 1
 	    }
-
 	    (currGamma,currFresh,constraints)
 	  case _ => throw TypeError("Match failed TODO")
 	}
       case cons@patterns.Cons(head, tail) =>
 	typeExpr match {
-	  case TypeList(a) => 
+	  case TypeList(a) =>
 	    val (env1, fresh1,constraints1) = putPatternIntoEnv(env, head, a, fresh)
 	    val (env2,fresh2,constraints2) = putPatternIntoEnv(env1, tail, TypeList(a), fresh1)
 	    (env2,fresh2,constraints1 ++ constraints2)
@@ -606,8 +597,6 @@ object TypeInference {
       case _ => throw TypeError("Unknown pattern TODO")
     }
   }
-
-  
 
   /**
    * Returns the type of the given pattern. For constructing the types
@@ -660,6 +649,9 @@ object TypeInference {
     }
   }
 
+  /**
+   * Instantiates the given type scheme.
+   */
   def instantiate(sigma: TypeScheme, fresh: Int): (TypeExpression, Int) = {
     val alphas = sigma._1
     val t = sigma._2
@@ -671,18 +663,19 @@ object TypeInference {
    * Looks up the given id in the given type environment and returns
    * it type scheme
    */
-  def lookup(gamma: Env, id: String): Either[String, TypeScheme] = {
+  def lookup(gamma: Env, id: String): TypeScheme = {
     gamma find {t => t._1 == id} match {
-      case Some((id1,scheme)) => Right(scheme)
-      case None => Left("variable " + id + " not bound")
+      case Some((id1,scheme)) => scheme
+      case None => throw TypeError("ERROR: Variable " + id + " not bound.")
     }
   }
 
   /**
    * Returns the position of the given label within the given record.
-   * Indexing starts at ?
+   * Indexing starts at 0. This function is meant for use in the code
+   * generation phase.
    */
-  def getRecordLabelPos(recExpr: expressions.Expression, label: expressions.Id): Int = {
+  def getRecordLabelPos(gamma: Env, recExpr: expressions.Expression, label: expressions.Id): Int = {
     // local method
     def findLabel(fields: List[(String,TypeExpression)], labelName: String, cnt: Int): Int = {
       fields match {
@@ -700,7 +693,7 @@ object TypeInference {
 
     // we don't care about the type environment nor
     // the constraints or the fresh variable here
-    val (recType,_,_) = constraintGen(emptyEnv, recExpr, 1)
+    val (recType,_,_) = constraintGen(gamma, recExpr, 1)
     recType match {
       case TypeRecord(n,fields@_*) => findLabel(fields.toList, label.name, 0)
       case _ => throw TypeError("ERROR: Expression " + recExpr + " is not a record.")
