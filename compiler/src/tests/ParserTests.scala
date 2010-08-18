@@ -22,24 +22,24 @@ class ParserTests extends TestSuite {
 		if (ignore)
 			test(alwaysIgnore(input))
 		else {
-			val tester = calculate(parse(input)).shouldSuffice { case (e, _) =>
-				Normalizer.normalize(e).toString == output
-			}
+			val tester = calculate(parse(input))
 
 			if (output == "!")
 				test(tester.shouldThrow[Exception])
 			else
-				test(tester)
+				test(tester.shouldSuffice { case (e, _) =>
+					Normalizer.normalize(e).toString == output
+				})
 		}
 	}
 
 	// COMPLEX TESTCASES (with type definition)
 	private def checkExpression(expected: Expression)(input: CamlLightSpec.Program) = {
-		assertEquals(expected)(input._1)
+		assertEquals(expected, input._1)
 	}
 
 	private def checkTypeDefinition(expected: List[TypeDefinition])(input: CamlLightSpec.Program) = {
-		assertEquals(expected)(input._2)
+		assertEquals(expected, input._2)
 	}
 
 	test(
