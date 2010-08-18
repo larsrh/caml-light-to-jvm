@@ -476,4 +476,18 @@ class TypeInferenceTests extends TestSuite {
 		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
 	})
 
+	test("fib", {
+	// let rec fib n = if n < 2 then 1 else fib(n-1) + fib(n-2) in fib(42)
+	// expected result = Integer(433494437)
+		val fib = LetRec(App(Id("fib"), Integer(42)), (patterns.Id("fib"),
+				      Lambda(IfThenElse(
+						BinOp(BinaryOperator.le, Id("n"), Integer(2)),
+						Integer(1),
+						BinOp(BinaryOperator.add,
+					App(Id("fib"), BinOp(BinaryOperator.sub, Id("n"), Integer(1))),
+					App(Id("fib"), BinOp(BinaryOperator.sub, Id("n"), Integer(2))))),
+			patterns.Id("n"))))
+
+		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, fib))
+	})
 }
