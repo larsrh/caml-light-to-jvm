@@ -19,6 +19,9 @@
 %\setbeamertemplate{navigation symbols}{}
 \beamertemplatenavigationsymbolsempty
 
+\definecolor{slowest}{RGB}{255, 0, 0}
+\definecolor{fastest}{RGB}{0, 255, 0}
+
 \begin{document}
 
 \frame{\titlepage}
@@ -85,19 +88,26 @@
 
 \begin{frame}{Benchmarks}
   \begin{block}{Ackermann(3, 5)}
+    Zweifaches Pattern Matching
+
     \begin{tabular}{l|l|l}
        & Scala & TUM \\
-      Kompilieren & 9.3s & 4.1s \\
-      Ausführen & 1.03s & 1.69s \\
+      \hline
+      Kompilieren & \textcolor{slowest}{9.3s} & \textcolor{fastest}{4.1s} \\
+      Ausführen & \textcolor{fastest}{1.03s} & \textcolor{slowest}{1.69s} \\
     \end{tabular}
   \end{block}
   \begin{block}{Factorial(10)}
+    Rekursiv
+
     \begin{tabular}{l|l|l}
        & Scala & TUM \\
-      Kompilieren & 9.1s & 3.9s \\
-      Ausführen & 0.98s & 0.13s \\
+      \hline
+      Kompilieren & \textcolor{slowest}{9.1s} & \textcolor{fastest}{3.9s} \\
+      Ausführen & \textcolor{slowest}{0.98s} & \textcolor{fastest}{0.13s} \\
     \end{tabular}
   \end{block}
+  System: Core2 Duo @ 1.5 GHz; OpenJDK (ArchLinux-6.b18\_1.8.1-1-x86\_64)
 \end{frame}
 
 \begin{frame}{Stats}
