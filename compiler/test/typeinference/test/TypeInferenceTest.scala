@@ -97,8 +97,8 @@ class TypeInferenceTest {
     val e8 = Lambda(Lambda(Id("xs"), patterns.Cons(patterns.Id("x"), patterns.Id("xs"))),
                     patterns.Cons(patterns.Id("y"), patterns.Id("ys")))
     // [1] -> [3] -> [3]
-    assertEquals((List(TypeVariable(1), TypeVariable(3)),
-		  TypeFn(TypeList(TypeVariable(1)), TypeFn(TypeList(TypeVariable(3)),TypeList(TypeVariable(3))))),
+    assertEquals((List(TypeVariable(1), TypeVariable(2)),
+		  TypeFn(TypeList(TypeVariable(1)), TypeFn(TypeList(TypeVariable(2)),TypeList(TypeVariable(2))))),
 		 TypeInference.typeCheck(TypeInference.emptyEnv, e8))
   }
 
@@ -163,7 +163,7 @@ class TypeInferenceTest {
     val e15 = Lambda(Match(Id("x"),
                            (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("ys")),
                            (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("x"))), patterns.Id("x"))
-    assertEquals((List(TypeVariable(2)),TypeFn(TypeList(TypeVariable(2)),TypeList(TypeVariable(2)))),
+    assertEquals((List(TypeVariable(3)),TypeFn(TypeList(TypeVariable(3)),TypeList(TypeVariable(3)))),
 		 TypeInference.typeCheck(TypeInference.emptyEnv, e15))
   }
 
@@ -175,7 +175,7 @@ class TypeInferenceTest {
     val e20 = Lambda(Match(Id("x"),
                            (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("ys")),
                            (patterns.Cons(patterns.Id("y"),patterns.Nil), Nil)), patterns.Id("x"))
-    assertEquals((List(TypeVariable(2)),TypeFn(TypeList(TypeVariable(2)),TypeList(TypeVariable(2)))),
+    assertEquals((List(TypeVariable(3)),TypeFn(TypeList(TypeVariable(3)),TypeList(TypeVariable(3)))),
 		 TypeInference.typeCheck(TypeInference.emptyEnv, e20))
   }
 
@@ -490,17 +490,18 @@ class TypeInferenceTest {
 						(patterns.Character('6'), Integer(6)),
 						(patterns.Character('7'), Integer(7)),
 						(patterns.Character('8'), Integer(8)),
-						(patterns.Character('9'), Integer(9))
+						(patterns.Character('9'), Integer(9)),
+						(patterns.Character('0'), Integer(0))
     ), patterns.Id("x")))
 
-    val body = Let(patterns.Id("parsepos"), Lambda(App(Id("sign"), App(Id("parsepositive"), Id("list"), Integer(0))), patterns.Id("sign"), patterns.Id("list")),
+    val body = Let(patterns.Id("parsepos"), Lambda(App(Id("sign"), App(Id("parsepositive"), Id("list"), Integer(0))), patterns.Tuple(patterns.Id("sign"), patterns.Id("list"))),
 		    Let(patterns.Id("o"),
-			Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("f"), patterns.Id("g"), patterns.Id("x")),
-//			Lambda(Lambda(Lambda(App(Id("f"), App(Id("g"), App(Id("x")))), patterns.Id("x"), patterns.Id("g"))), patterns.Id("f")),
+//			Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("f"), patterns.Id("g"), patterns.Id("x")),
+			Lambda(Lambda(Lambda(App(Id("f"), App(Id("g"), Id("x"))), patterns.Id("x")), patterns.Id("g")), patterns.Id("f")),
 			BinOp(BinaryOperator.add,
-			      App(Id("o"), App(Id("parsepos"), App(Id("parseminus"), Cons(Character('-'), Cons(Character('4'), Cons(Character('2'), Nil)))))),
-			      App(Id("o"), App(Id("parsepos"), App(Id("parseminus"), Cons(Character('4'), Cons(Character('2'), Nil))))))
-	))
+			      App(App(Id("o"), Id("parsepos"), Id("parseminus")), Cons(Character('-'), Cons(Character('4'), Cons(Character('2'), Nil)))),
+			      App(App(Id("o"), Id("parsepos"), Id("parseminus")), Cons(Character('4'), Cons(Character('2'), Nil))))))
+
 
     val test = LetRec(body, (patterns.Id("parseminus"), parseminus),
 			    (patterns.Id("parsepositive"), parsepositive),
@@ -508,5 +509,29 @@ class TypeInferenceTest {
 
     assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
   }
+
+//      LetRec(Let(Id("parsepos""),
+//	       Lambda(Match(Id("06"),List((Tuple(List(Id("sign"), Id("list"))),
+//	       App(Id("sign),List(App(Id("parsepositive"),List(Id("list"), Integer(0)))))))),
+//	       List(Id("06"))),Let(Id("o"),Lambda(Match(Id("09"),
+//	       List((Id("f"),Lambda(Match(Id("08"),
+//	       List((Id("g"),Lambda(Match(Id("07"),List((Id("x"),App(Id("f"),
+//	       List(App(Id("g"),List(Id("x")))))))),List(Id("07")))))),
+//	       List(Id("08")))))),List(Id("09"))),BinOp(add,App(Id("o"),List(Id("parsepos"), Id("parseminus"),
+//	       Cons(Character('-'),Cons(Character('4'),Cons(Character('2'),Nil))))),App(Id("o"),
+//	       List(Id("parsepos"), Id("parseminus"), Cons(Character('4'),Cons(Character('2'),Nil))))))),
+//	       List((Id("parseminus"),Lambda(Match(Id("02"),List((Cons(Id("x"),Id("xs")),
+//	       IfThenElse(BinOp(eq,Id("x"),Character('-')),Tuple(List(Lambda(Match(Id("00"),
+//	       List((Id("z"),UnOp(neg,Id("z"))))),List(Id("00"))), Id("xs"))),
+//	       Tuple(List(Lambda(Match(Id("01"),List((Id("z"),Id("z")))),List(Id("01"))),
+//	       Cons(Id("x"),Id("xs")))))))),List(Id("02")))), (Id("parsepositive"),Lambda(Match(Id("04"),
+//	       List((Id("list"),Lambda(Match(Id("03"),List((Id("acc"),Match(Id("list"),List((Nil,Id("acc")),
+//	       (Cons(Id("x"),Id("xs")),App(Id("parsepositive"),List(Id("xs"), BinOp(add,BinOp(mul,Integer(10),
+//	       Id("acc")),App(Id("intofchar"),List(Id("x")))))))))))),List(Id("03")))))),List(Id("04")))),
+//	       (Id("intofchar"),Lambda(Match(Id("05"),List((Id("x"),Match(Id("x"),List((Character('1'),Integer(1)),
+//	       (Character('2'),Integer(2)), (Character('3'),Integer(3)), (Character('4'),Integer(4)),
+//	       (Character('5'),Integer(5)), (Character('6'),Integer(6)), (Character('7'),Integer(7)),
+//	       (Character('8'),Integer(8)), (Character('9'),Integer(9)), (Character('0'),Integer(0))))))),List(Id("05"))))))
+
 }
 
