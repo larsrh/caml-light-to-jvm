@@ -46,7 +46,9 @@ public class Machine {
 	private int sp;
 	private Vector gp;
 
-	abstract class StackData {}
+	abstract class StackData {
+        public abstract String toFlatString();
+    }
 	abstract class HeapData {
         public abstract String toFlatString();
     }
@@ -114,7 +116,7 @@ public class Machine {
 			pre += "])";
 			return pre;
 		}
-
+            
         public String toFlatString() {
 			return "V(" + n + ", ...)";
 		}
@@ -179,14 +181,14 @@ public class Machine {
 	
 	private class List extends HeapData {
 		private boolean empty;
-		private HeapData head;
-		private HeapData tail;
+		private StackData head;
+		private StackData tail;
 		
 		private List() {
 				this.empty = true;
 		}
 		
-		private List(HeapData head, HeapData tail) {
+		private List(StackData head, StackData tail) {
 				this.empty = false;
 				this.head = head;
 				this.tail = tail;
@@ -197,7 +199,15 @@ public class Machine {
                     (empty ? "" : "," + head + "," + tail) + ")";
 		}
 
-        @Override
+        public String fromStringList() {
+            return "\"" + (empty ? "" : rawFromStringList()) + "\"";
+        }
+
+        public String rawFromStringList() {
+            return (empty ? "" :
+                    (char)((Raw)head).v + ((List)((Ref)tail).v).rawFromStringList());
+        }
+
         public String toFlatString() {
             return "L(" + (empty ? "Nil" : "Cons") +
                     (empty ? "" : "," + head.toFlatString() + "," + tail.toFlatString()) + ")";
@@ -256,8 +266,8 @@ public class Machine {
 	}
 	
 	public void cons() {
-		HeapData tail = ((Ref)stack.pop()).v;
-		HeapData head = ((Ref)stack.pop()).v;
+		StackData tail = stack.pop();
+		StackData head = stack.pop();
 		stack.push(new Ref(new List(head,tail)));
 		sp--;
 	}		
@@ -347,7 +357,9 @@ public class Machine {
 	}
 
 	public void halt() {
-			throw new RuntimeException("Pattern match failure... unlucky you!");
+            List list = (List)((Ref)stack.pop()).v;
+			throw new RuntimeException("Pattern match failure in the expression\n\t" +
+                    list.fromStringList() + "\nunlucky you!");
 	}
 	
 	public void le() {
@@ -572,8 +584,8 @@ public class Machine {
 			sp--;
 			return -1;
 		} else {
-			stack.push(new Ref(l.head));
-			stack.push(new Ref(l.tail));
+			stack.push(l.head);
+			stack.push(l.tail);
 			sp++;
 			return label;
 		}
