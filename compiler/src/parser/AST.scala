@@ -23,7 +23,7 @@ package expressions {
 			case e: ListExpression => "[%s]" format print(";", e: _*)
 			case Tuple(exprs @ _*) => "(%s)" format print(",", exprs: _*)
 			case TupleElem(tuple, nr) => "%s @ %d".format(tuple.pp, nr)
-			case Record(defs @ _*) => defs map { d => "%s: %s".format(d._1, d._2.pp) } mkString ("{", ";", "}")
+			case Record(defs @ _*) => defs map { d => "%s = %s".format(d._1, d._2.pp) } mkString ("{", ";", "}")
 			case Field(rec, name) => "(%s).%s".format(rec.pp, name)
 			case Match(scrutinee, clauses @ _*) =>
 				clauses map { c => "%s -> (%s)".format(c._1, c._2.pp) } mkString("match (%s) with " format (scrutinee.pp), " | ", "")
@@ -195,7 +195,7 @@ package patterns {
 			case Id(name) => name
 			case Const(value) => value.toString
 			case Underscore => "_"
-			case Record(pats @ _*) => pats map { p => "%s: %s".format(p._1, p._2.pp) } mkString ("{", ";", "}")
+			case Record(pats @ _*) => pats map { p => "%s = %s".format(p._1, p._2.pp) } mkString ("{", ";", "}")
 			case e: ListPattern => "[%s]" format print(";", e: _*)
 			case Alternative(pat1, pat2) => "(%s) | (%s)".format(pat1.pp, pat2.pp)
 			case Tuple(pats @ _*) => "(%s)" format print(",", pats: _*)
