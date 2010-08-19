@@ -148,13 +148,26 @@ ERROR: Couldn't unify types:
   \end{block}
 \end{frame}
 
-\begin{frame}{Codegenerierung: MaMa -- Beispiel}
-%  \begin{block}{AST}
-%  	\texttt{match (1,2) with (2,\_) -> 42}
-%  \end{block}
-%  \begin{block}{MaMa - Code}
-%  
-%  \end{block}
+\begin{frame}[fragile]{Codegenerierung: MaMa -- Fehlermeldungen}
+\begin{block}{\texttt{let hd = fun x::xs -> x in hd []}}
+\begin{itemize}
+\item Für jedes Pattern Matching lege auf den Stack:
+\begin{enumerate}
+\item Den Match-Ausdruck
+\item Zeilen- und Spaltenangaben
+\end{enumerate}
+\item Virtuelle MaMa-Maschine produziert Ausgaben von der Form:
+\begin{small}
+\begin{verbatim}
+Exception in thread "main" java.lang.RuntimeException: 
+Pattern match failure in the expression
+	"match (427 @ 0) with Cons(Id(4212),Underscore) -> (4212)"
+in line 1 and column 24
+unlucky you!
+\end{verbatim}
+\end{small}
+\end{itemize}
+\end{block}
 \end{frame}
 
 \begin{frame}{Codegenerierung: JVM"=Bytecode}
