@@ -22,12 +22,12 @@ import static parser.generator.CamlLightTerminals.*;
 
   private <T> ScannerToken<T> token(Object terminal, T value)
   {
-    return new ScannerToken<T>((Terminal) terminal, value, yyline+1, yycolumn);
+    return new ScannerToken<T>((Terminal) terminal, value, yyline+1, yycolumn+1);
   }
 
   private ScannerToken<Object> token(Object terminal)
   {
-    return new ScannerToken<Object>((Terminal) terminal, yyline+1, yycolumn);
+    return new ScannerToken<Object>((Terminal) terminal, yyline+1, yycolumn+1);
   }
 
   private int parseHexInt(String str)
@@ -96,8 +96,8 @@ import static parser.generator.CamlLightTerminals.*;
     }
   }
 
-  public int getLine() { return yyline; }
-  public int getColumn() { return yycolumn; }
+  public int getLine() { return yyline+1; }
+  public int getColumn() { return yycolumn+1; }
 %}
 
 LineTerminator = \r | \n | \r\n
@@ -197,7 +197,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   \"		{ string.setLength(0); yybegin(STRING); }
 
-  .		{ throw new IllegalArgumentException("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn); }
+  .		{ throw new IllegalArgumentException("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn+1); }
 }
 
 <STRING> {
