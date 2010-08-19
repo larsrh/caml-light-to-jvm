@@ -21,4 +21,5 @@ nblibraries-private.properties
 *.out
 *.fdb_latexmk
 *.z[io]
+*.vrb
 slides.pdf
