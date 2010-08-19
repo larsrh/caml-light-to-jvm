@@ -27,7 +27,7 @@ object Test {
 			Parser.parse(input)
 		
 		def typeCheck(e:Expression):TypeInference.Env =
-      TypeInference.typeCheck2(TypeInference.emptyEnv, e) _2
+      TypeInference.typeCheck(TypeInference.emptyEnv, e) _2
 		
 		def genMaMaCode(prog:Parser.Program, gamma:TypeInference.Env):List[Instruction] =
 			(new Translator(prog.positions,gamma)).codeb(prog.expr,HashMap.empty,0)

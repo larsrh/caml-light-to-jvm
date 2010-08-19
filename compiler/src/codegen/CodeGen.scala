@@ -267,57 +267,52 @@ class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInferen
       List(GET(typeinference.TypeInference.getRecordLabelPos(gamma,rec,name)),EVAL(X),SETLABEL(X))
     }
 		case Match(e0,patDefs@_*) => patDefs match {
-				case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
-					=> {
-						val A = newLabel()
-						val B = newLabel()
-					 
-						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
-						 codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++ 
-						 List(SLIDE(2),SETLABEL(B)))
-					}
-        case Seq((patterns.Cons(patterns.Underscore,patterns.Id(t)),e2:Expression))
-					=> {
-						val A = newLabel()
+      case Seq((patterns.Nil,e1:Expression),(patterns.Cons(patterns.Id(h),patterns.Id(t)),e2:Expression))
+        => {
+          val A = newLabel()
+          val B = newLabel()
 
-						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ patternMatchFail(expr)  ++
-              List(SETLABEL(A),SLIDE(1)) ++
-              codev(e2,rho + {t -> (VarKind.Local,sd+1)},sd+1) ++
-              List(SLIDE(1)))
-					}
-        case Seq((patterns.Cons(patterns.Id(h),patterns.Underscore),e2:Expression))
-					=> {
-						val A = newLabel()
+          (codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
+           codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++
+           List(SLIDE(2),SETLABEL(B)))
+        }
+      case Seq((patterns.Cons(patterns.Id(h),patterns.Underscore),e2:Expression))
+        => {
+          val A = newLabel()
 
-						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ patternMatchFail(expr)  ++
-              List(SETLABEL(A), POP) ++
-              codev(e2,rho + {h -> (VarKind.Local,sd+1)},sd+1) ++
-              List(SLIDE(1)))
-					}
-        case Seq((patterns.Nil,e1:Expression))
-					=> {
-            val A = newLabel()
-            val B = newLabel()
+          (codev(e0,rho,sd) ++ List(TLIST(A)) ++ patternMatchFail(expr)  ++
+            List(SETLABEL(A),POP) ++
+            codev(e2,rho + {h -> (VarKind.Local,sd+1)},sd+1) ++
+            List(SLIDE(1)))
+        }
+      case Seq((patterns.Cons(patterns.Underscore,patterns.Id(t)),e2:Expression))
+        => {
+          val A = newLabel()
 
-						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
-              patternMatchFail(expr) ++ List(SETLABEL(B)))
-					}
-				case _ => {
-						val DONE = newLabel()
-						val E = "42" + (counter + 1)//not a valid identifier -> no conflicts
-            posMap(Id(E)) = posMap.getOrElse(e0,Position(0,0,""))
-						counter = counter + 1
-						val rhoNew = rho + {E -> (VarKind.Local,sd+1)} // store value of e0
-							
-						codev(e0,rhoNew,sd) ++ (patDefs.toList flatMap { case (p,e) => {
-										val NEXT = newLabel()
-										val (matchingCode,n) = matchCG(e0,p,e,NEXT,DONE,E,rhoNew,sd+1)
-											
-										matchingCode ++ List(SETLABEL(NEXT)) ++ pop(n) 
-									}
-							/* HALT is misused for runtime pattern match errors */
-							}) ++ patternMatchFail(expr) :+ SETLABEL(DONE)
-					}
+          (codev(e0,rho,sd) ++ List(TLIST(A)) ++ patternMatchFail(expr)  ++
+            List(SETLABEL(A),SLIDE(1)) ++
+            codev(e2,rho + {t -> (VarKind.Local,sd+1)},sd+1) ++
+            List(SLIDE(1)))
+        }
+      case _ => {
+        val patDefsNew = (patDefs.toList foldLeft List.empty[(patterns.Pattern,Expression)]){
+          case (xs,x@(patterns.Nil,res)) => x::xs
+          case (xs,x) => xs :+ x
+        }
+        val DONE = newLabel()
+        val E = "42" + (counter + 1)//not a valid identifier -> no conflicts
+        posMap(Id(E)) = posMap.getOrElse(expr,Position(0,0,""))
+        counter = counter + 1
+        val rhoNew = rho + {E -> (VarKind.Local,sd+1)} // store value of e0
+
+        codev(e0,rhoNew,sd) ++ (patDefsNew flatMap { case (p,e) => {
+                val NEXT = newLabel()
+                val (matchingCode,n) = matchCG(e0,p,e,NEXT,DONE,E,rhoNew,sd+1)
+
+                matchingCode ++ List(SETLABEL(NEXT)) ++ pop(n)
+              }
+          }) ++ patternMatchFail(expr) :+ SETLABEL(DONE)
+        }
 			}
 	}
 		
@@ -373,10 +368,11 @@ class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInferen
 					}
 					// This is UGLY
 				case patterns.Nil => {
-          posMap(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(true)))) =
-                  posMap.getOrElse(e0,Position(0,0,""))
-          (codeb(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(true))),
-            rhoNew,sdAct),sdAct+1,i)
+						  val A = newLabel()
+						  val B = newLabel()
+
+						  (codev(e.subst(e0,Id(E)),rhoNew,sdAct) ++ List(TLIST(A),LOADC(1),JUMP(B))  ++
+                List(SETLABEL(A),LOADC(0),SLIDE(2),SETLABEL(B)),sdAct+1,i)
         }
 				case patterns.Cons(head,tail) => {
 						val x = (counter + 1).toString
@@ -455,15 +451,16 @@ class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInferen
 	def varTest(v:Any): String = v match { 
 		case patterns.Id(x) => x
 		case Id(x) => x
-		case _ => throw new Exception("TODO" + v.toString)
+		case _ => throw new Exception("Should not happen" + v.toString)
 	}
 	def updateLoc(l:List[Any],r:HashMap[String,(VarKind.Value,Int)],i:Int)
 	:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Local,-i))
 	def updateGlob(l:List[Any],r:HashMap[String,(VarKind.Value,Int)],i:Int)
 	:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Global,i))
 
+  /* HALT is misused for runtime pattern match errors */
   def patternMatchFail(e:Expression):List[Instruction] = {
-    val str = e.toString
+    val str = e.prettyPrint
     //Console println posMap.mkString("\n")
     //Console println e
     //Console println "**************************"
