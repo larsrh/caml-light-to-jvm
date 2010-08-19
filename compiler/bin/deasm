@@ -2,11 +2,11 @@
 
 # get the place where this script is
 if [[ $0 == '/'* ]]; then
-	LOCATION="`dirname $0`"
+	LOCATION="`dirname "$0"`"
 else
-	LOCATION="`pwd`"/"`dirname $0`"
+	LOCATION="`pwd`"/"`dirname "$0"`"
 fi
 
-ASM_LOCATION="$LOCATION/../lib/asm-3.3.jar:$LOCATION/../lib/asm-util-3.3.jar"
+ASM_LOCATION="${LOCATION}/../lib/asm-3.3.jar:${LOCATION}/../lib/asm-util-3.3.jar"
 
 java -cp $ASM_LOCATION:$1 org.objectweb.asm.util.ASMifierClassVisitor "$2"

@@ -10,12 +10,12 @@ fi
 
 # get the place where this script is
 if [[ $0 == '/'* ]]; then
-	LOCATION="`dirname $0`"
+	LOCATION="`dirname "$0"`"
 else
-	LOCATION="`pwd`"/"`dirname $0`"
+	LOCATION="`pwd`"/"`dirname "$0"`"
 fi
 
 # the compiler.jar is relative to that
-COMPILER_LOCATION="$LOCATION/../dist/compiler.jar"
+COMPILER_LOCATION="${LOCATION}/../dist/compiler.jar"
 # and call it.
-$SCALA -cp $COMPILER_LOCATION entry.Entrypoint $@
+$SCALA -cp "${COMPILER_LOCATION}" entry.Entrypoint $@
