@@ -1,49 +1,42 @@
 
 package parser.ast
 
+import entry.Util._
+
 package expressions {
 
 	import patterns.Pattern
 
 	object Expression {
-		private def print(sep: String, exprs: Expression*) = exprs map prettyPrint mkString("(", ")"+sep+"(", ")")
-
-		private val uncons: Expression => List[Expression] = {
-			case Cons(head, tail) => head :: uncons(tail)
-			case Nil => List()
-			case rest => List(rest)
-		}
+		import PrettyPrinter._
 
 		val prettyPrint: Expression => String = {
 			case Id(name) => name
 			case Const(value) => value.toString
-			case IfThenElse(c, t, f) => "if (%s) then (%s) else (%s)".format(prettyPrint(c), prettyPrint(t), prettyPrint(f))
-			case Let(p, d, b) => "let %s = (%d) in (%b)".format(p, prettyPrint(d), prettyPrint(b))
+			case IfThenElse(c, t, f) => "if (%s) then (%s) else (%s)".format(c.pp, t.pp, f.pp)
+			case Let(p, d, b) => "let %s = (%d) in (%b)".format(p, d.pp, b.pp)
 			case LetRec(b, defs @ _*) =>
-				defs map { d => "%s = (%s)".format(d._1.name, prettyPrint(d._2)) } mkString("let rec ", "and", " in " + prettyPrint(b))
-			case UnOp(op, e) => "%s(%s)".format(op, prettyPrint(e))
+				defs map { d => "%s = (%s)".format(d._1.name, d._2.pp) } mkString("let rec ", "and", " in " + b.pp)
+			case UnOp(op, e) => "%s(%s)".format(op, e.pp)
 			case BinOp(op, e1, e2) => print(op.toString, e1, e2)
-			case App(func, args @ _*) => "(%s) %s".format(prettyPrint(func), print(" ", args: _*))
-			case e: Cons => "[%s]" format print(";", uncons(e): _*)
+			case App(func, args @ _*) => "(%s) %s".format(func.pp, print(" ", args: _*))
+			case e: ListExpression => "[%s]" format print(";", e: _*)
 			case Tuple(exprs @ _*) => "(%s)" format print(",", exprs: _*)
-			case TupleElem(tuple, nr) => "%s @ %d".format(prettyPrint(tuple), nr)
-			case Record(defs @ _*) => defs map { d => "%s: %s".format(d._1, prettyPrint(d._2)) } mkString ("{", ";", "}")
-			case Field(rec, name) => "(%s).%s".format(prettyPrint(rec), name)
+			case TupleElem(tuple, nr) => "%s @ %d".format(tuple.pp, nr)
+			case Record(defs @ _*) => defs map { d => "%s: %s".format(d._1, d._2.pp) } mkString ("{", ";", "}")
+			case Field(rec, name) => "(%s).%s".format(rec.pp, name)
 			case Match(scrutinee, clauses @ _*) =>
-				clauses map { c => "%s -> (%s)".format(c._1, prettyPrint(c._2)) } mkString("match (%s) with " format (prettyPrint(scrutinee)), " | ", "")
-			case Lambda(body, pats @ _*) => "fun %s -> (%s)".format(pats mkString " ", prettyPrint(body))
+				clauses map { c => "%s -> (%s)".format(c._1, c._2.pp) } mkString("match (%s) with " format (scrutinee.pp), " | ", "")
+			case Lambda(body, pats @ _*) => "fun %s -> (%s)".format(pats mkString " ", body.pp)
 			case expr => expr.toString
 		}
 
-        def fromSeq(list: List[Expression]): ListExpression = list match {
-			case List() => Nil
-			case head :: tail => Cons(head, fromSeq(tail))
-		}
+		val fromSeq = entry.Util.fromSeq(Nil, Cons.apply _)
 
 	}
 
-	sealed trait Expression {
-		def prettyPrint = Expression prettyPrint this
+	sealed trait Expression extends PrettyPrintable {
+		override def prettyPrint = Expression prettyPrint this
 
 		def subst(e:Expression,res:Expression):Expression = {
 			if(this == e) res else this match {
@@ -80,9 +73,9 @@ package expressions {
 	final case class BinOp(op: BinaryOperator.Value, expr1: Expression, expr2: Expression) extends Expression
 	final case class UnOp(op: UnaryOperator.Value, expr: Expression) extends Expression
 	final case class App(func: Expression, param: Expression*) extends Expression
-	sealed trait ListExpression extends Expression
-	final case class Cons(head: Expression, tail: Expression) extends ListExpression
-	case object Nil extends ListExpression
+	sealed trait ListExpression extends Expression with SList[Expression, ListExpression]
+	final case class Cons(override val head: Expression, override val tail: Expression) extends ListExpression with SCons[Expression, ListExpression]
+	case object Nil extends ListExpression with SNil[Expression, ListExpression]
 	final case class Tuple(exprs: Expression*) extends Expression
 	final case class TupleElem(tuple: Expression, nr: Int) extends Expression
 	final case class Record(defs: (Id, Expression)*) extends Expression
@@ -190,25 +183,49 @@ package types {
 package patterns {
 
 	object Pattern {
-		def fromSeq(list: List[Pattern]): ListPattern = list match {
-			case List() => Nil
-			case head :: tail => Cons(head, fromSeq(tail))
+		import PrettyPrinter._
+
+		private implicit def uncons(expr: Pattern): List[Pattern] = expr match {
+			case Cons(head, tail) => head :: uncons(tail)
+			case Nil => List()
+			case rest => List(rest)
 		}
+
+		val prettyPrint: Pattern => String = {
+			case Id(name) => name
+			case Const(value) => value.toString
+			case Underscore => "_"
+			case Record(pats @ _*) => pats map { p => "%s: %s".format(p._1, p._2.pp) } mkString ("{", ";", "}")
+			case e: ListPattern => "[%s]" format print(";", e: _*)
+			case Alternative(pat1, pat2) => "(%s) | (%s)".format(pat1.pp, pat2.pp)
+			case Tuple(pats @ _*) => "(%s)" format print(",", pats: _*)
+			case pat => pat.toString
+		}
+
+		val fromSeq = entry.Util.fromSeq(Nil, Cons.apply _)
+
 	}
 
-	sealed trait Pattern
+	sealed trait Pattern extends PrettyPrintable {
+		override def prettyPrint = Pattern prettyPrint this
+	}
+
 	final case class Id(name: String) extends Pattern
-	sealed trait Const extends Pattern
-	final case class Integer(value: Int) extends Const
-	final case class Bool(value: Boolean) extends Const
-	final case class Character(value: Char) extends Const
+	sealed trait Const[T] extends Pattern { val value: T }
+	final case class Integer(override val value: Int) extends Const[Int]
+	final case class Bool(override val value: Boolean) extends Const[Boolean]
+	final case class Character(override val value: Char) extends Const[Char]
 	case object Underscore extends Pattern
 	final case class Record(patterns: (Id, Pattern)*) extends Pattern
-	sealed trait ListPattern extends Pattern
-	case object Nil extends ListPattern
-	final case class Cons(head: Pattern, tail: Pattern) extends ListPattern
+	sealed trait ListPattern extends Pattern with SList[Pattern, ListPattern]
+	case object Nil extends ListPattern with SNil[Pattern, ListPattern]
+	final case class Cons(override val head: Pattern, override val tail: Pattern) extends ListPattern with SCons[Pattern, ListPattern]
 	final case class Alternative(pat1: Pattern, pat2: Pattern) extends Pattern
 	final case class Tuple(patterns: Pattern*) extends Pattern
+
+	object Const {
+		def unapply[T](c: Const[T]) = Some(c.value)
+	}
 
 }
 
