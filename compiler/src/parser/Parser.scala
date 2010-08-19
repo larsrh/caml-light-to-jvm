@@ -177,7 +177,10 @@ object Parser {
 		catch {
 			case ex: MissingErrorRecoveryException =>
 				throw new ParserException(Position.fromScanner(scanner), ex)
-			case ex: IllegalArgumentException => // most probably from scanner
+			case ex: Exception
+				// sry, but this is the only way to reliably determine that
+				// the exception has been thrown by the scanner
+				if ex.getStackTrace()(0).getClassName == classOf[CamlLightScanner].getName =>
 				throw new ScannerException(Position.fromScanner(scanner), ex)
 		}
 	}
