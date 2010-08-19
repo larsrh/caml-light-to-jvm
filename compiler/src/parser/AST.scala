@@ -30,7 +30,7 @@ package expressions {
 			case Record(defs @ _*) => defs map { d => "%s: %s".format(d._1, prettyPrint(d._2)) } mkString ("{", ";", "}")
 			case Field(rec, name) => "(%s).%s".format(prettyPrint(rec), name)
 			case Match(scrutinee, clauses @ _*) =>
-				clauses map { c => "%s -> (%s)".format(c._1, prettyPrint(c._2)) } mkString("match (%s) with " format scrutinee, " | ", "")
+				clauses map { c => "%s -> (%s)".format(c._1, prettyPrint(c._2)) } mkString("match (%s) with " format (prettyPrint(scrutinee)), " | ", "")
 			case Lambda(body, pats @ _*) => "fun %s -> (%s)".format(pats mkString " ", prettyPrint(body))
 			case expr => expr.toString
 		}
