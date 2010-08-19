@@ -181,17 +181,13 @@ class BytecodeGenerator(mv: MethodVisitor, labels: HashMap[LABEL,Label],
 		case LE => pushMachine invokevirtual("le", "()V")
 		case NOT => pushMachine invokevirtual("not", "()V")
 		case NEG => pushMachine invokevirtual("neg", "()V")
-		case COPYGLOB => pushMachine invokevirtual("copyglob", "()V")
 		case DIV => pushMachine invokevirtual("div", "()V")
 		case GEQ => pushMachine invokevirtual("geq", "()V")
-		case GETVEC(k) => pushMachine pushInt k invokevirtual("getvec", "(I)V")
 		case GR => pushMachine invokevirtual("gr", "()V")
 		case LABEL(name) => // LABELs don't get compiled to anything
 		case LEQ => pushMachine invokevirtual("leq", "()V")
 		case NEQ => pushMachine invokevirtual("neq", "()V")
 		case OR => pushMachine invokevirtual("or", "()V")
-		case POPENV => pushMachine invokevirtual("popenv", "()V") jumpTo
-		case WRAP(LABEL(l)) => pushMachine pushInt l invokevirtual("wrap", "(I)V")
 	}
 }
 

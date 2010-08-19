@@ -49,13 +49,10 @@ object Entrypoint {
 		val config = new TypedMap[Key]
 		val outputFile = Key[String]
 		val inputFile = Key[String]
-		val unChecked = Key[Boolean]
 
 		val parser = new OptionParser("compiler") {
 			opt("o", "output", "the output file, default to a.jar",
 				{v: String => config.update(outputFile, v)})
-			booleanOpt("t", "typecheck", "whether to activate type checking (default true)",
-				{v: Boolean => config.update(unChecked, v)})
 			arg("file", "CamlLight source code",
 				{v: String => config.update(inputFile, v)})
 		}
@@ -73,11 +70,6 @@ object Entrypoint {
 						error("Input file not given")
 						return
 				}
-			}
-
-			val typeCheck = config.get(unChecked) match {
-				case Some(value) => value
-				case None => false
 			}
 
 			try {

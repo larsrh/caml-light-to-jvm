@@ -73,16 +73,13 @@ package mamaInstructions {
 	final case class ALLOC(value:Int) extends Instruction("alloc " + value)
 	case object AND extends Instruction("and")
 	case object APPLY extends Instruction("apply")
-	// case object APPLY0 extends Instruction("apply0")
 	case object CONS extends Instruction("cons")
-	case object COPYGLOB extends Instruction("copyglob")	
 	case object DIV extends Instruction("div")
 	case object EQ extends Instruction("eq")
 	final case class EVAL(label:LABEL) extends Instruction("eval")
 	case object GEQ extends Instruction("geq")
 	final case class GET(offset:Int) extends Instruction("get " + offset)
 	case object GETBASIC extends Instruction("getbasic")
-	final case class GETVEC(locvars:Int) extends Instruction("getvec" + locvars)
 	case object GR extends Instruction("gr")
 	case object HALT extends Instruction("halt")
 	final case class JUMP(target:LABEL) extends Instruction("jump " + target)
@@ -91,12 +88,10 @@ package mamaInstructions {
 	case object LEQ extends Instruction("leq")
 	final case class LOADC(value:Int) extends Instruction("loadc " + value)
 	final case class MARK(ret:LABEL) extends Instruction("mark " + ret)
-	// case object MARK0 extends Instruction("mark0")
 	case object MKBASIC extends Instruction("mkbasic")
 	final case class MKCLOS(target:LABEL) extends Instruction("mkclos " + target)
 	final case class MKFUNVAL(target:LABEL) extends Instruction("mkfunval " + target)
 	final case class MKVEC(length:Int) extends Instruction("mkvec " + length)
-	// case object MKVEC0 extends Instruction("mkvec0")
 	case object MUL extends Instruction("mul")
 	case object NEG extends Instruction("neg")
 	case object NEQ extends Instruction("neq")
@@ -104,7 +99,6 @@ package mamaInstructions {
 	case object NOT extends Instruction("not")
 	case object OR extends Instruction("or")
 	case object POP extends Instruction("pop")
-	case object POPENV extends Instruction("popenv")
 	final case class PUSHGLOB(value:Int) extends Instruction("pushglob " + value)
 	final case class PUSHLOC(value:Int) extends Instruction("pushloc " + value)
 	final case class RETURN(drop:Int) extends Instruction("return " + drop)
@@ -114,7 +108,6 @@ package mamaInstructions {
 	final case class TARG(drop:Int, label:LABEL) extends Instruction("targ " + drop)
 	final case class TLIST(target:LABEL) extends Instruction("tlist " + target)
 	case object UPDATE extends Instruction("update")
-	final case class WRAP(label:LABEL) extends Instruction("wrap")
 }
 
 class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInference.Env) {
@@ -478,7 +471,7 @@ class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInferen
       case Some(parser.Position(x,y,_)) => (x,y)
       case None => (0,0)
     }
-    val strAsInstrList = ListExpression.fromSeq(str.map(Character.apply _).toList)
+    val strAsInstrList = Expression.fromSeq(str.map(Character(_)).toList)
 
     def codelist(x:Expression):List[Instruction] = x match {
       case Nil => List(NIL)

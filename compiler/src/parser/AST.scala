@@ -5,7 +5,46 @@ package expressions {
 
 	import patterns.Pattern
 
+	object Expression {
+		private def print(sep: String, exprs: Expression*) = exprs map prettyPrint mkString("(", ")"+sep+"(", ")")
+
+		private val uncons: Expression => List[Expression] = {
+			case Cons(head, tail) => head :: uncons(tail)
+			case Nil => List()
+			case rest => List(rest)
+		}
+
+		val prettyPrint: Expression => String = {
+			case Id(name) => name
+			case Const(value) => value.toString
+			case IfThenElse(c, t, f) => "if (%s) then (%s) else (%s)".format(prettyPrint(c), prettyPrint(t), prettyPrint(f))
+			case Let(p, d, b) => "let %s = (%d) in (%b)".format(p, prettyPrint(d), prettyPrint(b))
+			case LetRec(b, defs @ _*) =>
+				defs map { d => "%s = (%s)".format(d._1.name, prettyPrint(d._2)) } mkString("let rec ", "and", " in " + prettyPrint(b))
+			case UnOp(op, e) => "%s(%s)".format(op, prettyPrint(e))
+			case BinOp(op, e1, e2) => print(op.toString, e1, e2)
+			case App(func, args @ _*) => "(%s) %s".format(prettyPrint(func), print(" ", args: _*))
+			case e: Cons => "[%s]" format print(";", uncons(e): _*)
+			case Tuple(exprs @ _*) => "(%s)" format print(",", exprs: _*)
+			case TupleElem(tuple, nr) => "%s @ %d".format(prettyPrint(tuple), nr)
+			case Record(defs @ _*) => defs map { d => "%s: %s".format(d._1, prettyPrint(d._2)) } mkString ("{", ";", "}")
+			case Field(rec, name) => "(%s).%s".format(prettyPrint(rec), name)
+			case Match(scrutinee, clauses @ _*) =>
+				clauses map { c => "%s -> (%s)".format(c._1, prettyPrint(c._2)) } mkString("match (%s) with " format scrutinee, " | ", "")
+			case Lambda(body, pats @ _*) => "fun %s -> (%s)".format(pats mkString " ", prettyPrint(body))
+			case expr => expr.toString
+		}
+
+        def fromSeq(list: List[Expression]): ListExpression = list match {
+			case List() => Nil
+			case head :: tail => Cons(head, fromSeq(tail))
+		}
+
+	}
+
 	sealed trait Expression {
+		def prettyPrint = Expression prettyPrint this
+
 		def subst(e:Expression,res:Expression):Expression = {
 			if(this == e) res else this match {
 				case Sequence(e1,e2) => Sequence(e1.subst(e,res),e2.subst(e,res))
@@ -28,11 +67,12 @@ package expressions {
 			}
 		}
 	}
+	
 	final case class Id(name: String) extends Expression
-	sealed trait Const extends Expression
-	final case class Integer(value: Int) extends Const
-	final case class Bool(value: Boolean) extends Const
-	final case class Character(value: Char) extends Const
+	sealed trait Const[T] extends Expression { val value: T }
+	final case class Integer(override val value: Int) extends Const[Int]
+	final case class Bool(override val value: Boolean) extends Const[Boolean]
+	final case class Character(override val value: Char) extends Const[Char]
 	final case class Sequence(expr1: Expression, expr2: Expression) extends Expression
 	final case class IfThenElse(cond: Expression, ifTrue: Expression, ifFalse: Expression) extends Expression
 	final case class Let(pattern: Pattern, definition: Expression, body: Expression) extends Expression
@@ -50,27 +90,32 @@ package expressions {
 	final case class Match(scrutinee: Expression, clauses: (Pattern, Expression)*) extends Expression
 	final case class Lambda(body: Expression, arguments: Pattern*) extends Expression
 
-	object ListExpression {
-
-		def fromSeq(list: List[Expression]): ListExpression = list match {
-			case List() => Nil
-			case head :: tail => Cons(head, fromSeq(tail))
-		}
-
+	object Const {
+		def unapply[T](c: Const[T]) = Some(c.value)
 	}
 
-	sealed trait Operator extends Enumeration
+	sealed trait Operator extends Enumeration {
+		protected[this] def op(symbol: String) = Value(symbol)
+	}
 	
 	object UnaryOperator extends Operator {
-		type UnaryOperator = Value
-		val neg, not = Value
+		val neg = op("-")
+		val not = op("not")
 	}
 	
 	object BinaryOperator extends Operator {
-		type BinaryOperator = Value
-		val add, sub, mul, div,
-		eq, neq, geq, leq, gr, le,
-		and, or = Value
+		val add = op("+")
+		val sub = op("-")
+		val mul = op("*")
+		val div = op("/")
+		val eq = op("==")
+		val neq = op("<>")
+		val geq = op(">=")
+		val leq = op("<=")
+		val gr = op(">")
+		val le = op("<")
+		val and = op("&")
+		val or = op("or")
 	}
 }
 
@@ -144,6 +189,13 @@ package types {
 
 package patterns {
 
+	object Pattern {
+		def fromSeq(list: List[Pattern]): ListPattern = list match {
+			case List() => Nil
+			case head :: tail => Cons(head, fromSeq(tail))
+		}
+	}
+
 	sealed trait Pattern
 	final case class Id(name: String) extends Pattern
 	sealed trait Const extends Pattern
@@ -157,15 +209,6 @@ package patterns {
 	final case class Cons(head: Pattern, tail: Pattern) extends ListPattern
 	final case class Alternative(pat1: Pattern, pat2: Pattern) extends Pattern
 	final case class Tuple(patterns: Pattern*) extends Pattern
-
-	object ListPattern {
-
-		def fromSeq(list: List[Pattern]): ListPattern = list match {
-			case List() => Nil
-			case head :: tail => Cons(head, fromSeq(tail))
-		}
-
-	}
 
 }
 
