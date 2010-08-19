@@ -133,7 +133,7 @@ object Parser {
 				val available = candidates map { name => loadParserFromFile(name, false) }
 				available.find(None !=) match {
 					case None =>
-						println("Notice: Regenerating parser from source")
+						//println("Notice: Regenerating parser from source")
 						new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
 					case Some(p) => p.get
 				}
