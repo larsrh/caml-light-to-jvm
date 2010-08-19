@@ -19,4 +19,5 @@ nblibraries-private.properties
 *.nav
 *.out
 *.fdb_latexmk
+*.z[io]
 slides.pdf
