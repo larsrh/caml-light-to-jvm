@@ -61,13 +61,10 @@ object Entrypoint {
 			val jarFile = config.get(outputFile) map (_ + ".jar") getOrElse "a.jar"
 
 			try {
-				(config.get(inputFile) match {
-					case f @ Some(filename) => f
-					case _ =>
-						// as if that would ever happen...
-						error("Input file not given")
-						None
-				}) flatMap { camlSourceFile =>
+				config get inputFile orElse {
+					error("Input file not given")
+					None
+				} flatMap { camlSourceFile =>
 					try {
 						Some(Source.fromFile(camlSourceFile).mkString)
 					}
