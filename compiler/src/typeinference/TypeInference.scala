@@ -375,7 +375,6 @@ object TypeInference {
 	(TypeChar(), fresh1, (e,(typeExpr,TypeChar()))::constraints,gamma)
 	    
       case e@expressions.Match(scrut, clauses@_*) =>
-	// TODO: check if clauses are non-empty
 	// all clauses must match the same type
 	val (scrutType, fresh1, constraints,_) = constraintGen(gamma, scrut, fresh)
 	val (fresh2, scrutType1,typeExpr,cs) = checkClauses(e, gamma, scrutType,
@@ -390,10 +389,15 @@ object TypeInference {
   }
 
   /**
+   * Generates new type variables for each right hand side in a let-rec
+   * expression and then tries to find out the types of each right hand
+   * expression, which then are put into the type environment.
    *
+   * The new type environment togehter with the fresh variable are returned.
    */
   def handleLetRecExpressions(gamma: Env, fresh: Int,
-			      bodies: List[(patterns.Id, expressions.Expression)]): (Env,Int)= {
+			      bodies: List[(patterns.Id, expressions.Expression)]):
+  (Env,Int)= {
     var currFresh = fresh
     var currGamma = gamma
     // generate new type variables for each expression on the right hand side
@@ -465,7 +469,8 @@ object TypeInference {
   }
 
   /**
-   * Returns the types that appear within a tuple
+   * Returns the types that appear within a tuple together with the
+   * generated constraints.
    */
   def getTupleTypes(exprs: List[expressions.Expression],
 		    gamma: Env, fresh: Int):
@@ -611,7 +616,7 @@ object TypeInference {
 	      }
 	      (gamma,currFresh,constraints)
 	    }
-	  case _ => throw TypeError("Match failed TODO")
+	  case _ => throw TypeError("ERROR: Tuple pattern match failed in pattern: " + tup)
 	}
       case rec@patterns.Record(defs@_*) =>
 	var constraints: List[(TypeExpression,TypeExpression)] = List()
@@ -632,7 +637,7 @@ object TypeInference {
 	    }
 	    println(currGamma)
 	    (currGamma,currFresh,constraints)
-	  case _ => throw TypeError("Match failed TODO")
+	  case _ => throw TypeError("ERROR: Record pattern match failed in pattern: " + rec)
 	}
       case cons@patterns.Cons(head, tail) =>
 	typeExpr match {
@@ -640,9 +645,9 @@ object TypeInference {
 	    val (env1, fresh1,constraints1) = putPatternIntoEnv(env, head, a, fresh)
 	    val (env2,fresh2,constraints2) = putPatternIntoEnv(env1, tail, TypeList(a), fresh1)
 	    (env2,fresh2,constraints1 ++ constraints2)
-	  case _ => throw TypeError("List Pattern match failed TODO")
+	  case _ => throw TypeError("ERROR: List pattern match failed in pattern: " + cons)
 	}
-      case _ => throw TypeError("Unknown pattern TODO")
+      case p => throw TypeError("ERROR: Unknown pattern: " + p)
     }
   }
 
@@ -653,7 +658,6 @@ object TypeInference {
   def getPatternType(pattern: patterns.Pattern, fresh: Int): (TypeExpression,Int) = {
     pattern match {
       case patterns.Id(x) =>
-	// TODO: if x is already in type environment: overwrite (we may not forget to restore it afterwards!)
 	(TypeVariable(fresh),fresh+1)
       case patterns.Underscore =>
 	(TypeVariable(fresh),fresh+1)
