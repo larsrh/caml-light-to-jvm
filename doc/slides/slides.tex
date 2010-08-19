@@ -5,22 +5,25 @@
 \documentclass[hyperref={pdfpagelabels=false}]{beamer}
 %\documentclass{beamer}
 \usepackage[T1]{fontenc}
+\usepackage{minted}
 \usepackage[utf8]{inputenc}
 \usepackage[ngerman]{babel}
 \usepackage[autostyle]{csquotes}
 \usepackage{wasysym}
 \usepackage{lmodern}
-\usepackage{units}
 \mode<presentation>{\usetheme{Copenhagen}}
 \title{A Caml Light Compiler for the JVM}
 \author[Hupel, Kubica, Schulze Frielinghaus, Müller, Traytel]{Lars Hupel, Marek Kubica, Stefan Schulze Frielinghaus, \\Edgar Müller, Dmitriy Traytel}
 \institute{TU~München}
 \date{20.~August~2010}
 
+%% get rid of navigation symbols
+%\setbeamertemplate{navigation symbols}{}
 \beamertemplatenavigationsymbolsempty
 
 \definecolor{slowest}{RGB}{255, 0, 0}
 \definecolor{fastest}{RGB}{0, 255, 0}
+\usemintedstyle{trac}
 
 \begin{document}
 
@@ -33,13 +36,13 @@
   \begin{block}{Technisches}
     \begin{itemize}
       \item JFlex
-      \item Kommentare: (* foo (* bar *) baz *)
+      \item Comments: (* foo (* bar *) baz *)
       \item Identifier: foo\_bar\_42
-      \item Integer-Literale: -0x42 ; 0b101010 ; 0o52
-      \item Floating-point-Literale: nicht existent
-      \item Character-Literale: 'a' ; '\textbackslash 042'
-      \item String-Literale: "foo" ; "bar \textbackslash 023"
-      \item Keywords: einige...
+      \item Integer literals: -0x42 ; 0b101010 ; 0o52
+      \item Floating-point literals are missing
+      \item Character literals: 'a' ; '\textbackslash 042'
+      \item String literals: "foo" ; "bar \textbackslash 023"
+      \item Keywords: some
     \end{itemize}
   \end{block}
 \end{frame}
@@ -47,15 +50,64 @@
 \begin{frame}{Parser}
   \begin{block}{Technisches}
     \begin{itemize}
-      \item CUP2 + Scala-Layer
+      \item CUP2
       \item CamlLight"=Syntax
-      \item pro Reduce-Schritt werden die Zeilen- und Spaltennummern hinterlegt
-      \item Post-processing: Normalisierung
     \end{itemize}
   \end{block}
 \end{frame}
 
 \begin{frame}{Typinferenz}
+  \begin{block}{Constraint based typing nach Hindley-Milner}
+    \begin{itemize}
+      \item ca. 700 LOC, $\approx$ 50 Tests
+      \item Lambda-Kalk\"ul + \texttt{let}-Ausdr\"ucke: easy :)
+      \item Unterst\"utzung von \texttt{match}, \texttt{let rec}, Records, Record-Zugriff, Tupel, Tupel-Zugriff, bin\"are/un\"are Operatoren, if-then-else
+      \item Pattern-Matching f\"ur 
+        \begin{itemize}
+	  \item Literale
+	  \item Underscore
+	  \item Listen (Cons, Nil)
+	  \item Tupel
+	  \item Records
+        \end{itemize}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Typinferenz}
+  \begin{block}{Beispiel: Record-Pattern-Match}
+      \begin{minted}[gobble=12]{ocaml}
+            let { foo = (_,(x,y)); bar = z::zs } =
+                { foo = ('a',(1,2::[])); bar = [true;false;true] }
+             in (x + (hd y) == 3) == z
+      \end{minted}
+  \end{block}
+  \begin{block}{Beispiel: sum}
+      \begin{minted}[gobble=12,mathescape=true]{ocaml}
+            let rec foldr = fun
+               f acc []    -> acc
+            $|$  f acc x::xs -> f x (foldr f acc xs);;
+            let rec add = fun x y -> x + y;;
+            let xs = [1;2;3] in foldr add 0 xs
+      \end{minted}
+  \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Typinferenz}
+  \begin{block}{Weiteres Beispiel}
+      \begin{minted}[gobble=12]{ocaml}
+            let x = 3 in let y = 4 in (x,y) + 5
+      \end{minted}
+  \end{block}
+  \begin{alertblock}{Fehlermeldungen}
+  \begin{verbatim}
+Type checking failed
+ERROR: Couldn't unify types: 
+   TypeTuple(List(TypeInt(), TypeInt()))
+   TypeInt() in expression: 
+(((x),(y)))+(5)
+  \end{verbatim}
+  \end{alertblock}
 \end{frame}
 
 \begin{frame}{Codegenerierung: MaMa}
@@ -143,15 +195,6 @@
   \end{alertblock}
 \end{frame}
 
-\begin{frame}{Testing}
-  \begin{itemize}
-    \item eigene Testing-Umgebung, ähnlich zu ScalaTest
-    \item $\approx 50$ Testcases für Scanner/Parser
-    \item $\approx 50$ Testcases für Typinferenz
-    \item $\approx 150$ Zeilen CamlLight-Programme
-  \end{itemize}
-\end{frame}
-
 \begin{frame}{Benchmarks}
   \begin{block}{Ackermann(3, 5)}
     Zweifaches Pattern Matching
@@ -159,8 +202,8 @@
     \begin{tabular}{l|l|l|l}
        & Caml Light & Scala & TUM \\
       \hline
-      Kompilieren & \textcolor{fastest}{\unit[0.0]{s}} & \textcolor{slowest}{\unit[9.3]{s}} & \unit[4.1]{s} \\
-      Ausführen & \textcolor{fastest}{\unit[0.00]{s}} & \unit[1.03]{s} & \textcolor{slowest}{\unit[1.69]{s}} \\
+      Kompilieren & \textcolor{fastest}{$0.0s$} & \textcolor{slowest}{$9.3s$} & $4.1s$ \\
+      Ausführen & \textcolor{fastest}{$0,00s$} & $1.03s$ & \textcolor{slowest}{$1.69s$} \\
     \end{tabular}
   \end{block}
   \begin{block}{Factorial(10)}
@@ -169,8 +212,8 @@
     \begin{tabular}{l|l|l|l}
        & Caml Light & Scala & TUM \\
       \hline
-      Kompilieren & \textcolor{fastest}{\unit[0.0]{s}} & \textcolor{slowest}{\unit[9.1]{s}} & \unit[3.9]{s} \\
-      Ausführen & \textcolor{fastest}{\unit[0.00]{s}} & \textcolor{slowest}{\unit[0.98]{s}} & \unit[0.13]{s} \\
+      Kompilieren & \textcolor{fastest}{$0.0s$} & \textcolor{slowest}{$9.1s$} & $3.9s$ \\
+      Ausführen & \textcolor{fastest}{$0.00s$} & \textcolor{slowest}{$0.98s$} & $0.13s$ \\
     \end{tabular}
   \end{block}
   System: Core2~Duo @ 1.5~GHz x86\_64; OpenJDK~1.6.0\_18; Scala~2.8.0; Caml Light~0.75
@@ -178,23 +221,24 @@
 
 \begin{frame}{Spaß}
   \begin{block}{Code}
-    $\approx 3.300$ LOC Scala, $\approx 650$ LOC Java, $> 325$ commits
+    $\approx 3.300$ LOC Scala, $\approx 650$ LOC Java, $> 250$ Commits
   \end{block}
-  \begin{block}{Best of Commit"=Messages}\footnotesize
+  \begin{block}{Best of Commit"=Messages}
     \begin{itemize}
-      %\item \enquote{Write the bytes in, you know, a correct way}
+      % TODO: select best
+      \item \enquote{Write the bytes in, you know, a correct way}
       \item \enquote{Whee, the machine can actually run more complicated code without failing}
-      %\item \enquote{Look at me mom, I made a jQuery"=like chainable DSL for generating bytecode}
-      %\item \enquote{Maching of tuples works but is REALLY ugly}
-      %\item \enquote{fixed REALLY stupid bug with CUP2/Scala layer}
+      \item \enquote{Look at me mom, I made a jQuery"=like chainable DSL for generating bytecode}
+      \item \enquote{Maching of tuples works but is REALLY ugly}
+      \item \enquote{fixed REALLY stupid bug with CUP2/Scala layer}
       \item \enquote{Get out of the JAR, *.mama. You're not even bytecode!}
       \item \enquote{Case classes should not inherit other case classes, you know? We have so much syntactic sugar, use that instead!}
       \item \enquote{Hey ., you should really consider matching newlines, too!}
-      %\item \enquote{fixed \enquote{closures vs getbasic}}
-      %\item \enquote{Changed order of generated code instruction so that the code is actually valid}
+      \item \enquote{fixed \enquote{closures vs getbasic}}
+      \item \enquote{Changed order of generated code instruction so that the code is actually valid}
       \item \enquote{Scala supports some mad syntactic sugar. Mad! I tell you.}
       \item \enquote{Marek goes insane and after that, realizes that bipush handles only +127 and then wraps around.}
-      %\item \enquote{I can haz right order of valyooz?}
+      \item \enquote{I can haz right order of valyooz?}
       \item \enquote{I heard you want to know where exactly the typo in your souce code is. Here you are!}
     \end{itemize}
   \end{block}
