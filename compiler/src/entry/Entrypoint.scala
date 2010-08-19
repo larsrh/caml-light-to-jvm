@@ -82,10 +82,9 @@ object Entrypoint {
 
 			try {
 				val content = Source.fromFile(camlSourceFile).mkString("")
-				val exp = Parser.parse(content)._1
-				if (typeCheck)
-					TypeInference.typeCheck(TypeInference.emptyEnv, exp)
-				val mama = Translator.codeb(exp, HashMap.empty, 0)
+				val prog = Parser.parse(content)
+				val gamma = TypeInference.typeCheck2(TypeInference.emptyEnv, prog.expr) _2
+				val mama = (new Translator(prog.positions,gamma)).codeb(prog.expr, HashMap.empty, 0)
 				genByteCode(mama, jarFile)
 			} catch {
 				case ex: FileNotFoundException => {

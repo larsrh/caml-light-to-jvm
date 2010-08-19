@@ -49,6 +49,7 @@ import parser.ast.expressions._
 import mamaInstructions._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.LinkedHashSet
+import parser.Position
 
 package mamaInstructions {
 
@@ -115,9 +116,7 @@ package mamaInstructions {
 	final case class WRAP(label:LABEL) extends Instruction("wrap")
 }
 
-object Translator {
-
-  var gamma:typeinference.TypeInference.Env = typeinference.TypeInference.emptyEnv
+class Translator(posMap:Map[Expression,parser.Position],gamma:typeinference.TypeInference.Env) {
 	
 	object VarKind extends Enumeration {
 		type VarKind = Value
@@ -426,6 +425,10 @@ object Translator {
 
   def patternMatchFail(e:Expression):List[Instruction] = {
     val str = e.toString
+    val (row,col) = posMap.get(e) match {
+      case Some(parser.Position(x,y,_)) => (x,y)
+      case None => (0,0)
+    }
     val strAsInstrList = ListExpression.fromSeq(str.map(Character.apply _).toList)
 
     def codelist(x:Expression):List[Instruction] = x match {
@@ -434,7 +437,7 @@ object Translator {
       case _ => throw new Exception("Should not happen ;-)")
     }
 
-    codelist(strAsInstrList) :+ HALT
+    codelist(strAsInstrList) ++ List(LOADC(col), LOADC(row), HALT)
   }
 			
 	/******************************************************************************/
@@ -592,7 +595,8 @@ object CodeGen {
 		val list = List(e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12,e13,e14,e15,e16,e17)
 
 		def out(e:Expression):Unit = {
-			val is = Translator.codeb(e,HashMap.empty,0)
+			val is =
+        (new Translator(Map.empty,typeinference.TypeInference.emptyEnv)).codeb(e,HashMap.empty,0)
 			val out = new java.io.FileWriter("e" + (list indexOf e).toString + ".mama")
 			is map ((i:Instruction) => out write (i.toString))
 			out close

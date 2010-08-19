@@ -23,14 +23,14 @@ object Test {
 		
 		val inputs = Source.fromFile("test/bigbang/test").getLines()
 		
-		def parseExp(input:String):Expression = 
-			Parser.parse(input)._1
+		def parseExp(input:String):Parser.Program =
+			Parser.parse(input)
 		
 		def typeCheck(e:Expression):TypeInference.Env =
       TypeInference.typeCheck2(TypeInference.emptyEnv, e) _2
 		
-		def genMaMaCode(e:Expression):List[Instruction] =
-			Translator.codeb(e,HashMap.empty,0)
+		def genMaMaCode(prog:Parser.Program, gamma:TypeInference.Env):List[Instruction] =
+			(new Translator(prog.positions,gamma)).codeb(prog.expr,HashMap.empty,0)
 		
 		def genByteCode(l: List[Instruction], filename:String):Unit = {
 			val jar = new Assembly(filename)
@@ -47,11 +47,10 @@ object Test {
 		}
 		
 		inputs foreach { x => 
-			val exp = parseExp(Source.fromFile("test/bigbang/" + x + ".cl").mkString(""));
+			val prog = parseExp(Source.fromFile("test/bigbang/" + x + ".cl").mkString(""));
 			//Console println "***************************"
 			//Console println exp
-			Translator.gamma = typeCheck(exp)
-			val mamaCode = genMaMaCode(exp)
+			val mamaCode = genMaMaCode(prog,typeCheck(prog.expr))
 			output(mamaCode, x)
 			genByteCode(mamaCode, "test/bigbang/" + x + ".jar")
 		}

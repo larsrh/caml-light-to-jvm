@@ -357,9 +357,12 @@ public class Machine {
 	}
 
 	public void halt() {
-            List list = (List)((Ref)stack.pop()).v;
-			throw new RuntimeException("Pattern match failure in the expression\n\t" +
-                    list.fromStringList() + "\nunlucky you!");
+        int row = ((Raw)stack.pop()).v;
+        int col = ((Raw)stack.pop()).v;
+        List list = (List)((Ref)stack.pop()).v;
+
+        throw new RuntimeException("Pattern match failure in the expression\n\t" +
+             list.fromStringList() + "\n in line " + row + " and column " + col + "\nunlucky you!");
 	}
 	
 	public void le() {
