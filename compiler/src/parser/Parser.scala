@@ -48,12 +48,8 @@ object Parser {
 		def unapply(prog: Program) = Tuple2.unapply(prog)
 	}
 
-	final class Program(val expr: Expression, val typeDefs: List[TypeDefinition], _positions: mutable.Map[Expression, Position])
-		extends Program.Parent(expr, typeDefs) {
-
-		// convert to immutable Map
-		val positions = Map[Expression, Position]() ++ _positions
-	}
+	final class Program(val expr: Expression, val typeDefs: List[TypeDefinition], val positions: mutable.Map[Expression, Position])
+		extends Program.Parent(expr, typeDefs)
 
 	private def loadParserFromFile(filename: String, `throw`: Boolean = true): Option[LRParser] = {
 		try {

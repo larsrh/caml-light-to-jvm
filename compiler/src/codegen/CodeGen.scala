@@ -49,6 +49,7 @@ import parser.ast.expressions._
 import mamaInstructions._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.LinkedHashSet
+import scala.collection.mutable.Map
 import parser.Position
 
 package mamaInstructions {
@@ -116,7 +117,7 @@ package mamaInstructions {
 	final case class WRAP(label:LABEL) extends Instruction("wrap")
 }
 
-class Translator(posMap:Map[Expression,parser.Position],gamma:typeinference.TypeInference.Env) {
+class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInference.Env) {
 	
 	object VarKind extends Enumeration {
 		type VarKind = Value
@@ -227,8 +228,18 @@ class Translator(posMap:Map[Expression,parser.Position],gamma:typeinference.Type
 				counter = counter + args.size
 				val list = (1 to args.size).toList
 				val matchExpr = (list foldLeft body)
-				{ case (e,i) => Match(Id("42"+(counter + i)),(args(i-1),e)) }
+				  { case (e,i) => {
+              posMap(Match(Id("42"+(counter + i)),(args(i-1),e))) =
+                    posMap.getOrElse(expr,Position(0,0,""))
+
+              Match(Id("42"+(counter + i)),(args(i-1),e))
+            }
+          }
+
 				val newExpr = Lambda(matchExpr,(list map { (i:Int) => patterns.Id("42"+(counter + i)) }):_*)
+
+        posMap(newExpr) =
+          posMap.getOrElse(expr,Position(0,0,""))
 				
 				codev(newExpr,rho,sd)
 			}
@@ -267,16 +278,41 @@ class Translator(posMap:Map[Expression,parser.Position],gamma:typeinference.Type
 					=> {
 						val A = newLabel()
 						val B = newLabel()
-            val X = newLabel()
 					 
 						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
 						 codev(e2,rho + {h -> (VarKind.Local,sd+1)} + {t -> (VarKind.Local,sd+2)},sd+2) ++ 
 						 List(SLIDE(2),SETLABEL(B)))
-					}			
+					}
+        case Seq((patterns.Cons(patterns.Underscore,patterns.Id(t)),e2:Expression))
+					=> {
+						val A = newLabel()
+
+						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ patternMatchFail(expr)  ++
+              List(SETLABEL(A),SLIDE(1)) ++
+              codev(e2,rho + {t -> (VarKind.Local,sd+1)},sd+1) ++
+              List(SLIDE(1)))
+					}
+        case Seq((patterns.Cons(patterns.Id(h),patterns.Underscore),e2:Expression))
+					=> {
+						val A = newLabel()
+
+						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ patternMatchFail(expr)  ++
+              List(SETLABEL(A), POP) ++
+              codev(e2,rho + {h -> (VarKind.Local,sd+1)},sd+1) ++
+              List(SLIDE(1)))
+					}
+        case Seq((patterns.Nil,e1:Expression))
+					=> {
+            val A = newLabel()
+            val B = newLabel()
+
+						(codev(e0,rho,sd) ++ List(TLIST(A)) ++ codev(e1,rho,sd) ++ List(JUMP(B),SETLABEL(A)) ++
+              patternMatchFail(expr) ++ List(SETLABEL(B)))
+					}
 				case _ => {
 						val DONE = newLabel()
-            val X = newLabel();
 						val E = "42" + (counter + 1)//not a valid identifier -> no conflicts
+            posMap(Id(E)) = posMap.getOrElse(e0,Position(0,0,""))
 						counter = counter + 1
 						val rhoNew = rho + {E -> (VarKind.Local,sd+1)} // store value of e0
 							
@@ -314,15 +350,19 @@ class Translator(posMap:Map[Expression,parser.Position],gamma:typeinference.Type
 				case patterns.Tuple(ts@_*) => 
 					((1 to ts.length - 1).toList foldLeft matching(TupleElem(e.subst(e0, Id(E)),0),ts(0),sdAct,i)){
 						case ((l,sd,j),n) => {
-								val (lt,sdNew,jNew) = matching(TupleElem(e.subst(e0, Id(E)),n),ts(n),sd,j)
+              posMap(TupleElem(e.subst(e0, Id(E)),n)) =
+                    posMap.getOrElse(e,Position(0,0,""))
+              val (lt,sdNew,jNew) = matching(TupleElem(e.subst(e0, Id(E)),n),ts(n),sd,j)
 
-								(l ++ lt :+ AND,sdNew-1,jNew)
-							}
+              (l ++ lt :+ AND,sdNew-1,jNew)
+            }
 					}
 				case patterns.Record((patterns.Id(x),exp),ts@_*) => 
 					(ts.toList foldLeft matching(Field(e.subst(e0, Id(E)),Id(x)),exp,sdAct,i)){
 						case ((l,sd,j),idExp) => {
-								val (lt,sdNew,jNew) = 
+              posMap(Field(e.subst(e0, Id(E)),Id((patterns.Id unapply(idExp _1)).get))) =
+                    posMap.getOrElse(e,Position(0,0,""))
+              val (lt,sdNew,jNew) =
 									matching(Field(e.subst(e0, Id(E)),Id((patterns.Id unapply(idExp _1)).get)),idExp _2,sd,j)
 
 								(l ++ lt :+ AND,sdNew-1,jNew)
@@ -340,27 +380,33 @@ class Translator(posMap:Map[Expression,parser.Position],gamma:typeinference.Type
 					}
 					// This is UGLY
 				case patterns.Nil => {
-						val x = (counter + 1).toString
-						val y = (counter + 2).toString
-						counter = counter + 2
-						
-						(codeb(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(true)),
-												 (patterns.Cons(patterns.Id("42"+x),patterns.Id("42"+y)),Bool(false))),
-									 rhoNew,sdAct),sdAct+1,i)
-					}
+          posMap(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(true)))) =
+                  posMap.getOrElse(e0,Position(0,0,""))
+          (codeb(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(true))),
+            rhoNew,sdAct),sdAct+1,i)
+        }
 				case patterns.Cons(head,tail) => {
 						val x = (counter + 1).toString
 						val y = (counter + 2).toString
-						val z = (counter + 3).toString
-						counter = counter + 3
+						counter = counter + 2
+
+            posMap(e.subst(e0, Id(E))) = posMap.getOrElse(e0,Position(0,0,""))
+
+            posMap(Match(e.subst(e0, Id(E)),
+              (patterns.Cons(patterns.Id("42"+x),patterns.Underscore),Id("42"+x)))) =
+                    posMap.getOrElse(e0,Position(0,0,""))
+
+            posMap(Match(e.subst(e0, Id(E)),
+              (patterns.Cons(patterns.Underscore,patterns.Id("42"+y)),Id("42"+y)))) =
+                    posMap.getOrElse(e0,Position(0,0,""))
 						
 						val (l1,sdAct1,i1) = 
-							matching(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(false)),
-														 (patterns.Cons(patterns.Id("42"+x),patterns.Id("42"+z)),Id("42"+x))),
+							matching(Match(e.subst(e0, Id(E)),
+														 (patterns.Cons(patterns.Id("42"+x),patterns.Underscore),Id("42"+x))),
 											 head,sdAct,i)
 						val (l2,sdAct2,i2) = 
-							matching(Match(e.subst(e0, Id(E)),(patterns.Nil,Bool(false)),
-														 (patterns.Cons(patterns.Id("42"+z),patterns.Id("42"+y)),Id("42"+y))),
+							matching(Match(e.subst(e0, Id(E)),
+														 (patterns.Cons(patterns.Underscore,patterns.Id("42"+y)),Id("42"+y))),
 											 tail,sdAct1,i1)
 						
 							
@@ -425,6 +471,9 @@ class Translator(posMap:Map[Expression,parser.Position],gamma:typeinference.Type
 
   def patternMatchFail(e:Expression):List[Instruction] = {
     val str = e.toString
+    //Console println posMap.mkString("\n")
+    //Console println e
+    //Console println "**************************"
     val (row,col) = posMap.get(e) match {
       case Some(parser.Position(x,y,_)) => (x,y)
       case None => (0,0)

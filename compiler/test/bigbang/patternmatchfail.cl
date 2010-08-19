@@ -1,3 +1,3 @@
-let hd = fun 1 -> 42;;
+let hd = fun x::xs -> x;;
 
-hd 2
+hd []
