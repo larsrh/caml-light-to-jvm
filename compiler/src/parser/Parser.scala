@@ -18,6 +18,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.Reader
 import java.io.StringReader
+import java.io.ObjectInputStream
 
 object Position {
 	private[parser] def fromScanner(scanner: CamlLightScanner) = Position(scanner.getLine, scanner.getColumn, scanner.yytext)
@@ -125,11 +126,29 @@ object Parser {
 				loadParserFromFile(sysLocation, true).get
 			}
 			else {
-				val candidates = Stream("table.ser", "dist/table.ser", "build/table.ser")
-				val available = candidates map { name => loadParserFromFile(name, false) }
-				available.find(None !=) match {
-					case None => new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
-					case Some(p) => p.get
+				// sorry, I agree that this whole handling is totally retarded, because
+				// everything throws NullPointerExceptions everywhere
+
+				// try to load the CUP2 parser table from JAR
+				val loader = classOf[Program].getClassLoader
+				val tableStream = loader.getResourceAsStream("parser/table.ser")
+
+				if (tableStream == null) {
+					// if we don't have a table.ser in our jarfile
+					new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
+				} else {
+					val ois = new ObjectInputStream(tableStream)
+
+					try {
+						val parser = ois.readObject.asInstanceOf[LRParser]
+						parser match {
+							case null => new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
+							case p => p
+						}
+					} catch {
+							case ex: NullPointerException =>
+								new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
+					}
 				}
 			}
 		}
@@ -154,7 +173,10 @@ object Parser {
 		catch {
 			case ex: MissingErrorRecoveryException =>
 				throw new ParserException(Position.fromScanner(scanner), ex)
-			case ex: IllegalArgumentException => // most probably from scanner
+			case ex: Exception
+				// sry, but this is the only way to reliably determine that
+				// the exception has been thrown by the scanner
+				if ex.getStackTrace()(0).getClassName == classOf[CamlLightScanner].getName =>
 				throw new ScannerException(Position.fromScanner(scanner), ex)
 		}
 	}

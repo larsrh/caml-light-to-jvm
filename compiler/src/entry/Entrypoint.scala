@@ -7,7 +7,7 @@ import java.io.FileNotFoundException
 
 import org.github.scopt._
 
-import parser.Parser
+import parser._
 import codegen.mama.Translator
 import typeinference.TypeInference
 import codegen.mama.mamaInstructions.Instruction
@@ -24,8 +24,8 @@ object Key {
 class TypedMap[-KeyType <: Key] {
 	private[this] val backed = new collection.mutable.HashMap[Any, Any]()
 
-	def get[K <: KeyType](key: K): Option[K#Value] = backed.get(key).map(_.asInstanceOf[K#Value])
-	def apply[K <: KeyType](key: K): K#Value = backed(key).asInstanceOf[K#Value]
+	def get[K <: KeyType](key: K) = backed.get(key).map(_.asInstanceOf[K#Value])
+	def apply[K <: KeyType](key: K) = backed(key).asInstanceOf[K#Value]
 	def update[K <: KeyType, V <: K#Value](key: K, value: V) { backed(key) = value }
 
 	override def toString = backed.toString
@@ -33,12 +33,13 @@ class TypedMap[-KeyType <: Key] {
 
 
 object Entrypoint {
+
 	def genByteCode(l: List[Instruction], filename:String) {
-			val jar = new Assembly(filename)
-			jar.addManifest
-			jar.copyClasses
-			jar.injectCode(l)
-			jar.close
+		val jar = new Assembly(filename)
+		jar.addManifest
+		jar.copyClasses
+		jar.injectCode(l)
+		jar.close
 	}
 
 	def error(msg: String) {
@@ -52,37 +53,76 @@ object Entrypoint {
 
 		val parser = new OptionParser("compiler") {
 			opt("o", "output", "the output file, default to a.jar",
-				{v: String => config.update(outputFile, v)})
+				{v: String => config(outputFile) = v})
 			arg("file", "CamlLight source code",
-				{v: String => config.update(inputFile, v)})
+				{v: String => config(inputFile) = v})
 		}
-
 		if (parser.parse(args)) {
-			val jarFile = config.get(outputFile) match {
-				case Some(prefix) => prefix + ".jar"
-				case None => "a.jar"
-			}
-
-			val camlSourceFile = config.get(inputFile) match {
-				case Some(filename) => filename
-				case None => {
-						// as if that would ever happen...
-						error("Input file not given")
-						return
-				}
-			}
+			val jarFile = config.get(outputFile) map (_ + ".jar") getOrElse "a.jar"
 
 			try {
-				val content = Source.fromFile(camlSourceFile).mkString("")
-				val prog = Parser.parse(content)
-				val gamma = TypeInference.typeCheck(TypeInference.emptyEnv, prog.expr) _2
-				val mama = (new Translator(prog.positions,gamma)).codeb(prog.expr, HashMap.empty, 0)
-				genByteCode(mama, jarFile)
-			} catch {
-				case ex: FileNotFoundException => {
-					error("Input file not found")
-					return
+				config get inputFile orElse {
+					error("Input file not given")
+					None
+				} flatMap { camlSourceFile =>
+					try {
+						Some(Source.fromFile(camlSourceFile).mkString)
+					}
+					catch {
+						case ex: FileNotFoundException =>
+							error("Input file not found")
+							None
+					}
+				} flatMap { content =>
+					try {
+						Some(Parser.parse(content))
+					}
+					catch {
+						case ex: ScannerException =>
+							error("Scanner exception occured")
+							error(ex.toString)
+							None
+						case ex: ParserException =>
+							error("Parse exception occured")
+							error(ex.toString)
+							None
+					}
+				} flatMap { prog =>
+					{
+						try {
+							Some(TypeInference.typeCheck(TypeInference.emptyEnv, prog.expr) _2)
+						}
+						catch {
+							case TypeInference.UnificationError(msg, expr) =>
+								error("Type checking failed")
+								error(msg)
+								error(expr.prettyPrint)
+								prog.positions get expr foreach { p => error(p.toString) }
+								None
+							case TypeInference.TypeError(msg) =>
+								error("Type checking failed")
+								error(msg)
+								None
+						}
+					} flatMap { gamma =>
+						try {
+							Some((new Translator(prog.positions,gamma)).codeb(prog.expr, HashMap.empty, 0))
+						}
+						catch {
+							case ex: Exception =>
+								error("Translation failed")
+								error(ex.toString)
+								None
+						}
+					}
+				} foreach { case mama =>
+					genByteCode(mama, jarFile)
 				}
+			}
+			catch {
+				case ex: Exception =>
+					error("Unknown exception occured")
+					ex.printStackTrace()
 			}
 		}
 	}

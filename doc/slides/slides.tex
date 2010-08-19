@@ -34,6 +34,13 @@
   \begin{block}{Technisches}
     \begin{itemize}
       \item JFlex
+      \item Comments: (* foo (* bar *) baz *)
+      \item Identifier: foo\_bar\_42
+      \item Integer literals: -0x42 ; 0b101010 ; 0o52
+      \item Floating-point literals are missing
+      \item Character literals: 'a' ; '\textbackslash 042'
+      \item String literals: "foo" ; "bar \textbackslash 023"
+      \item Keywords: some
     \end{itemize}
   \end{block}
 \end{frame}
@@ -151,6 +158,7 @@
     \begin{itemize}
       \item NetBeans
       \item Compilezeiten von \texttt{scalac}
+      \item Rollo ging täglich um 14:30 rauf \frowny
     \end{itemize}
   \end{alertblock}
 \end{frame}
@@ -161,6 +169,7 @@
       \item Stdlib bereitstellen
       \item Verwendung des JVM"=Stacks
       \item Threads
+      \item Optimierungen: TCO
     \end{itemize}
   \end{block}
 \end{frame}

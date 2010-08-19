@@ -88,7 +88,7 @@
 
 	<!-- CUP2 Parser generator -->
 	<property name="cup2.input" value="src/parser/generator/CamlLightSpec.scala" />
-	<property name="cup2.output.compile" value="build" />
+	<property name="cup2.output.compile" value="build/classes/parser" />
 	<property name="cup2.output.jar" value="dist" />
 	<property name="cup2.output.file" value="table.ser" />
 	<property name="cup2.serializer" value="parser.Parser" />
