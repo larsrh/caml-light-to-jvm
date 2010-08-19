@@ -132,9 +132,7 @@ object Parser {
 				val candidates = Stream("table.ser", "dist/table.ser", "build/table.ser")
 				val available = candidates map { name => loadParserFromFile(name, false) }
 				available.find(None !=) match {
-					case None =>
-						//println("Notice: Regenerating parser from source")
-						new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
+					case None => new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
 					case Some(p) => p.get
 				}
 			}

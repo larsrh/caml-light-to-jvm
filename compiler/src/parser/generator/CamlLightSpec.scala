@@ -221,14 +221,14 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			IDENTIFIER ^^ (Id.apply _) |
 			INTCONST ^^ (Integer.apply _) |
 			BOOLCONST ^^ (Bool.apply _) |
-			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str.map(Character(_)).toList) } |
+			STRINGCONST ^^ { (str: String) => Expression.fromSeq(str.map(Character(_)).toList) } |
 			CHARCONST ^^ (Character.apply _) |
 			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
 				case List(expr) => expr
 				case List(l @ _*) => Tuple(l: _*)
 			} } |
 			LSQBRACKET ~ RSQBRACKET ^^ { () => expressions.Nil } |
-			LSQBRACKET ~ list ~ RSQBRACKET ^^ { (seq: List[Expression]) => ListExpression.fromSeq(seq) }
+			LSQBRACKET ~ list ~ RSQBRACKET ^^ { (seq: List[Expression]) => Expression.fromSeq(seq) }
 		),
 		simpleexprlist -> (
 			simpleexpr ^^ { (expr: Expression) => List(expr) } |
@@ -263,7 +263,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			INTCONST ^^ (patterns.Integer.apply _) |
 			BOOLCONST ^^ (patterns.Bool.apply _) |
 			CHARCONST ^^ (patterns.Character.apply _) |
-			STRINGCONST ^^ { (str: String) => patterns.ListPattern.fromSeq(str.map(patterns.Character.apply _).toList) } |
+			STRINGCONST ^^ { (str: String) => patterns.Pattern.fromSeq(str.map(patterns.Character(_)).toList) } |
 			LSQBRACKET ~ RSQBRACKET ^^ { () => patterns.Nil } |
 			pattern ~ CONS ~ pattern ^^ { (pat1: Pattern, pat2: Pattern) => patterns.Cons(pat1, pat2) } |
 			LBRACKET ~ pattuple ~ RBRACKET ^^ { (pats: List[Pattern]) => pats match {

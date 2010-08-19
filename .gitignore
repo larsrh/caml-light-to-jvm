@@ -14,6 +14,7 @@ nblibraries-private.properties
 *.jar
 *.log
 *.aux
+*.aux.bak
 *.toc
 *.snm
 *.nav

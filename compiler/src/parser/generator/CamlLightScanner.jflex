@@ -96,6 +96,14 @@ import static parser.generator.CamlLightTerminals.*;
     }
   }
 
+  private String checkIdentifier(String id)
+  {
+    if (id.contains("__"))
+      throw new IllegalArgumentException("ERROR: An identifier may not contain two adjacent underscores.");
+
+    return id;
+  }
+
   public int getLine() { return yyline+1; }
   public int getColumn() { return yycolumn+1; }
 %}
@@ -104,7 +112,7 @@ LineTerminator = \r | \n | \r\n
 
 WhiteSpace = {LineTerminator} | [ \t\f]
 
-Identifier = [:jletter:] [:jletterdigit:]*
+Identifier = [a-zA-Z] [a-zA-Z0-9_]*
 
 DecIntegerLiteral = [0-9]+
 
@@ -177,7 +185,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   {BinIntegerLiteral}	{ return token(INTCONST(), parseBinInt(yytext())); }
 
-  {Identifier}	{ return token(IDENTIFIER(), yytext()); }
+  {Identifier}	{ return token(IDENTIFIER(), checkIdentifier(yytext())); }
 
   \'{Identifier}	{ return token(SQIDENTIFIER(), yytext()); }
 
