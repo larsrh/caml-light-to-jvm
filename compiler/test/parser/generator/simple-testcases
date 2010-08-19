@@ -5,6 +5,8 @@
 3 (* (* blub *)#!
 3 (* foo *)#Integer(3)
 3 (* foo (* bar *) baz *)#Integer(3)
+foo_bar#Id(foo_bar)
+foo__bar#!
 1-2-(- 3)#BinOp(sub,BinOp(sub,Integer(1),Integer(2)),UnOp(neg,Integer(3)))
 a- -b#BinOp(sub,Id(a),UnOp(neg,Id(b)))
 a- not b#BinOp(sub,Id(a),UnOp(not,Id(b)))
