@@ -7,7 +7,7 @@ import java.io.FileNotFoundException
 
 import org.github.scopt._
 
-import parser.Parser
+import parser._
 import codegen.mama.Translator
 import typeinference.TypeInference
 import codegen.mama.mamaInstructions.Instruction
@@ -33,17 +33,35 @@ class TypedMap[-KeyType <: Key] {
 
 
 object Entrypoint {
+
 	def genByteCode(l: List[Instruction], filename:String) {
-			val jar = new Assembly(filename)
-			jar.addManifest
-			jar.copyClasses
-			jar.injectCode(l)
-			jar.close
+		val jar = new Assembly(filename)
+		jar.addManifest
+		jar.copyClasses
+		jar.injectCode(l)
+		jar.close
 	}
 
 	def error(msg: String) {
 		System.err.println(msg)
 	}
+
+	private final class Chain[T](func: => Option[T]) {
+		lazy val result = func
+
+		def andThen[S](f: T => Option[S]): Chain[S] = result match {
+			case Some(r) => new Chain(f(r))
+			case None => new Chain(None)
+		}
+
+		def andFinally(f: T => Unit) { result match {
+				case Some(r) => f(r)
+				case None =>
+			}
+		}
+	}
+	
+	private def chain[T](func: => Option[T]) = new Chain(func)
 
 	def main(args: Array[String]) {
 		val config = new TypedMap[Key]
@@ -52,9 +70,9 @@ object Entrypoint {
 
 		val parser = new OptionParser("compiler") {
 			opt("o", "output", "the output file, default to a.jar",
-				{v: String => config.update(outputFile, v)})
+				{v: String => config(outputFile) = v})
 			arg("file", "CamlLight source code",
-				{v: String => config.update(inputFile, v)})
+				{v: String => config(inputFile) = v})
 		}
 
 		if (parser.parse(args)) {
@@ -72,17 +90,54 @@ object Entrypoint {
 				}
 			}
 
-			try {
-				val content = Source.fromFile(camlSourceFile).mkString("")
-				val prog = Parser.parse(content)
-				val gamma = TypeInference.typeCheck(TypeInference.emptyEnv, prog.expr) _2
-				val mama = (new Translator(prog.positions,gamma)).codeb(prog.expr, HashMap.empty, 0)
-				genByteCode(mama, jarFile)
-			} catch {
-				case ex: FileNotFoundException => {
-					error("Input file not found")
-					return
+			chain {
+				try {
+					Some(Source.fromFile(camlSourceFile).mkString)
 				}
+				catch {
+					case ex: FileNotFoundException =>
+						error("Input file not found")
+						None
+				}
+			} andThen { content =>
+				try {
+					Some(Parser.parse(content))
+				}
+				catch {
+					case ex: ScannerException =>
+						error("Scanner exception occured")
+						error(ex.toString)
+						None
+					case ex: ParserException =>
+						error("Parse exception occured")
+						error(ex.toString)
+						None
+				}
+			} andThen { prog =>
+				chain {
+					try {
+						Some(TypeInference.typeCheck(TypeInference.emptyEnv, prog.expr) _2)
+					}
+					catch {
+						case TypeInference.UnificationError(msg, expr) =>
+							error("Type checking failed")
+							error(msg)
+							prog.positions get expr foreach { p => error(p.toString) }
+							None
+					}
+				} andThen { gamma =>
+					try {
+						Some((new Translator(prog.positions,gamma)).codeb(prog.expr, HashMap.empty, 0))
+					}
+					catch {
+						case ex: Exception =>
+							error("Translation failed")
+							error(ex.toString)
+							None
+					}
+				} result
+			} andFinally { case mama =>
+				genByteCode(mama, jarFile)
 			}
 		}
 	}
