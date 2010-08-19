@@ -121,19 +121,19 @@ object TypeInference {
 		unify_(((e,(al,t))::u))
               case (t1@TypeConstructor(n1,params1@_*),t2@TypeConstructor(n2,params2@_*)) =>
                 if (params1.length != params2.length) {
-                  throw UnificationError("ERROR: Couldn' unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression " + e + ".", e)
+                  throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression " + e + ".", e)
                 } else if (params1.length == 0) {
 		  // base types without any type parameters
 		  if (n1 == n2) {
 		    unify_(u)
 		  } else {
-		    throw UnificationError("ERROR: Couldn' unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression " + e + ".", e)
+		    throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression " + e + ".", e)
 		  }
 		} else {
                   unify_((params1 zip params2).map((e,_)).toList
 			 ++ u)
                 }
-              case _ => throw UnificationError("ERROR: Couldn' unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression " + e + ".", e)
+              case _ => throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression " + e + ".", e)
             }
           }
       }
@@ -566,7 +566,7 @@ object TypeInference {
 	typeExpr match {
 	  case TypeTuple(types@_*) =>
 	    if (types.length != pats.length) {
-	      throw TypeError("ERROR: Tupel pattern match failed.\nType: " + typeExpr + ", pattern: " + tup + " .")
+	      throw TypeError("ERROR: Tuple pattern match failed.\nType: " + typeExpr + ", pattern: " + tup + " .")
 	    } else {
 	      var gamma = env
 	      var currFresh = fresh

@@ -14,9 +14,11 @@ nblibraries-private.properties
 *.jar
 *.log
 *.aux
+*.aux.bak
 *.toc
 *.snm
 *.nav
 *.out
 *.fdb_latexmk
+*.z[io]
 slides.pdf

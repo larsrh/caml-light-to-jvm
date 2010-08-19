@@ -1,3 +1,21 @@
 #!/bin/bash
 
-scala -cp dist/compiler.jar entry.Entrypoint $@
+SCALA=`which scala`
+
+if [ -z $SCALA ]
+then
+	echo "Scala not found in PATH."
+	return 1
+fi
+
+# get the place where this script is
+if [[ $0 == '/'* ]]; then
+	LOCATION="`dirname $0`"
+else
+	LOCATION="`pwd`"/"`dirname $0`"
+fi
+
+# the compiler.jar is relative to that
+COMPILER_LOCATION="$LOCATION/../dist/compiler.jar"
+# and call it.
+$SCALA -cp $COMPILER_LOCATION entry.Entrypoint $@

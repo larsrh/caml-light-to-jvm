@@ -22,12 +22,12 @@ import static parser.generator.CamlLightTerminals.*;
 
   private <T> ScannerToken<T> token(Object terminal, T value)
   {
-    return new ScannerToken<T>((Terminal) terminal, value, yyline+1, yycolumn);
+    return new ScannerToken<T>((Terminal) terminal, value, yyline+1, yycolumn+1);
   }
 
   private ScannerToken<Object> token(Object terminal)
   {
-    return new ScannerToken<Object>((Terminal) terminal, yyline+1, yycolumn);
+    return new ScannerToken<Object>((Terminal) terminal, yyline+1, yycolumn+1);
   }
 
   private int parseHexInt(String str)
@@ -96,15 +96,23 @@ import static parser.generator.CamlLightTerminals.*;
     }
   }
 
-  public int getLine() { return yyline; }
-  public int getColumn() { return yycolumn; }
+  private String checkIdentifier(String id)
+  {
+    if (id.contains("__"))
+      throw new IllegalArgumentException("ERROR: An identifier may not contain two adjacent underscores.");
+
+    return id;
+  }
+
+  public int getLine() { return yyline+1; }
+  public int getColumn() { return yycolumn+1; }
 %}
 
 LineTerminator = \r | \n | \r\n
 
 WhiteSpace = {LineTerminator} | [ \t\f]
 
-Identifier = [:jletter:] [:jletterdigit:]*
+Identifier = [a-zA-Z] [a-zA-Z0-9_]*
 
 DecIntegerLiteral = [0-9]+
 
@@ -177,7 +185,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   {BinIntegerLiteral}	{ return token(INTCONST(), parseBinInt(yytext())); }
 
-  {Identifier}	{ return token(IDENTIFIER(), yytext()); }
+  {Identifier}	{ return token(IDENTIFIER(), checkIdentifier(yytext())); }
 
   \'{Identifier}	{ return token(SQIDENTIFIER(), yytext()); }
 
@@ -197,7 +205,7 @@ BinIntegerLiteral = 0 [bB] [0-1]+
 
   \"		{ string.setLength(0); yybegin(STRING); }
 
-  .		{ throw new IllegalArgumentException("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn); }
+  .		{ throw new IllegalArgumentException("Error: Illegal character at line " + (yyline+1) + " and column " + yycolumn+1); }
 }
 
 <STRING> {
