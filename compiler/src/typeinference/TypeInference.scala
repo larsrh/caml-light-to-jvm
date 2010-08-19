@@ -7,19 +7,21 @@ object TypeInference {
   import parser.ast.types._
 
   // make subst method available for lists and tuples 
-  implicit def enrichList(xs: List[(TypeExpression,TypeExpression)]) = new SubstList(xs)
-  implicit def enrichtTuple(t: (TypeExpression,TypeExpression)) = new SubstTuple(t)
+  implicit def enrichList(xs: List[(TypeExpression,TypeExpression)]) =
+    new SubstList(xs)
+  implicit def enrichTuple(t: (TypeExpression,TypeExpression)) =
+    new SubstTuple(t)
 
-  class SubstList(xs: List[(TypeExpression,TypeExpression)]) extends Subst[List[(TypeExpression,TypeExpression)]]{
-    def subst_(s: (TypeExpression,TypeExpression)) = {
+  class SubstList(xs: List[(TypeExpression,TypeExpression)]) 
+  extends Subst[List[(TypeExpression,TypeExpression)]] {
+    def subst_(s: (TypeExpression,TypeExpression)) = 
       xs.map { x => x.subst_(s) }
-    }
   }
 
-  class SubstTuple(t: (TypeExpression,TypeExpression)) extends Subst[(TypeExpression,TypeExpression)]{
-    def subst_(s: (TypeExpression,TypeExpression)) = {
+  class SubstTuple(t: (TypeExpression,TypeExpression))
+  extends Subst[(TypeExpression,TypeExpression)] {
+    def subst_(s: (TypeExpression,TypeExpression)) = 
       (t._1.subst_(s), t._2.subst_(s))
-    }
   }
 
   /**
@@ -35,6 +37,18 @@ object TypeInference {
   type TypeScheme = (List[TypeVariable], TypeExpression)
 
   /**
+   * A constraint is a relation between two types.
+   * We also carry the expression along, which caused a constraint to be
+   * generated.
+   */
+  type Constraint = (expressions.Expression, (TypeExpression,TypeExpression))
+
+  /**
+   * Represents a substituion where one type can be replaced by another.
+   */
+  type Substitution = (TypeExpression,TypeExpression)
+
+  /**
    * Represents a typing error.  Will be thrown whenever an expression
    * isn't typed correctly.
    */
@@ -42,9 +56,11 @@ object TypeInference {
 
   /**
    * Represents a unification error.  Will be thrown whenever constraints
-   * aren't unifiable.
+   * aren't unifiable. An error message as well as the expression that
+   * caused the the error are passed with the exception.
    */
-  case class UnificationError(err: String, expr: expressions.Expression) extends Exception(err)
+  case class UnificationError(err: String, expr: expressions.Expression)
+  extends Exception(err)
 
   /**
    * Returns an empty type environment.
@@ -52,21 +68,20 @@ object TypeInference {
   def emptyEnv() = Map[String,TypeScheme]()
 
   /**
-   * Top-level typecheck method. Given a type environment and an expression
-   * returns the type of the given expression.
+   * Top-level typecheck method, specifically for tests.
+   * Given a type environment and an expression returns the type of the given
+   * expression.
    */
-  def typeCheck(gamma: Env, expr: expressions.Expression): TypeScheme = {
+  def typeCheckTest(gamma: Env, expr: expressions.Expression): TypeScheme = {
     val (typeExpr, _, constraints,_) = constraintGen(gamma, expr, 1)
     generalise(gamma, typeExpr, constraints)
   }
 
   /**
    * Top-level typecheck method. Given a type environment and an expression
-   * returns the type of the given expression.
-   *
-   * Also return the type environment.
+   * returns the type of the given expression and the type environment.
    */
-  def typeCheck2(gamma: Env, expr: expressions.Expression): (TypeScheme,Env) = {
+  def typeCheck(gamma: Env, expr: expressions.Expression): (TypeScheme,Env) = {
     val (typeExpr, _, constraints,gamma1) = constraintGen(gamma, expr, 1)
     val scheme = generalise(gamma, typeExpr, constraints)
     (scheme,gamma1)
@@ -99,12 +114,9 @@ object TypeInference {
    * Performs unification. Given a list of constraints returns a list of
    * substitutions.
    */
-  def unify(constraints: List[(expressions.Expression,(TypeExpression,TypeExpression))]): List[(TypeExpression,TypeExpression)] = {
-
-    // TODO: change error messages
+  def unify(constraints: List[Constraint]): List[Substitution] = {
     // local function
-    def unify_(constraints: List[(expressions.Expression, (TypeExpression,TypeExpression))]):
-    List[(TypeExpression,TypeExpression)] = {
+    def unify_(constraints: List[Constraint]): List[Substitution] = {
       constraints match {
         case List() => List()
         case (e,(t1,t2))::u =>
@@ -112,28 +124,30 @@ object TypeInference {
           else {
             (t1,t2) match {
               case (al@TypeVariable(a), t) =>
-                if (freeVars(t).contains(al)) { throw UnificationError("Occurs check failed in expression: " +  e + ".", e) }
+                if (freeVars(t).contains(al)) {
+		  throw UnificationError("Occurs check failed in expression: ", e) }
                 else {
-                  val rest = unify_(u.map(_._1).zip(u.map(_._2).subst_((t,al)))) // u.subst_((t,al)))
+                  val rest = unify_(u.map(_._1).zip(u.map(_._2).subst_((t,al))))
                   (t,al)::rest
                 }
               case (t, al@TypeVariable(a)) =>
 		unify_(((e,(al,t))::u))
               case (t1@TypeConstructor(n1,params1@_*),t2@TypeConstructor(n2,params2@_*)) =>
                 if (params1.length != params2.length) {
-                  throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression " + e + ".", e)
+                  throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
                 } else if (params1.length == 0) {
 		  // base types without any type parameters
 		  if (n1 == n2) {
 		    unify_(u)
 		  } else {
-		    throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression " + e + ".", e)
+		    throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
 		  }
 		} else {
                   unify_((params1 zip params2).map((e,_)).toList
 			 ++ u)
                 }
-              case _ => throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression " + e + ".", e)
+              case _ =>
+		throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
             }
           }
       }
@@ -142,17 +156,23 @@ object TypeInference {
     unify_(constraints)
   }
 
-  def generalise[A](gamma: Env, typeExpr: TypeExpression,
-		    constraints: List[(expressions.Expression, (TypeExpression,TypeExpression))]): TypeScheme = {
+  /**
+   * Generalises the given type expression.
+   */
+  def generalise[A](gamma: Env, typeExpr: TypeExpression, 
+		    constraints: List[Constraint]): TypeScheme = {
     val subst = unify(constraints)
     val typeExprNew = typeExpr.subst(subst)
     val alphas = freeVars(typeExprNew) filterNot (freeVars(gamma) contains)
     (alphas.distinct,typeExprNew)
   }
 
-  def update(gamma: Env, x: String, scheme: TypeScheme): Env = {
-    gamma + (x -> scheme)
-  }
+  /**
+   * Updates the given environment, such that given identifier will be
+   * associated with the given type scheme.
+   */
+  def update(gamma: Env, id: String, scheme: TypeScheme): Env =
+    gamma + (id -> scheme)
 
   /**
    * Given a type environment, a type expression and a counter, that's used
@@ -691,11 +711,14 @@ object TypeInference {
    * Indexing starts at 0. This function is meant for use in the code
    * generation phase.
    */
-  def getRecordLabelPos(gamma: Env, recExpr: expressions.Expression, label: expressions.Id): Int = {
+  def getRecordLabelPos(gamma: Env, recExpr: expressions.Expression,
+			label: expressions.Id): Int = {
     // local method
-    def findLabel(fields: List[(String,TypeExpression)], labelName: String, cnt: Int): Int = {
+    def findLabel(fields: List[(String,TypeExpression)],
+		  labelName: String, cnt: Int): Int = {
       fields match {
-	case List() => throw TypeError("ERROR: No field named " + label.name + " in record " + recExpr + ".")
+	case List() =>
+	  throw TypeError("ERROR: No field named " + label.name + " in record " + recExpr + ".")
 	case (fieldDef::rest) =>
 	  val fieldName = fieldDef._1
 	  val fieldlType = fieldDef._2
@@ -713,8 +736,10 @@ object TypeInference {
     val s = unify(constraints)
     val recType = typeExpr.subst(s)
     recType match {
-      case TypeRecord(n,fields@_*) => findLabel(fields.toList, label.name, 0)
-      case _ => throw TypeError("ERROR: Expression " + recExpr + " is not a record.")
+      case TypeRecord(n,fields@_*) =>
+	findLabel(fields.toList, label.name, 0)
+      case _ =>
+	throw TypeError("ERROR: Expression " + recExpr + " is not a record.")
     }
   }
 }
