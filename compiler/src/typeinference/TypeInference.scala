@@ -708,7 +708,7 @@ object TypeInference {
     }
 
     // we don't care about the type environment nor
-    // the constraints or the fresh variable here
+    // the fresh variable here
     val (typeExpr,_,constraints,_) = constraintGen(gamma, recExpr, 1)
     val s = unify(constraints)
     val recType = typeExpr.subst(s)
