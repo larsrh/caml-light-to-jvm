@@ -116,44 +116,40 @@ object TypeInference {
    */
   def unify(constraints: List[Constraint]): List[Substitution] = {
     // local function
-    def unify_(constraints: List[Constraint]): List[Substitution] = {
-      constraints match {
-        case List() => List()
-        case (e, (t1, t2))::u =>
-          if (t1 == t2) { unify_(u) }
-          else {
-            (t1,t2) match {
-              case (al@TypeVariable(a), t) =>
-                if (freeVars(t).contains(al)) {
-		  throw UnificationError("Occurs check failed in expression: ", e) }
-                else {
-                  val rest = unify_(u.map(_._1).zip(u.map(_._2).subst_((t,al))))
-                  (t,al)::rest
-                }
-              case (t, al@TypeVariable(a)) =>
-		unify_(((e,(al,t))::u))
-              case (t1@TypeConstructor(n1,params1@_*),t2@TypeConstructor(n2,params2@_*)) =>
-                if (params1.length != params2.length) {
-                  throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
-                } else if (params1.length == 0) {
-		  // base types without any type parameters
-		  if (n1 == n2) {
-		    unify_(u)
-		  } else {
-		    throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
-		  }
-		} else {
-                  unify_((params1 zip params2).map((e,_)).toList
-			 ++ u)
-                }
-              case _ =>
+    constraints match {
+      case List() => List()
+      case (e, (t1, t2))::u =>
+	if (t1 == t2) { unify(u) }
+	else {
+	  (t1,t2) match {
+	    case (al@TypeVariable(a), t) =>
+	      if (freeVars(t).contains(al)) {
+		throw UnificationError("ERROR: Occurs check failed in expression: ", e) }
+	      else {
+		val rest = unify(u.map(_._1).zip(u.map(_._2).subst_((t,al))))
+		(t,al)::rest
+	      }
+	    case (t, al@TypeVariable(a)) =>
+	      unify(((e,(al,t))::u))
+	    case (t1@TypeConstructor(n1,params1@_*),t2@TypeConstructor(n2,params2@_*)) =>
+	      if (params1.length != params2.length) {
 		throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
-            }
-          }
-      }
+	      } else if (params1.length == 0) {
+		// base types without any type parameters
+		if (n1 == n2) {
+		  unify(u)
+		} else {
+		  throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
+		}
+	      } else {
+		unify((params1 zip params2).map((e,_)).toList
+		      ++ u)
+	      }
+	    case _ =>
+	      throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
+	  }
+	}
     }
-
-    unify_(constraints)
   }
 
   /**
