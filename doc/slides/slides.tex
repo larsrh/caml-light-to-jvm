@@ -59,6 +59,50 @@
 \end{frame}
 
 \begin{frame}{Codegenerierung: MaMa}
+  \begin{block}{Übersetzung AST $\Longrightarrow$ MaMa}
+    \begin{itemize}
+      \item Vorgehen wie in
+        \begin{center}
+          \emph{[Wilhelm, Seidl - Übersetzerbau: Virtuelle Maschinen]}
+        \end{center}
+    \end{itemize}
+  \end{block}
+  \begin{block}{Erweiterungen}
+    \begin{itemize}
+      \item Records        
+        \begin{itemize}
+          \item Implementierung als namenlose Tupel
+          \item Feldnamensauflösung mit Hilfe der Typinferenz
+        \end{itemize}
+	 \item Pattern matching mit beliebigen Patterns        
+        \begin{itemize}
+          \item \pause kompliziert$\ldots$
+        \end{itemize}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Codegenerierung: MaMa -- Pattern Matching}
+  \begin{block}{Pattern Matching im AST}
+  	\texttt{match} $e_0$ \texttt{with} $p_1$ \texttt{->} $e_1$ \texttt{|} $\ldots$ \texttt{|} $p_n$ \texttt{->} $e_n$
+  \end{block}
+  \begin{block}{Idee}
+    \begin{itemize}
+  	\item Generiere rekursiv sogenannten \emph{matching code} für jedes einzelne Pattern $p_i$.
+  	\item Invariante: nach Ausführung des \emph{matching code} liegt auf dem Stack eine 1, falls $e_0$ $p_i$ matcht, sonst 0.
+  	\item Zusammengesetzte Patterns (wie z.B. Tupel) generieren den $matching code$ rekursiv und führen $AND$-Instruktionen aus.  
+  	\item Dabei wird der Code für $e_0$ nur einmal generiert.
+  	\end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Codegenerierung: MaMa -- Beispiel}
+%  \begin{block}{AST}
+%  	\texttt{match (1,2) with (2,\_) -> 42}
+%  \end{block}
+%  \begin{block}{MaMa - Code}
+%  
+%  \end{block}
 \end{frame}
 
 \begin{frame}{Codegenerierung: JVM"=Bytecode}
