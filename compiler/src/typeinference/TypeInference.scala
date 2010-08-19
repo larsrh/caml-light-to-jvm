@@ -554,7 +554,7 @@ object TypeInference {
 	typeExpr match {
 	  case TypeTuple(types@_*) =>
 	    if (types.length != pats.length) {
-	      throw TypeError("ERROR: Tupel pattern match failed.\nType: " + typeExpr + ", pattern: " + tup + " .")
+	      throw TypeError("ERROR: Tuple pattern match failed.\nType: " + typeExpr + ", pattern: " + tup + " .")
 	    } else {
 	      var gamma = env
 	      var currFresh = fresh
