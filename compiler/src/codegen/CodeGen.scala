@@ -429,7 +429,7 @@ class Translator(posMap:Map[Expression,parser.Position],gamma:typeinference.Type
       case Some(parser.Position(x,y,_)) => (x,y)
       case None => (0,0)
     }
-    val strAsInstrList = ListExpression.fromSeq(str.map(Character.apply _).toList)
+    val strAsInstrList = Expression.fromSeq(str.map(Character(_)).toList)
 
     def codelist(x:Expression):List[Instruction] = x match {
       case Nil => List(NIL)
