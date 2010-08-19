@@ -44,8 +44,8 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 	import expressions._
 	import types._
 	import patterns.Pattern
-	import parser.Parser.Program
 
+	private type Program = (Expression, List[TypeDefinition])
 	private type Case = (Pattern, Expression)
 	private type Definition = (patterns.Id, Expression)
 	private type Entry = (Id, Expression)
