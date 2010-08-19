@@ -312,8 +312,8 @@ class TypeInferenceTests extends TestSuite {
 	test("TupleElem", {
 		val tuple = Tuple(Integer(1), Character('a'))
 		all(
-			assertEquals((List(),TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, TupleElem(tuple, 1))),
-			assertEquals((List(),TypeChar()), TypeInference.typeCheckTest(TypeInference.emptyEnv, TupleElem(tuple, 2)))
+			assertEquals((List(),TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, TupleElem(tuple, 0))),
+			assertEquals((List(),TypeChar()), TypeInference.typeCheckTest(TypeInference.emptyEnv, TupleElem(tuple, 1)))
 		)
 	})
 

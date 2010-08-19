@@ -142,8 +142,7 @@ object TypeInference {
 		  throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
 		}
 	      } else {
-		unify((params1 zip params2).map((e,_)).toList
-		      ++ u)
+		unify((params1 zip params2).map((e,_)).toList ++ u)
 	      }
 	    case _ =>
 	      throw UnificationError("ERROR: Couldn't unify types: \n" + "\t\t" + t1 + "\n" + "\t\t" + t2 + " in expression: ", e)
@@ -194,8 +193,8 @@ object TypeInference {
 	(typeExpr,fresh1,List(),gamma)
 
       case expressions.Sequence(_,expr2) =>
-	// TODO: we might test here whether expr1 is of type Unit and if so
-	// TODO: print a warning
+	// we might test here whether expr1 is of type Unit and if so
+	// print a warning
 	val (typeExpr2, freshNew, constraints,gamma1) = constraintGen(gamma,expr2, fresh)
 	(typeExpr2,freshNew,List(),gamma1)
 
@@ -203,7 +202,7 @@ object TypeInference {
 	val (tupleTypes,freshNew,constraints) = getTupleTypes(expr.toList, gamma, fresh)
 	(TypeTuple(tupleTypes:_*),freshNew,constraints map ((e,_)),gamma)
 
-	// tuple element access, indexing starts at 1
+	// tuple element access, indexing starts at 0
       case expressions.TupleElem(expr, nr) =>
 	val (typeExpr, freshNew,constraints,gamma1) = constraintGen(gamma, expr, fresh)
 	// unify here to find out the type of the expression
@@ -212,7 +211,7 @@ object TypeInference {
 	typeTup match {
 	  case TypeTuple(tupleTypes@_*) =>
 	    try {
-	      (tupleTypes(nr-1),freshNew,constraints,gamma1)
+	      (tupleTypes(nr),freshNew,constraints,gamma1)
 	    } catch {
 	      case err: IndexOutOfBoundsException =>
 		throw TypeError("ERROR: Tuple " + typeTup + " only constists of " + tupleTypes.length + " elements, "
@@ -237,7 +236,7 @@ object TypeInference {
 
       case e@expressions.BinOp(op, e1, e2) =>
 	val (t1, fresh1, c1,_) = constraintGen(gamma, e1, fresh)
-	val (t2, fresh2, c2,_) = constraintGen(gamma, e2, fresh)
+	val (t2, fresh2, c2,_) = constraintGen(gamma, e2, fresh1)
 	op match {
 	  case expressions.BinaryOperator.and | expressions.BinaryOperator.or =>
 	    (TypeBool(),fresh2,
@@ -246,7 +245,8 @@ object TypeInference {
 	    | expressions.BinaryOperator.geq | expressions.BinaryOperator.leq
 	    | expressions.BinaryOperator.gr | expressions.BinaryOperator.le =>
 	    (TypeBool(), fresh2, (e,(t1,t2))::c1 ++ c2,gamma)
-	  case _ => (t1,fresh2,(e,(t1,t2))::c1 ++ c2,gamma)
+	  case _ => 
+	    (t1,fresh2,(e,(t1,t2))::c1 ++ c2,gamma)
 	}
 
       case e@expressions.Lambda(body, p) =>
@@ -624,11 +624,13 @@ object TypeInference {
 	    var constraints: List[(TypeExpression,TypeExpression)] = List()
 	    for (pat <- defs) {
 	      val (gamma1,fresh1,cs) = putPatternIntoEnv(currGamma,pat._2,types(i),currFresh+1)
+	      val gamma2 = update(gamma1,pat._1.name,(List(),types(i)))
 	      constraints = constraints ++ cs
-	      currGamma = gamma1
+	      currGamma = gamma2
 	      currFresh = fresh1
 	      i += 1
 	    }
+	    println(currGamma)
 	    (currGamma,currFresh,constraints)
 	  case _ => throw TypeError("Match failed TODO")
 	}
