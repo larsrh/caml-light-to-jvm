@@ -221,7 +221,7 @@ object CamlLightSpec extends CUP2Specification with ScalaCUPSpecification {
 			IDENTIFIER ^^ (Id.apply _) |
 			INTCONST ^^ (Integer.apply _) |
 			BOOLCONST ^^ (Bool.apply _) |
-			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str.map(Character.apply _).toList) } |
+			STRINGCONST ^^ { (str: String) => ListExpression.fromSeq(str.map(Character(_)).toList) } |
 			CHARCONST ^^ (Character.apply _) |
 			LBRACKET ~ commaseq ~ RBRACKET ^^ { (seq: List[Expression]) => seq match {
 				case List(expr) => expr
