@@ -696,8 +696,8 @@ object TypeInference {
   }
 
   /**
-   * Looks up the given id in the given type environment and returns
-   * it type scheme
+   * Look up the given id in the given type environment and return
+   * the type scheme
    */
   def lookup(gamma: Env, id: String): TypeScheme = {
     gamma find {t => t._1 == id} match {
