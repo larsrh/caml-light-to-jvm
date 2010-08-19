@@ -9,7 +9,9 @@ import edu.tum.cup2.generator.LR1Generator
 import edu.tum.cup2.io.LRParserSerialization
 import edu.tum.cup2.parser.LRParser
 import edu.tum.cup2.parser.exceptions.MissingErrorRecoveryException
+import edu.tum.cup2.semantics.ActionCallback
 
+import scala.collection.mutable
 import scala.util.control.Breaks._
 
 import java.io.File
@@ -41,7 +43,17 @@ object Parser {
 		new LRParserSerialization(args(0)).saveParser(lrparser)
 	}
 
-	type Program = (Expression, List[TypeDefinition])
+	object Program {
+		type Parent = (Expression, List[TypeDefinition])
+		def unapply(prog: Program) = Tuple2.unapply(prog)
+	}
+
+	final class Program(val expr: Expression, val typeDefs: List[TypeDefinition], _positions: mutable.Map[Expression, Position])
+		extends Program.Parent(expr, typeDefs) {
+
+		// convert to immutable Map
+		val positions = Map[Expression, Position]() ++ _positions
+	}
 
 	private def loadParserFromFile(filename: String, `throw`: Boolean = true): Option[LRParser] = {
 		try {
@@ -58,6 +70,17 @@ object Parser {
 					None
 		}
 		
+	}
+
+	private def mkCallback(scanner: CamlLightScanner, map: mutable.Map[Expression, Position]) = new ActionCallback {
+		override def actionDone(input: Object): Object = {
+			input match {
+				case expr: Expression =>
+					map(expr) = Position.fromScanner(scanner)
+				case _ =>
+			}
+			input
+		}
 	}
 
 	private val lrparser: LRParser =
@@ -88,10 +111,11 @@ object Parser {
 		val scanner = new CamlLightScanner(reader)
 		try {
 			CamlLightSpec.reset()
-			val result = lrparser.parse(scanner)
-			assert(classOf[Program].isAssignableFrom(result.getClass))
-			val (expr, types) = result.asInstanceOf[Program]
-			(Normalizer.normalize(expr), types)
+			val map = new mutable.HashMap[Expression, Position]()
+			val result = lrparser.parse(scanner, mkCallback(scanner, map))
+			assert(classOf[Program.Parent].isAssignableFrom(result.getClass))
+			val (expr, types) = result.asInstanceOf[Program.Parent]
+			new Program(Normalizer.normalize(expr), types, map)
 		}
 		catch {
 			case ex: MissingErrorRecoveryException =>
