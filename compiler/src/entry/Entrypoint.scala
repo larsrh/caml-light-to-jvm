@@ -84,7 +84,7 @@ object Entrypoint {
 				val content = Source.fromFile(camlSourceFile).mkString("")
 				val exp = Parser.parse(content)._1
 				if (typeCheck)
-					Translator.gamma = TypeInference.typeCheck2(TypeInference.emptyEnv, exp) _2
+					TypeInference.typeCheck(TypeInference.emptyEnv, exp)
 				val mama = Translator.codeb(exp, HashMap.empty, 0)
 				genByteCode(mama, jarFile)
 			} catch {

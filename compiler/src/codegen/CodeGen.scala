@@ -288,7 +288,7 @@ object Translator {
 										matchingCode ++ List(SETLABEL(NEXT)) ++ pop(n) 
 									}
 							/* HALT is misused for runtime pattern match errors */
-							}) ++ List(HALT,SETLABEL(DONE))
+							}) ++ patternMatchFail(expr) :+ SETLABEL(DONE)
 					}
 			}
 	}
@@ -423,6 +423,19 @@ object Translator {
 	:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Local,-i))
 	def updateGlob(l:List[Any],r:HashMap[String,(VarKind.Value,Int)],i:Int)
 	:HashMap[String,(VarKind.Value,Int)] = r + (varTest(l(i)) -> (VarKind.Global,i))
+
+  def patternMatchFail(e:Expression):List[Instruction] = {
+    val str = e.toString
+    val strAsInstrList = ListExpression.fromSeq(str.map(Character.apply _).toList)
+
+    def codelist(x:Expression):List[Instruction] = x match {
+      case Nil => List(NIL)
+      case Cons(Character(a),tail) => List(LOADC(char2int(a))) ++ codelist(tail) :+ CONS
+      case _ => throw new Exception("Should not happen ;-)")
+    }
+
+    codelist(strAsInstrList) :+ HALT
+  }
 			
 	/******************************************************************************/
 	/*                            FREE & BOUND VARIABLES                          */
