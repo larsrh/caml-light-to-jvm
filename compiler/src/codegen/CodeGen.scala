@@ -296,8 +296,7 @@ class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInferen
         }
       case _ => {
         val patDefsNew = (patDefs.toList foldLeft List.empty[(patterns.Pattern,Expression)]){
-          case (xs,x@(patterns.Nil,res)) => x::xs
-          case (xs,x) => xs :+ x
+          case (xs,x@(pat,res)) => if(containsNil(pat)) x::xs else xs :+ x
         }
         val DONE = newLabel()
         val E = "42" + (counter + 1)//not a valid identifier -> no conflicts
@@ -518,6 +517,15 @@ class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInferen
 		case patterns.Tuple(ts@_*) => LinkedHashSet.empty ++ ts flatMap bound
 		case _ => LinkedHashSet.empty
 	}
+
+  def containsNil(pat:patterns.Pattern):Boolean = pat match {
+    case patterns.Nil => true
+    case patterns.Tuple(ts@_*) => (ts forall containsNil)
+    case patterns.Record(ts@_*) => ((ts.toList map (_._2)) forall containsNil)
+    case patterns.Cons(x,xs) => containsNil(x) && containsNil(xs)
+    case patterns.Alternative(a,b) => containsNil(a) && containsNil(b)
+    case _ => false
+  }
 }
 
 /******************************************************************************/
