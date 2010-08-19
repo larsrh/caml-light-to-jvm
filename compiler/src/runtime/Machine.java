@@ -270,11 +270,6 @@ public class Machine {
 		StackData head = stack.pop();
 		stack.push(new Ref(new List(head,tail)));
 		sp--;
-	}		
-	
-	public void copyglob() {
-		stack.push(new Ref(gp));
-		sp++;
 	}
 	
 	public void div() {
@@ -331,17 +326,6 @@ public class Machine {
 	public void getbasic() {
         Base b = (Base)((Ref)stack.pop()).v;
         stack.push(new Raw(b.v));
-	}
-	
-	public void getvec(int k) {
-		Vector h = (Vector)((Ref)stack.pop()).v;
-		sp--;
-		assert (h.n == k);
-
-		for (int i = 0; i < k; i++) {
-			stack.push(h.v[i]);
-			sp++;
-		}
 	}
 	
 	public void gr() {

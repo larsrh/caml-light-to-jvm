@@ -9,12 +9,11 @@
 \usepackage[ngerman]{babel}
 \usepackage[autostyle]{csquotes}
 \usepackage{wasysym}
-\usepackage{ziffer}
 \usepackage{lmodern}
 \mode<presentation>{\usetheme{Copenhagen}}
 \title{A Caml Light Compiler for the JVM}
 \author[Hupel, Kubica, Schulze Frielinghaus, Müller, Traytel]{Lars Hupel, Marek Kubica, Stefan Schulze Frielinghaus, \\Edgar Müller, Dmitriy Traytel}
-\institute{TU München}
+\institute{TU~München}
 \date{20.~August~2010}
 
 %% get rid of navigation symbols
@@ -99,8 +98,8 @@
     \begin{tabular}{l|l|l|l}
        & Caml Light & Scala & TUM \\
       \hline
-      Kompilieren & \textcolor{fastest}{0.0s} & \textcolor{slowest}{9.3s} & 4.1s \\
-      Ausführen & \textcolor{fastest}{0.00s} & 1.03s & \textcolor{slowest}{1.69s} \\
+      Kompilieren & \textcolor{fastest}{$0.0s$} & \textcolor{slowest}{$9.3s$} & $4.1s$ \\
+      Ausführen & \textcolor{fastest}{$0,00s$} & $1.03s$ & \textcolor{slowest}{$1.69s$} \\
     \end{tabular}
   \end{block}
   \begin{block}{Factorial(10)}
@@ -109,11 +108,11 @@
     \begin{tabular}{l|l|l|l}
        & Caml Light & Scala & TUM \\
       \hline
-      Kompilieren & \textcolor{fastest}{0.0s} & \textcolor{slowest}{9.1s} & 3.9s \\
-      Ausführen & \textcolor{fastest}{0.00s} & \textcolor{slowest}{0.98s} & 0.13s \\
+      Kompilieren & \textcolor{fastest}{$0.0s$} & \textcolor{slowest}{$9.1s$} & $3.9s$ \\
+      Ausführen & \textcolor{fastest}{$0.00s$} & \textcolor{slowest}{$0.98s$} & $0.13s$ \\
     \end{tabular}
   \end{block}
-  System: Core2 Duo @ 1.5 GHz x86\_64; OpenJDK~1.6.0\_18; Scala~2.8.0; Caml Light~0.75
+  System: Core2~Duo @ 1.5~GHz x86\_64; OpenJDK~1.6.0\_18; Scala~2.8.0; Caml Light~0.75
 \end{frame}
 
 \begin{frame}{Spaß}
@@ -161,6 +160,7 @@
     \begin{itemize}
       \item Stdlib bereitstellen
       \item Verwendung des JVM"=Stacks
+      \item Threads
     \end{itemize}
   \end{block}
 \end{frame}
