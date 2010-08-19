@@ -46,19 +46,33 @@ object Entrypoint {
 		System.err.println(msg)
 	}
 
+	def output(l: List[Instruction], filename: String) {
+			val out = new java.io.FileWriter(filename)
+			l map ((i: Instruction) => out write (i.toString))
+			out close
+	}
+
 	def main(args: Array[String]) {
 		val config = new TypedMap[Key]
 		val outputFile = Key[String]
 		val inputFile = Key[String]
+		val generateMama = Key[Boolean]
 
 		val parser = new OptionParser("compiler") {
 			opt("o", "output", "the output file, default to a.jar",
 				{v: String => config(outputFile) = v})
+			booleanOpt("m", "mama", "generate MaMa code instead of bytecode",
+				{v: Boolean => config(generateMama) = v})
 			arg("file", "CamlLight source code",
 				{v: String => config(inputFile) = v})
 		}
 		if (parser.parse(args)) {
-			val jarFile = config.get(outputFile) map (_ + ".jar") getOrElse "a.jar"
+			val fileName = (config.get(outputFile), config.get(generateMama)) match {
+				case (Some(filename), Some(true)) => filename + ".mama"
+				case (Some(filename), x) => filename + ".jar"
+				case (None, Some(true)) => "a.mama"
+				case (None, x) => "a.jar"
+			}
 
 			try {
 				config get inputFile orElse {
@@ -116,7 +130,10 @@ object Entrypoint {
 						}
 					}
 				} foreach { case mama =>
-					genByteCode(mama, jarFile)
+					config.get(generateMama) match {
+						case Some(true) => output(mama, fileName)
+						case x => genByteCode(mama, fileName)
+					}
 				}
 			}
 			catch {
