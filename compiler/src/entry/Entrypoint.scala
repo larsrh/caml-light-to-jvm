@@ -47,10 +47,24 @@ object Entrypoint {
 	}
 
 	private final class Chain[T](func: => Option[T]) {
-		lazy val result = func
+		lazy val result =
+			try {
+				func
+			}
+			catch {
+				case ex: Exception =>
+					error("Unknown exception occured")
+					ex.printStackTrace()
+					None
+			}
 
 		def andThen[S](f: T => Option[S]): Chain[S] = result match {
 			case Some(r) => new Chain(f(r))
+			case None => new Chain(None)
+		}
+
+		def andThenChain[S](f: T => Chain[S]): Chain[S] = result match {
+			case Some(r) => f(r)
 			case None => new Chain(None)
 		}
 
@@ -74,7 +88,6 @@ object Entrypoint {
 			arg("file", "CamlLight source code",
 				{v: String => config(inputFile) = v})
 		}
-
 		if (parser.parse(args)) {
 			val jarFile = config.get(outputFile) match {
 				case Some(prefix) => prefix + ".jar"
@@ -113,7 +126,7 @@ object Entrypoint {
 						error(ex.toString)
 						None
 				}
-			} andThen { prog =>
+			} andThenChain { prog =>
 				chain {
 					try {
 						Some(TypeInference.typeCheck(TypeInference.emptyEnv, prog.expr) _2)
@@ -123,6 +136,10 @@ object Entrypoint {
 							error("Type checking failed")
 							error(msg)
 							prog.positions get expr foreach { p => error(p.toString) }
+							None
+						case TypeInference.TypeError(msg) =>
+							error("Type checking failed")
+							error(msg)
 							None
 					}
 				} andThen { gamma =>
@@ -135,7 +152,7 @@ object Entrypoint {
 							error(ex.toString)
 							None
 					}
-				} result
+				}
 			} andFinally { case mama =>
 				genByteCode(mama, jarFile)
 			}
