@@ -16,20 +16,21 @@ class TypeInferenceTests extends TestSuite {
 		assertEquals(List((TypeVariable(1),TypeVariable(2)),
 						  (TypeVariable(4),TypeVariable(1)),
 						  (TypeBool(),TypeVariable(5))),
-					 TypeInference.unify(List(u1)))
+					     // dummy expression, not relevant
+					 TypeInference.unify(List((Integer(1),u1))))
 	})
 
 	test("idFn", {
 		val e1 = Lambda(Id("x"), patterns.Id("x"))
 		assertEquals((List(TypeVariable(1)), TypeFn(TypeVariable(1),TypeVariable(1))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e1))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e1))
 	})
 
 	test("Let_Pattern_Id", {
 		// let x = \y -> y in x x
 		val e2 = Let(patterns.Id("x"), Lambda(Id("y"), patterns.Id("y")), App(Id("x"),Id("x")))
 		assertEquals((List(TypeVariable(4)),TypeFn(TypeVariable(4),TypeVariable(4))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e2))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e2))
 	})
 
 	test("Lambda_App_Curried", {
@@ -38,14 +39,14 @@ class TypeInferenceTests extends TestSuite {
 		assertEquals((List(TypeVariable(3), TypeVariable(6), TypeVariable(4)),
 					  TypeFn(TypeFn(TypeFn(TypeVariable(3),TypeVariable(6)),TypeFn(TypeVariable(6),TypeVariable(4))),
 							 TypeFn(TypeFn(TypeVariable(3),TypeVariable(6)),TypeFn(TypeVariable(3),TypeVariable(4))))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e3))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e3))
 	})
 
 	test("Unification_Fail", {
 		val e4 = Lambda(App(App(Id("1"), Id("2")), App(Id("1"), Id("3"))),
 						patterns.Id("1"), patterns.Id("2"), patterns.Id("3"))
 
-		TypeInference.typeCheck(Map(), e4).shouldThrow[UnificationError]
+		TypeInference.typeCheckTest(Map(), e4).shouldThrow[UnificationError]
 	})
 
 	test("If_Curried_Equals_NonCurried", {
@@ -53,29 +54,29 @@ class TypeInferenceTests extends TestSuite {
 					App(App(Id("1"),Id("2")), App(Id("2"),Id("3"))), patterns.Id("3")), patterns.Id("2")), patterns.Id("1"))
 		val e4m = Lambda(App(App(Id("1"), Id("2")), App(Id("2"), Id("3"))),
 						 patterns.Id("1"), patterns.Id("2"), patterns.Id("3"))
-		assertEquals(TypeInference.typeCheck(TypeInference.emptyEnv, e3),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e4m))
+		assertEquals(TypeInference.typeCheckTest(TypeInference.emptyEnv, e3),
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e4m))
 	})
 
 	test("Nested_Let_With_Poly_Fun", {
 		val e5 = Let(patterns.Id("1"), Lambda(Id("2"), patterns.Id("2")),
 					 Let(patterns.Id("2"), App(Id("1"), Id("1")), App(Id("2"),Id("1"))))
 		assertEquals((List(TypeVariable(7)),TypeFn(TypeVariable(7),TypeVariable(7))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e5))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e5))
 	})
 
 	test("Lambda_Cons_PatternMatch_Tail", {
 		val e6 = Lambda(Id("xs"), patterns.Cons(patterns.Id("x"),patterns.Id("xs")))
 		// should equal: [1] -> [1]
 		assertEquals((List(TypeVariable(1)),TypeFn(TypeList(TypeVariable(1)),TypeList(TypeVariable(1)))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e6))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e6))
 	})
 
 	test("Lambda_Cons_PatternMatch_Head", {
 		val e7 = Lambda(Id("x"), patterns.Cons(patterns.Id("x"),patterns.Id("xs")))
 		// should equal: [1] -> 1
 		assertEquals((List(TypeVariable(1)),TypeFn(TypeList(TypeVariable(1)),TypeVariable(1))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e7))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e7))
 	})
 
 	test("Lambda_Cons_Multiple_Patterns", {
@@ -85,13 +86,13 @@ class TypeInferenceTests extends TestSuite {
 		// [1] -> [3] -> [3]
 		assertEquals((List(TypeVariable(1), TypeVariable(2)),
 					  TypeFn(TypeList(TypeVariable(1)), TypeFn(TypeList(TypeVariable(2)),TypeList(TypeVariable(2))))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e8))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e8))
 	})
 
 	test("Basic_Record_Patttern_Match", {
 		// let x = { one = 2 } in x.one :: Int
 		val e9 = Let(patterns.Id("x"), expressions.Record((Id("one"), Integer(2))), Field(Id("x"), Id("one")))
-		assertEquals((List(),TypeInt()),TypeInference.typeCheck(TypeInference.emptyEnv, e9))
+		assertEquals((List(),TypeInt()),TypeInference.typeCheckTest(TypeInference.emptyEnv, e9))
 	})
 
 	test("Record_Pattern_Match_Multiple_Fields", {
@@ -99,7 +100,7 @@ class TypeInferenceTests extends TestSuite {
 		val e10 = Let(patterns.Id("x"),
 					  expressions.Record((Id("one"), Integer(2)), (Id("inc"), Lambda(Id("x"), patterns.Id("x")))),
 					  App(Field(Id("x"), Id("inc")), Integer(2)))
-		assertEquals((List(),TypeInt()),TypeInference.typeCheck(TypeInference.emptyEnv, e10))
+		assertEquals((List(),TypeInt()),TypeInference.typeCheckTest(TypeInference.emptyEnv, e10))
 	})
 
 	test("NestedRecord_Pattern_Match", {
@@ -108,13 +109,13 @@ class TypeInferenceTests extends TestSuite {
 					  expressions.Record((Id("one"), Integer(2)),
 										 (Id("rec2"), expressions.Record((Id("inc"), Lambda(Id("x"), patterns.Id("x")))))),
 					  App(Field(Field(Id("x"), Id("rec2")), Id("inc")), Field(Id("x"), Id("one"))))
-		assertEquals((List(),TypeInt()),TypeInference.typeCheck(TypeInference.emptyEnv, e11))
+		assertEquals((List(),TypeInt()),TypeInference.typeCheckTest(TypeInference.emptyEnv, e11))
 	})
 
 	test("Lambda_Pattern_Match_Int", {
 		val e12 = Let(patterns.Cons(patterns.Id("x"), patterns.Id("xs")),
 					  Cons(Integer(1), Cons(Integer(2), Nil)), Id("xs"))
-		assertEquals((List(),TypeList(TypeInt())), TypeInference.typeCheck(TypeInference.emptyEnv, e12))
+		assertEquals((List(),TypeList(TypeInt())), TypeInference.typeCheckTest(TypeInference.emptyEnv, e12))
 	})
 
 	test("Match_List_Value", {
@@ -123,7 +124,7 @@ class TypeInferenceTests extends TestSuite {
 							   (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("y"))), patterns.Id("x"))
 
 		assertEquals((List(TypeVariable(3)),TypeFn(TypeList(TypeVariable(3)),TypeVariable(3))),
-			     TypeInference.typeCheck(TypeInference.emptyEnv, e13))
+			     TypeInference.typeCheckTest(TypeInference.emptyEnv, e13))
 	})
 
 	test("Match_ReturnValue_Fail", {
@@ -133,7 +134,7 @@ class TypeInferenceTests extends TestSuite {
 		val e14 = Lambda(Match(Id("x"),
 							   (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("y")),
 							   (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("x"))), patterns.Id("x"))
-		TypeInference.typeCheck(TypeInference.emptyEnv, e14).shouldThrow[UnificationError]
+		TypeInference.typeCheckTest(TypeInference.emptyEnv, e14).shouldThrow[UnificationError]
 	})
 
 	test("Match", {
@@ -144,7 +145,7 @@ class TypeInferenceTests extends TestSuite {
 							   (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("ys")),
 							   (patterns.Cons(patterns.Id("y"),patterns.Nil), Id("x"))), patterns.Id("x"))
 		assertEquals((List(TypeVariable(3)),TypeFn(TypeList(TypeVariable(3)),TypeList(TypeVariable(3)))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e15))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e15))
 	})
 
 	test("Pattern_Match_With_Nil", {
@@ -155,14 +156,14 @@ class TypeInferenceTests extends TestSuite {
 							   (patterns.Cons(patterns.Id("y"),patterns.Id("ys")), Id("ys")),
 							   (patterns.Cons(patterns.Id("y"),patterns.Nil), Nil)), patterns.Id("x"))
 		assertEquals((List(TypeVariable(3)),TypeFn(TypeList(TypeVariable(3)),TypeList(TypeVariable(3)))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e20))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e20))
 	})
 
 	test("Alternative_Pattern", {
 		val test = Lambda(Id("x"), patterns.Alternative(patterns.Cons(patterns.Id("x"),patterns.Id("xs")),
 					   patterns.Cons(patterns.Id("x"),patterns.Nil)))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[TypeError]
+		TypeInference.typeCheckTest(TypeInference.emptyEnv, test).shouldThrow[TypeError]
 	})
 
 	/**
@@ -171,13 +172,13 @@ class TypeInferenceTests extends TestSuite {
 	test("e1", {
 		val e1 = App(Lambda(Id("a"),patterns.Id("a")),Integer(42))
 		assertEquals((List(),TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e1))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e1))
 	})
 
 	test("e2", {
 		val e2 = App(Lambda(BinOp(BinaryOperator.add,Id("a"),Integer(3)),patterns.Id("a")),Integer(42))
 		assertEquals((List(),TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e2))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e2))
 	})
 
 	test("e4", {
@@ -185,7 +186,7 @@ class TypeInferenceTests extends TestSuite {
 					 App(Id("a"),Id("a")))
 		val e4 = App(e3,Integer(42))
 		assertEquals((List(),TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e4))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e4))
 	})
 
 	test("e5", {
@@ -193,7 +194,7 @@ class TypeInferenceTests extends TestSuite {
 					App(App(Id("a"),Id("b")), App(Id("b"), Id("c"))), patterns.Id("c")), patterns.Id("b")), patterns.Id("a"))
 		assertEquals((List(TypeVariable(3), TypeVariable(6), TypeVariable(4)),
 					  TypeFn(TypeFn(TypeFn(TypeVariable(3),TypeVariable(6)),TypeFn(TypeVariable(6),TypeVariable(4))),TypeFn(TypeFn(TypeVariable(3),TypeVariable(6)),TypeFn(TypeVariable(3),TypeVariable(4))))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e5))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e5))
 
 	})
 
@@ -205,7 +206,7 @@ class TypeInferenceTests extends TestSuite {
 						 App(Id("a"), Id("a")),
 						 App(Id("a"), Id("a"))))
 		assertEquals((List(TypeVariable(7)),TypeFn(TypeVariable(7),TypeVariable(7))),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e6))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e6))
 	})
 
 	test("e7", {
@@ -217,30 +218,30 @@ class TypeInferenceTests extends TestSuite {
 		// (let a = \b.b in let b = \a.a in \a.a) 'a'
 		// EXPECTED RESULT 97
 		val e7 = App(e6,Character('a'))
-		assertEquals((List(),TypeChar()), TypeInference.typeCheck(TypeInference.emptyEnv, e7))
+		assertEquals((List(),TypeChar()), TypeInference.typeCheckTest(TypeInference.emptyEnv, e7))
 	})
 
 	test("e8", {
 		val e8 = IfThenElse(BinOp(BinaryOperator.eq,Integer(97),Character('a')),Integer(42),Bool(false))
-		TypeInference.typeCheck(TypeInference.emptyEnv, e8).shouldThrow[UnificationError]
+		TypeInference.typeCheckTest(TypeInference.emptyEnv, e8).shouldThrow[UnificationError]
 	})
 
 	test("e9", {
 		val e9 = Match(Integer(2),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
 		assertEquals((List(),TypeBool()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e9))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e9))
 	})
 
 	test("e10", {
 		val e10 = Match(Integer(4),(patterns.Integer(3),Bool(true)),(patterns.Integer(2),Bool(false)))
 		assertEquals((List(),TypeBool()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e10))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e10))
 	})
 
 	test("e11", {
 		val e11 = Match(Integer(42),(patterns.Id("x"),Id("x")))
 		assertEquals((List(),TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e11))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e11))
 	})
 
 	test("e12", {
@@ -248,7 +249,7 @@ class TypeInferenceTests extends TestSuite {
 						(patterns.Tuple(patterns.Id("x"),patterns.Underscore,patterns.Id("y")),
 						 BinOp(BinaryOperator.add,Id("x"),Id("y"))))
 		assertEquals((List(),TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e12))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e12))
 	})
 
 	test("e13", {
@@ -259,7 +260,7 @@ class TypeInferenceTests extends TestSuite {
 							   (patterns.Tuple(patterns.Id("z"),patterns.Integer(3)),
 								BinOp(BinaryOperator.add,Id("x"),BinOp(BinaryOperator.add,Id("z"),Integer(36)))))))
 		assertEquals((List(),TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e13))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e13))
 	})
 
 	test("e14", {
@@ -271,7 +272,7 @@ class TypeInferenceTests extends TestSuite {
 							   (patterns.Tuple(patterns.Id("z"),patterns.Integer(3)),
 								BinOp(BinaryOperator.add,Id("x"),BinOp(BinaryOperator.add,Id("z"),Integer(36)))))))
 		assertEquals((List(),TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e14))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e14))
 	})
 
 	test("e15", {
@@ -281,38 +282,38 @@ class TypeInferenceTests extends TestSuite {
 						(patterns.Tuple(patterns.Integer(1),patterns.Integer(2),patterns.Id("y")),
 						 Id("y")))
 		assertEquals((List(),TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e15))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e15))
 	})
 
 	test("BinOp_var1", {
 		val test = BinOp(BinaryOperator.add, Integer(1), Integer(2))
 
-		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+		assertEquals((List(), TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("BinOp_var2", {
 		val test = BinOp(BinaryOperator.and, Bool(true), Bool(false))
 
-		assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+		assertEquals((List(), TypeBool()), TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("BinOp_var3", {
 		val test = BinOp(BinaryOperator.add, Integer(1), Bool(true))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
+		TypeInference.typeCheckTest(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
 	})
 
 	test("BinOp_var4", {
 		val test = BinOp(BinaryOperator.and, Integer(1), Bool(true))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
+		TypeInference.typeCheckTest(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
 	})
 
 	test("TupleElem", {
 		val tuple = Tuple(Integer(1), Character('a'))
 		all(
-			assertEquals((List(),TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, TupleElem(tuple, 1))),
-			assertEquals((List(),TypeChar()), TypeInference.typeCheck(TypeInference.emptyEnv, TupleElem(tuple, 2)))
+			assertEquals((List(),TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, TupleElem(tuple, 1))),
+			assertEquals((List(),TypeChar()), TypeInference.typeCheckTest(TypeInference.emptyEnv, TupleElem(tuple, 2)))
 		)
 	})
 
@@ -323,7 +324,7 @@ class TypeInferenceTests extends TestSuite {
 											Integer(1),
 											BinOp(BinaryOperator.mul, Id("n"), App(Id("fac"), BinOp(BinaryOperator.sub, Id("n"), Integer(1))))),
 								 patterns.Id("n"))))
-		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, fac))
+		assertEquals((List(), TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, fac))
 	})
 
 	test("Ackermann", {
@@ -339,7 +340,7 @@ class TypeInferenceTests extends TestSuite {
 								  patterns.Id("n"))))
 
 		assertEquals((List(), TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, test))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("Lambda_Match_Record", {
@@ -347,14 +348,14 @@ class TypeInferenceTests extends TestSuite {
 					expressions.Record((Id("field1"), Cons(Integer(1), Cons(Integer(2), Nil)))),
 					Id("x"))
 		assertEquals((List(), TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e))
 	})
 
 	test("Let_Match_Literal", {
 		// should type check; would throw an pattern match
 		val e = Let(patterns.Integer(1), Integer(2), Integer(3))
 		assertEquals((List(), TypeInt()),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e))
 	})
 
 
@@ -362,7 +363,7 @@ class TypeInferenceTests extends TestSuite {
 		// should type check; would throw an pattern match
 		val e = Lambda(Integer(2), patterns.Integer(1))
 		assertEquals((List(), TypeFn(TypeInt(), TypeInt())),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, e))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, e))
 	})
 
 	test("Oddeven", {
@@ -376,7 +377,7 @@ class TypeInferenceTests extends TestSuite {
 															 (patterns.Underscore, App(Id("odd"), BinOp(BinaryOperator.sub, Id("y"), Integer(1))))),
 													   patterns.Id("y"))))
 
-		assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+		assertEquals((List(), TypeBool()), TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("Complexmatch", {
@@ -392,7 +393,7 @@ class TypeInferenceTests extends TestSuite {
 															 (patterns.Underscore, Cons(Id("n"), App(Id("list"), BinOp(BinaryOperator.sub, Id("n"), Integer(1)))))),
 													   patterns.Id("n"))))
 
-		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+		assertEquals((List(), TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("Record0", {
@@ -401,7 +402,7 @@ class TypeInferenceTests extends TestSuite {
 					   expressions.Record((Id("x"), Integer(1))),
 					   Integer(1))
 
-		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+		assertEquals((List(), TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("Record1", {
@@ -410,13 +411,13 @@ class TypeInferenceTests extends TestSuite {
 					   expressions.Record((Id("x"), Integer(1))),
 					   Integer(1))
 
-		TypeInference.typeCheck(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
+		TypeInference.typeCheckTest(TypeInference.emptyEnv, test).shouldThrow[UnificationError]
 	})
 
 	test("Record2", {
 		val test = Let(patterns.Id("x"), expressions.Record((Id("y"), Lambda(Integer(1), patterns.Integer(2)))), Integer(0))
 
-		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+		assertEquals((List(), TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("Tuple0", {
@@ -424,7 +425,7 @@ class TypeInferenceTests extends TestSuite {
 					   Id("x"))
 
 		assertEquals((List(), TypeTuple(TypeInt(), TypeInt(), TypeInt())),
-					 TypeInference.typeCheck(TypeInference.emptyEnv, test))
+					 TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("Tuple1", {
@@ -432,7 +433,7 @@ class TypeInferenceTests extends TestSuite {
 		val test = Let(patterns.Id("foo"), Lambda(Tuple(Integer(1), Bool(true), Integer(3)), patterns.Id("u")),
 					   Let(patterns.Tuple(patterns.Id("x"), patterns.Id("y"), patterns.Id("z")), App(Id("foo"), Integer(0)), Id("y")))
 
-		assertEquals((List(), TypeBool()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+		assertEquals((List(), TypeBool()), TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("parseInt", {
@@ -473,7 +474,7 @@ class TypeInferenceTests extends TestSuite {
 						  (patterns.Id("parsepositive"), parsepositive),
 						  intofchar)
 
-		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, test))
+		assertEquals((List(), TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, test))
 	})
 
 	test("fib", {
@@ -488,6 +489,6 @@ class TypeInferenceTests extends TestSuite {
 					App(Id("fib"), BinOp(BinaryOperator.sub, Id("n"), Integer(2))))),
 			patterns.Id("n"))))
 
-		assertEquals((List(), TypeInt()), TypeInference.typeCheck(TypeInference.emptyEnv, fib))
+		assertEquals((List(), TypeInt()), TypeInference.typeCheckTest(TypeInference.emptyEnv, fib))
 	})
 }
