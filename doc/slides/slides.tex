@@ -70,7 +70,7 @@
   \begin{block}{Technisches}
     \begin{itemize}
       \item CUP2 + Scala-Layer
-      \item CamlLight"=Syntax
+      \item Caml Light"=Syntax
       \item pro Reduce-Schritt werden die Zeilen- und Spaltennummern hinterlegt
       \item Post-processing: Normalisierung
     \end{itemize}
@@ -212,10 +212,32 @@ unlucky you!
   \end{block}
 \end{frame}
 
+\begin{frame}[fragile]{Codegenerierung: Generierter Bytecode}
+  \begin{block}{\texttt{main()} nach Java übersetzt}
+    \begin{minted}[gobble=6]{java}
+      Machine m = new Machine();
+      boolean terminate = false;
+      int _goto = 0;
+      while(!terminate) {
+        switch(_goto) {
+          case 0:
+          case 1:
+            _goto = m.eval(2);
+            continue;
+          case 2:
+            m.loadc(0);
+          case 3:
+            terminate = true;
+        }
+      }
+    \end{minted}
+  \end{block}
+\end{frame}
+
 \begin{frame}{Zustand}
   \begin{exampleblock}{Was funktioniert}
     \begin{itemize}
-      \item Syntax, mit (sinnvollen?) Fehlermeldungen
+      \item Caml Light Syntax, mit (passenden) Fehlermeldungen
       \item Lambdas, Match, Tupel, Records, Strings, Listen
       \item Ausgabe von Java"=Bytecode
     \end{itemize}
@@ -234,7 +256,7 @@ unlucky you!
     \item eigene Testing-Umgebung, ähnlich zu ScalaTest
     \item $\approx 50$ Testcases für Scanner/Parser
     \item $\approx 50$ Testcases für Typinferenz
-    \item $\approx 150$ Zeilen CamlLight-Programme
+    \item $\approx 150$ Zeilen Caml Light"=Programme
   \end{itemize}
 \end{frame}
 
