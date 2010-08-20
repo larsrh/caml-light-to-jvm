@@ -11,14 +11,13 @@
 \usepackage[autostyle]{csquotes}
 \usepackage{wasysym}
 \usepackage{lmodern}
+\usepackage{units}
 \mode<presentation>{\usetheme{Copenhagen}}
 \title{A Caml Light Compiler for the JVM}
 \author[Hupel, Kubica, Schulze Frielinghaus, Müller, Traytel]{Lars Hupel, Marek Kubica, Stefan Schulze Frielinghaus, \\Edgar Müller, Dmitriy Traytel}
 \institute{TU~München}
 \date{20.~August~2010}
 
-%% get rid of navigation symbols
-%\setbeamertemplate{navigation symbols}{}
 \beamertemplatenavigationsymbolsempty
 
 \definecolor{slowest}{RGB}{255, 0, 0}
@@ -36,13 +35,13 @@
   \begin{block}{Technisches}
     \begin{itemize}
       \item JFlex
-      \item Comments: (* foo (* bar *) baz *)
-      \item Identifier: foo\_bar\_42
-      \item Integer literals: -0x42 ; 0b101010 ; 0o52
-      \item Floating-point literals are missing
-      \item Character literals: 'a' ; '\textbackslash 042'
-      \item String literals: "foo" ; "bar \textbackslash 023"
-      \item Keywords: some
+      \item Kommentare: \texttt{(* foo (* bar *) baz *)}
+      \item Identifier: \texttt{foo\_bar\_42}
+      \item Integer-Literale: \texttt{-0x42}; \texttt{0b101010}; \texttt{0o52}
+      \item Floating-point-Literale: nicht existent
+      \item Character-Literale: \texttt{'a'}; \texttt{'\textbackslash 042'}
+      \item String-Literale: \texttt{"foo"}; \texttt{"bar \textbackslash 023"}
+      \item Keywords: einige...
     \end{itemize}
   \end{block}
 \end{frame}
@@ -50,8 +49,10 @@
 \begin{frame}{Parser}
   \begin{block}{Technisches}
     \begin{itemize}
-      \item CUP2
+      \item CUP2 + Scala-Layer
       \item CamlLight"=Syntax
+      \item pro Reduce-Schritt werden die Zeilen- und Spaltennummern hinterlegt
+      \item Post-processing: Normalisierung
     \end{itemize}
   \end{block}
 \end{frame}
@@ -60,9 +61,9 @@
   \begin{block}{Constraint based typing nach Hindley-Milner}
     \begin{itemize}
       \item ca. 700 LOC, $\approx$ 50 Tests
-      \item Lambda-Kalk\"ul + \texttt{let}-Ausdr\"ucke: easy :)
-      \item Unterst\"utzung von \texttt{match}, \texttt{let rec}, Records, Record-Zugriff, Tupel, Tupel-Zugriff, bin\"are/un\"are Operatoren, if-then-else
-      \item Pattern-Matching f\"ur 
+      \item Lambda-Kalkül + \texttt{let}-Ausdrücke: easy \smiley
+      \item Unterstützung von \texttt{match}, \texttt{let rec}, Records, Record-Zugriff, Tupel, Tupel-Zugriff, binäre/unäre Operatoren, if-then-else
+      \item Pattern Matching für 
         \begin{itemize}
 	  \item Literale
 	  \item Underscore
@@ -75,7 +76,7 @@
 \end{frame}
 
 \begin{frame}[fragile]{Typinferenz}
-  \begin{block}{Beispiel: Record-Pattern-Match}
+  \begin{block}{Beispiel: Record Pattern}
       \begin{minted}[gobble=12]{ocaml}
             let { foo = (_,(x,y)); bar = z::zs } =
                 { foo = ('a',(1,2::[])); bar = [true;false;true] }
@@ -111,6 +112,63 @@ ERROR: Couldn't unify types:
 \end{frame}
 
 \begin{frame}{Codegenerierung: MaMa}
+  \begin{block}{Übersetzung AST $\Longrightarrow$ MaMa}
+    \begin{itemize}
+      \item Vorgehen wie in
+        \begin{center}
+          \emph{[Wilhelm, Seidl -- Übersetzerbau: Virtuelle Maschinen]}
+        \end{center}
+    \end{itemize}
+  \end{block}
+  \begin{block}{Erweiterungen}
+    \begin{itemize}
+      \item Records        
+        \begin{itemize}
+          \item Implementierung als namenlose Tupel
+          \item Feldnamensauflösung mit Hilfe der Typinferenz
+        \end{itemize}
+	 \item Pattern matching mit beliebigen Patterns        
+        \begin{itemize}
+          \item \pause kompliziert$\ldots$
+        \end{itemize}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Codegenerierung: MaMa -- Pattern Matching}
+  \begin{block}{Pattern Matching im AST}
+  	\texttt{match} $e_0$ \texttt{with} $p_1$ \texttt{->} $e_1$ \texttt{|} $\ldots$ \texttt{|} $p_n$ \texttt{->} $e_n$
+  \end{block}
+  \begin{block}{Idee}
+    \begin{itemize}
+  	\item Generiere rekursiv sogenannten \emph{matching code} für jedes einzelne Pattern $p_i$.
+  	\item Invariante: nach Ausführung des \emph{matching code} liegt auf dem Stack eine 1, falls $e_0$ $p_i$ matcht, sonst 0.
+  	\item Zusammengesetzte Patterns (wie z.B. Tupel) generieren den \emph{matching code} rekursiv und führen \texttt{AND}-Instruktionen aus.  
+  	\item Dabei wird der Code für $e_0$ nur einmal generiert.
+  	\end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Codegenerierung: MaMa -- Fehlermeldungen}
+\begin{block}{\texttt{let hd = fun x::xs -> x in hd []}}
+\begin{itemize}
+\item Für jedes Pattern Matching lege auf den Stack:
+\begin{enumerate}
+\item Den Match-Ausdruck
+\item Zeilen- und Spaltenangaben
+\end{enumerate}
+\item Virtuelle MaMa-Maschine produziert Ausgaben von der Form:
+\begin{small}
+\begin{verbatim}
+Exception in thread "main" java.lang.RuntimeException: 
+Pattern match failure in the expression
+	"match (427 @ 0) with [(4212);(_)] -> (4212)"
+in line 1 and column 24
+unlucky you!
+\end{verbatim}
+\end{small}
+\end{itemize}
+\end{block}
 \end{frame}
 
 \begin{frame}{Codegenerierung: JVM"=Bytecode}
@@ -151,6 +209,15 @@ ERROR: Couldn't unify types:
   \end{alertblock}
 \end{frame}
 
+\begin{frame}{Testing}
+  \begin{itemize}
+    \item eigene Testing-Umgebung, ähnlich zu ScalaTest
+    \item $\approx 50$ Testcases für Scanner/Parser
+    \item $\approx 50$ Testcases für Typinferenz
+    \item $\approx 150$ Zeilen CamlLight-Programme
+  \end{itemize}
+\end{frame}
+
 \begin{frame}{Benchmarks}
   \begin{block}{Ackermann(3, 5)}
     Zweifaches Pattern Matching
@@ -158,8 +225,8 @@ ERROR: Couldn't unify types:
     \begin{tabular}{l|l|l|l}
        & Caml Light & Scala & TUM \\
       \hline
-      Kompilieren & \textcolor{fastest}{$0.0s$} & \textcolor{slowest}{$9.3s$} & $4.1s$ \\
-      Ausführen & \textcolor{fastest}{$0,00s$} & $1.03s$ & \textcolor{slowest}{$1.69s$} \\
+      Kompilieren & \textcolor{fastest}{\unit[0.0]{s}} & \textcolor{slowest}{\unit[9.3]{s}} & \unit[4.1]{s} \\
+      Ausführen & \textcolor{fastest}{\unit[0.00]{s}} & \unit[1.03]{s} & \textcolor{slowest}{\unit[1.69]{s}} \\
     \end{tabular}
   \end{block}
   \begin{block}{Factorial(10)}
@@ -168,8 +235,8 @@ ERROR: Couldn't unify types:
     \begin{tabular}{l|l|l|l}
        & Caml Light & Scala & TUM \\
       \hline
-      Kompilieren & \textcolor{fastest}{$0.0s$} & \textcolor{slowest}{$9.1s$} & $3.9s$ \\
-      Ausführen & \textcolor{fastest}{$0.00s$} & \textcolor{slowest}{$0.98s$} & $0.13s$ \\
+      Kompilieren & \textcolor{fastest}{\unit[0.0]{s}} & \textcolor{slowest}{\unit[9.1]{s}} & \unit[3.9]{s} \\
+      Ausführen & \textcolor{fastest}{\unit[0.00]{s}} & \textcolor{slowest}{\unit[0.98]{s}} & \unit[0.13]{s} \\
     \end{tabular}
   \end{block}
   System: Core2~Duo @ 1.5~GHz x86\_64; OpenJDK~1.6.0\_18; Scala~2.8.0; Caml Light~0.75
@@ -177,24 +244,23 @@ ERROR: Couldn't unify types:
 
 \begin{frame}{Spaß}
   \begin{block}{Code}
-    $\approx 3.300$ LOC Scala, $\approx 650$ LOC Java, $> 250$ Commits
+    $\approx 3.300$ LOC Scala, $\approx 650$ LOC Java, $> 325$ commits
   \end{block}
-  \begin{block}{Best of Commit"=Messages}
+  \begin{block}{Best of Commit"=Messages}\footnotesize
     \begin{itemize}
-      % TODO: select best
-      \item \enquote{Write the bytes in, you know, a correct way}
+      %\item \enquote{Write the bytes in, you know, a correct way}
       \item \enquote{Whee, the machine can actually run more complicated code without failing}
-      \item \enquote{Look at me mom, I made a jQuery"=like chainable DSL for generating bytecode}
-      \item \enquote{Maching of tuples works but is REALLY ugly}
-      \item \enquote{fixed REALLY stupid bug with CUP2/Scala layer}
+      %\item \enquote{Look at me mom, I made a jQuery"=like chainable DSL for generating bytecode}
+      %\item \enquote{Maching of tuples works but is REALLY ugly}
+      %\item \enquote{fixed REALLY stupid bug with CUP2/Scala layer}
       \item \enquote{Get out of the JAR, *.mama. You're not even bytecode!}
       \item \enquote{Case classes should not inherit other case classes, you know? We have so much syntactic sugar, use that instead!}
       \item \enquote{Hey ., you should really consider matching newlines, too!}
-      \item \enquote{fixed \enquote{closures vs getbasic}}
-      \item \enquote{Changed order of generated code instruction so that the code is actually valid}
+      %\item \enquote{fixed \enquote{closures vs getbasic}}
+      %\item \enquote{Changed order of generated code instruction so that the code is actually valid}
       \item \enquote{Scala supports some mad syntactic sugar. Mad! I tell you.}
       \item \enquote{Marek goes insane and after that, realizes that bipush handles only +127 and then wraps around.}
-      \item \enquote{I can haz right order of valyooz?}
+      %\item \enquote{I can haz right order of valyooz?}
       \item \enquote{I heard you want to know where exactly the typo in your souce code is. Here you are!}
     \end{itemize}
   \end{block}

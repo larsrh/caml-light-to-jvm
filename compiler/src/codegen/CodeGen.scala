@@ -35,11 +35,11 @@
  *   elements and check whether all cases are matching using the AND MaMa-
  *   instruction. A similar construction is used for generating the matching
  *   code of arbitrary list patterns. Here, to match CONS head tail ,we need to
- *   check whether the expression MATCH e0 WITH NIL -> false | CONS h t -> h
- *   matches head and the expression MATCH e0 WITH NIL -> false | CONS h t -> t
+ *   check whether the expression MATCH e0 WITH CONS h t -> h
+ *   matches head and the expression MATCH e0 WITH CONS h t -> t
  *   matches tail. Here h and t are new variables. These expressions correspond
- *   to the normal form, s.t. the TLIST instruction can be used to generate this
- *   code.
+ *   to an other normal form, s.t. the TLIST instruction can be used to generate
+ *   this code.
  ******************************************************************************/
 
 package codegen.mama

@@ -13,6 +13,17 @@ object Util {
 		final def pp = prettyPrint
 	}
 
+	final class PrettyFormatString(str: String) {
+		def pformat(args: PrettyPrintable*) = str.format(args.map(_.prettyPrint): _*)
+	}
+
+	implicit def prettyFormatString(str: String) = new PrettyFormatString(str.replace("%", "%s"))
+
+	implicit def any2PrettyPrintable(obj: Any) = obj match {
+		case p: PrettyPrintable => p
+		case _ => new PrettyPrintable { override def prettyPrint = obj.toString }
+	}
+
 	trait SList[Base, L <: Base] { self: L => }
 
 	trait SCons[Base, L <: Base] extends SList[Base, L] { self: L =>

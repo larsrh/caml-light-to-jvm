@@ -13,21 +13,21 @@ package expressions {
 		val prettyPrint: Expression => String = {
 			case Id(name) => name
 			case Const(value) => value.toString
-			case IfThenElse(c, t, f) => "if (%s) then (%s) else (%s)".format(c.pp, t.pp, f.pp)
-			case Let(p, d, b) => "let %s = (%d) in (%b)".format(p, d.pp, b.pp)
+			case IfThenElse(c, t, f) => "if (%) then (%) else (%)".pformat(c, t, f)
+			case Let(p, d, b) => "let % = (%) in (%)".pformat(p, d, b)
 			case LetRec(b, defs @ _*) =>
-				defs map { d => "%s = (%s)".format(d._1.name, d._2.pp) } mkString("let rec ", "and", " in " + b.pp)
-			case UnOp(op, e) => "%s(%s)".format(op, e.pp)
+				defs map { d => "% = (%)".pformat(d._1, d._2) } mkString("let rec ", "and", " in " + b.pp)
+			case UnOp(op, e) => "%(%)".pformat(op, e)
 			case BinOp(op, e1, e2) => print(op.toString, e1, e2)
-			case App(func, args @ _*) => "(%s) %s".format(func.pp, print(" ", args: _*))
-			case e: ListExpression => "[%s]" format print(";", e: _*)
-			case Tuple(exprs @ _*) => "(%s)" format print(",", exprs: _*)
-			case TupleElem(tuple, nr) => "%s @ %d".format(tuple.pp, nr)
-			case Record(defs @ _*) => defs map { d => "%s: %s".format(d._1, d._2.pp) } mkString ("{", ";", "}")
-			case Field(rec, name) => "(%s).%s".format(rec.pp, name)
+			case App(func, args @ _*) => "(%) %".pformat(func, print(" ", args: _*))
+			case e: ListExpression => "[%]" pformat print(";", e: _*)
+			case Tuple(exprs @ _*) => "(%)" pformat print(",", exprs: _*)
+			case TupleElem(tuple, nr) => "% @ %".pformat(tuple.pp, nr)
+			case Record(defs @ _*) => defs map { d => "% = %".pformat(d._1, d._2) } mkString ("{", ";", "}")
+			case Field(rec, name) => "(%).%".pformat(rec, name)
 			case Match(scrutinee, clauses @ _*) =>
-				clauses map { c => "%s -> (%s)".format(c._1, c._2.pp) } mkString("match (%s) with " format (scrutinee.pp), " | ", "")
-			case Lambda(body, pats @ _*) => "fun %s -> (%s)".format(pats mkString " ", body.pp)
+				clauses map { c => "% -> (%)".pformat(c._1, c._2) } mkString("match (%) with " pformat (scrutinee), " | ", "")
+			case Lambda(body, pats @ _*) => "fun % -> (%)".pformat(pats mkString " ", body)
 			case expr => expr.toString
 		}
 
@@ -195,9 +195,9 @@ package patterns {
 			case Id(name) => name
 			case Const(value) => value.toString
 			case Underscore => "_"
-			case Record(pats @ _*) => pats map { p => "%s: %s".format(p._1, p._2.pp) } mkString ("{", ";", "}")
+			case Record(pats @ _*) => pats map { p => "% = %".pformat(p._1, p._2) } mkString ("{", ";", "}")
 			case e: ListPattern => "[%s]" format print(";", e: _*)
-			case Alternative(pat1, pat2) => "(%s) | (%s)".format(pat1.pp, pat2.pp)
+			case Alternative(pat1, pat2) => "(%) | (%)".pformat(pat1, pat2)
 			case Tuple(pats @ _*) => "(%s)" format print(",", pats: _*)
 			case pat => pat.toString
 		}
