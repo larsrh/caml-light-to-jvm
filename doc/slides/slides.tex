@@ -31,6 +31,26 @@
 % define the logo after the title page
 \logo{\includegraphics[width=1.5cm]{tun}}
 
+\begin{frame}{Übersicht}
+	\begin{enumerate}
+		\item Eingabe: CamlLight (mit leichter Modifikation)
+		\item Scanning mit JFlex
+		\item Parsing mit CUP2
+		\item Magic
+		\item Code-Generierung nach MaMA (ebenfalls modifiziert)
+		\item Übersetzung nach JVM
+	\end{enumerate}
+\end{frame}
+
+\begin{frame}{Ablauf}
+	\begin{itemize}
+		\item für den Compiler steht ein komplettes Ant-Skript zur Verfügung:\\
+			\texttt{ant jar}
+		\item Aufruf über Shell-Skript:\\
+			\texttt{bin/compiler prog.cl -o foo}
+	\end{itemize}
+\end{frame}
+
 \begin{frame}{Lexer}
   \begin{block}{Technisches}
     \begin{itemize}
@@ -269,7 +289,8 @@ unlucky you!
 \begin{frame}{Rückblick}
   \begin{exampleblock}{Was war gut}
     \begin{itemize}
-      \item Scala Patternmatching
+      \item Scalas Pattern Matching
+	  \item Verwendung von Git (Branching!)
       \item Betreuung \smiley
     \end{itemize}
   \end{exampleblock}
