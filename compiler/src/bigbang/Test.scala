@@ -49,7 +49,7 @@ object Test {
 		inputs foreach { x => 
 			val prog = parseExp(Source.fromFile("test/bigbang/" + x + ".cl").mkString(""));
 			//Console println "***************************"
-			//Console println exp
+			//Console println prog.expr.pp
 			val mamaCode = genMaMaCode(prog,typeCheck(prog.expr))
 			output(mamaCode, x)
 			genByteCode(mamaCode, "test/bigbang/" + x + ".jar")

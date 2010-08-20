@@ -489,7 +489,7 @@ class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInferen
 		case App(f,args@_*) => 
 			args.toList.foldLeft(free(f,vs))((s:LinkedHashSet[Id],arg:Expression) => s ++ free(arg,vs))
 		case Lambda(body,args@_*) => free(body, vs ++ ((LinkedHashSet.empty ++ args) flatMap bound))
-		case Let(pat,_,expr) => free(expr, vs ++ bound(pat))
+		case Let(pat,d,expr) => free(d, vs ++ bound(pat)) ++ free(expr, vs ++ bound(pat))
 		case LetRec(body,patDef@_*) => {
 				val (pats,defs) = (LinkedHashSet.empty ++ patDef).unzip
 				val vsNew = vs ++ (pats flatMap bound)
@@ -498,6 +498,9 @@ class Translator(posMap:Map[Expression,Position],gamma:typeinference.TypeInferen
 		case Match(exp,patCase@_*) => {
 				val (pats,cases) = (LinkedHashSet.empty ++ patCase).unzip
 				val vsNew = vs ++ (pats flatMap bound)
+        //Console println vsNew.mkString("\n")
+        //Console println ((cases + exp) flatMap ((e:Expression) => free(e,vsNew))).mkString("\n")
+
 				(cases + exp) flatMap ((e:Expression) => free(e,vsNew))
 			}
 		case Tuple(es@_*) => LinkedHashSet.empty ++ es.toList flatMap (free(_:Expression,vs))
