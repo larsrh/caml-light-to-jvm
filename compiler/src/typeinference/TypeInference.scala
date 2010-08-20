@@ -326,14 +326,11 @@ object TypeInference {
 	val (tbody,fresh3,constraints3,_) = constraintGen(gamma1, body, fresh2)
 	(tbody,fresh3, constraints1 ++ (constraints2 map ((e,_))) ++ constraints3,gamma)
 
-	// ignore constraints for type of expr
-	// it only has to match a list
       case e@expressions.Let(patterns.Nil, expr, body) =>
 	val (typeExpr,fresh1,constraints1,_) = constraintGen(gamma,expr,fresh)
 	val (typeBody, fresh2, constraints2,_) = constraintGen(gamma, body, fresh1)
 	(typeBody, fresh2+1,
 	 (e,(typeExpr,TypeList(TypeVariable(fresh2))))::constraints1 ++ constraints2,gamma)
-
 
       case e@expressions.Let(p@patterns.Tuple(_@_*), expr, body) =>
 	val (typeExpr, fresh1, constraints1,_) = constraintGen(gamma,expr,fresh)
@@ -375,14 +372,12 @@ object TypeInference {
 	(TypeChar(), fresh1, (e,(typeExpr,TypeChar()))::constraints,gamma)
 	    
       case e@expressions.Match(scrut, clauses@_*) =>
-	// all clauses must match the same type
 	val (scrutType, fresh1, constraints,_) = constraintGen(gamma, scrut, fresh)
 	val (fresh2, scrutType1,typeExpr,cs) = checkClauses(e, gamma, scrutType,
 							    constraints map ((_._2)), fresh1)
 	(typeExpr, fresh2, (e, (scrutType,scrutType1))::cs++constraints,gamma)
 
       case expressions.LetRec(body, funs@_*) =>
-	// put function names into type environment
 	val (gamma1, fresh1) = handleLetRecExpressions(gamma, fresh, funs.toList)
 	constraintGen(gamma1, body, fresh1)
     }
