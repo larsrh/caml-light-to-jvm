@@ -6,10 +6,9 @@ import parser.ast.types.TypeDefinition
 import parser.generator._
 
 import edu.tum.cup2.generator.LR1Generator
-import edu.tum.cup2.io.LRParserSerialization
 import edu.tum.cup2.parser.LRParser
 import edu.tum.cup2.parser.exceptions.MissingErrorRecoveryException
-import edu.tum.cup2.semantics.ActionCallback
+//import edu.tum.cup2.semantics.ActionCallback
 
 import scala.collection.mutable
 import scala.util.control.Breaks._
@@ -18,7 +17,6 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.Reader
 import java.io.StringReader
-import java.io.ObjectInputStream
 
 object Position {
 	private[parser] def fromScanner(scanner: CamlLightScanner) = Position(scanner.getLine, scanner.getColumn, scanner.yytext)
@@ -38,11 +36,6 @@ final class ScannerException(pos: Position, cause: Exception) extends CompilerEx
 final class ParserException(pos: Position, cause: Exception) extends CompilerException("Parsing failed", pos, cause)
 
 object Parser {
-
-	// called by ant task 'cup2-compile'
-	def main(args: Array[String]) {
-		new LRParserSerialization(args(0)).saveParser(lrparser)
-	}
 
 	object Program {
 		type Parent = (Expression, List[TypeDefinition])
@@ -69,7 +62,7 @@ object Parser {
 		
 	}
 
-	private def mkCallback(scanner: CamlLightScanner, map: mutable.Map[Expression, Position]) = new ActionCallback {
+	/*private def mkCallback(scanner: CamlLightScanner, map: mutable.Map[Expression, Position]) = new ActionCallback {
 		override def actionDone(input: Object): Object = {
 			input match {
 				case expr: Expression =>
@@ -78,7 +71,7 @@ object Parser {
 			}
 			input
 		}
-	}
+	}*/
 
 	private def normalizeAndReplace(map: mutable.Map[Expression, Position]): (Expression => Expression) = {
 		val stack = mutable.Stack[Expression]()
@@ -119,43 +112,7 @@ object Parser {
 		normalize
 	}
 
-	private val lrparser: LRParser =
-		try {
-			val sysLocation = System.getProperty("parser.table")
-			if (sysLocation != null) {
-				loadParserFromFile(sysLocation, true).get
-			}
-			else {
-				// sorry, I agree that this whole handling is totally retarded, because
-				// everything throws NullPointerExceptions everywhere
-
-				// try to load the CUP2 parser table from JAR
-				val loader = classOf[Program].getClassLoader
-				val tableStream = loader.getResourceAsStream("parser/table.ser")
-
-				if (tableStream == null) {
-					// if we don't have a table.ser in our jarfile
-					new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
-				} else {
-					val ois = new ObjectInputStream(tableStream)
-
-					try {
-						val parser = ois.readObject.asInstanceOf[LRParser]
-						parser match {
-							case null => new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
-							case p => p
-						}
-					} catch {
-							case ex: NullPointerException =>
-								new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
-					}
-				}
-			}
-		}
-		catch {
-			case ex: Exception =>
-				throw new AssertionError("Initialisation of parser failed", ex)
-		}
+	private val lrparser: LRParser = new LRParser(new LR1Generator(CamlLightSpec).getParsingTable())
 
 	def parse(string: String): Program = parse(new StringReader(string))
 
@@ -164,7 +121,7 @@ object Parser {
 		try {
 			CamlLightSpec.reset()
 			val map = new mutable.HashMap[Expression, Position]()
-			val result = lrparser.parse(scanner, mkCallback(scanner, map))
+			val result = lrparser.parse(scanner)//, mkCallback(scanner, map))
 			assert(classOf[Program.Parent].isAssignableFrom(result.getClass))
 			val (expr, types) = result.asInstanceOf[Program.Parent]
 			val normalized = normalizeAndReplace(map)(expr)

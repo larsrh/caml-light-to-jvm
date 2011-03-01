@@ -1,0 +1,35 @@
+This is a version not failing under Scala 2.8.1. Apparently, there is a
+regression in the Scala library causing Enumerations to behave strangely.
+This bug isn't even fixed in Scala trunk (2.9 development). Therefore, 
+this branch 'scala-2.8.1' implemented a workaround with some drawbacks
+in compiler functionality.
+
+* The Ant targets 'cup2-compile' et cetera have been removed because the
+  deserialization of the prepared grammar failed even harder than before.
+* To enable nice error output with source code position, we patched CUP2
+  ('ActionCallback'). Unfortunately, the author isn't able to find that
+  patch and because we had to rebuild CUP2, this functionality is lost.
+  It is not hard to implement, though.
+
+To build a version of CUP2 working with 2.8.1, use the following patch:
+
+Index: src_scala/edu/tum/cup2/spec/scala/ScalaCUPSpecification.scala
+===================================================================
+--- src_scala/edu/tum/cup2/spec/scala/ScalaCUPSpecification.scala	(Revision 643)
++++ src_scala/edu/tum/cup2/spec/scala/ScalaCUPSpecification.scala	(Arbeitskopie)
+@@ -31,9 +31,13 @@
+   val nonTerminals : SymbolEnum
+   
+   /** Make it easy to access terminals as Array */
+-  def terminalsArr : Array[Terminal] = Array[Terminal]() ++ (terminals.values map ( _.asInstanceOf[Terminal] ))
++  def terminalsArr : Array[Terminal] = Array[Terminal]() ++ (terminals.values collect ({
++	case x: Terminal => x
++  }: PartialFunction[Object, Terminal]))
+   /** Make it easy to access nonterminals as Array */
+-  def nonTerminalsArr = Array[NonTerminal]() ++ (nonTerminals.values map ( _.asInstanceOf[NonTerminal] ))
++  def nonTerminalsArr : Array[NonTerminal] = Array[NonTerminal]() ++ (nonTerminals.values collect ({
++	case x: NonTerminal => x
++  }: PartialFunction[Object, NonTerminal]))
+       
+   
+   /**

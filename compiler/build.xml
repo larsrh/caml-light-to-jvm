@@ -86,34 +86,7 @@
         <delete file="${jflex.dir}/${jflex.output}" />
     </target>
 
-	<!-- CUP2 Parser generator -->
-	<property name="cup2.input" value="src/parser/generator/CamlLightSpec.scala" />
-	<property name="cup2.output.compile" value="build/classes/parser" />
-	<property name="cup2.output.jar" value="dist" />
-	<property name="cup2.output.file" value="table.ser" />
-	<property name="cup2.serializer" value="parser.Parser" />
-
-	<target name="cup2-changed">
-		<uptodate property="cup2.nochanges" srcfile="${cup2.input}" targetfile="${cup2.output.compile}/${cup2.output.file}" />
-	</target>
-
-    <target name="cup2-compile" depends="cup2-changed" unless="cup2.nochanges">
-		<echo message="Generating CUP2 parser table" />
-		<delete file="${cup2.output.compile}/${cup2.output.file}" />
-		<delete file="${cup2.output.jar}/${cup2.output.file}" />
-        <java fork="true" failonerror="true" classpath="${run.classpath}:${scala.home}/lib/scala-library.jar" classname="${cup2.serializer}">
-            <arg value="${cup2.output.compile}/${cup2.output.file}" />
-        </java>
-    </target>
-
-	<target name="cup2-jar" depends="cup2-compile">
-		<copy file="${cup2.output.compile}/${cup2.output.file}" toDir="${cup2.output.jar}" />
-	</target>
-
-    <!-- overrides -->
 	<target name="-compile-depend" depends="jflex" />
-	<target name="-post-compile" depends="cup2-compile" />
 	<target name="-post-clean" depends="jflex-clean" />
 	<target name="-javadoc-build" /> <!-- disabled because Scaladoc fails -->
-	<target name="-post-jar" depends="cup2-jar" />
 </project>
