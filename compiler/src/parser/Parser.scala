@@ -45,7 +45,7 @@ object Parser {
 	final class Program(val expr: Expression, val typeDefs: List[TypeDefinition], val positions: mutable.Map[Expression, Position])
 		extends Program.Parent(expr, typeDefs)
 
-	private def loadParserFromFile(filename: String, `throw`: Boolean = true): Option[LRParser] = {
+/*	private def loadParserFromFile(filename: String, `throw`: Boolean = true): Option[LRParser] = {
 		try {
 			if (new File(filename).exists)
 				Some(new LRParserSerialization(filename).loadParser())
@@ -60,7 +60,7 @@ object Parser {
 					None
 		}
 		
-	}
+	}*/
 
 	/*private def mkCallback(scanner: CamlLightScanner, map: mutable.Map[Expression, Position]) = new ActionCallback {
 		override def actionDone(input: Object): Object = {
